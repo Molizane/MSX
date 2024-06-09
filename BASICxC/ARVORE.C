@@ -101,17 +101,3 @@ VOID calcxy() {
     xdsin(&y, &ra);
     xdmul(&y, &y, &size);
 }
-ul(&y, &y, &size);
-}
-);
-}
-ul(&y, &y, &size);
-}
-    torad(&ra);
-    xdcos(&x, &ra);
-    xdmul(&x, &x, &size);
-    xdsin(&y, &ra);
-    xdmul(&y, &y, &size);
-}
-}
-
