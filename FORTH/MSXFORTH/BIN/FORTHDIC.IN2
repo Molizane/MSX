@@ -1,0 +1,687 @@
+;
+CSCODE: db 5,'SCODE'
+        dw CCR
+SCODE:  dw RUNF
+        dw OUTRP,ULTIMA,POK16,ENDF
+;
+; : CONSTANT CREATE , ;CODE ...
+CCONST: db 8,'CONSTANT'
+        dw CSCODE
+CONST:  dw RUNF
+        dw CREATE,POKD16,SCODE
+_CONST: ex de,hl
+        ld e,(hl)
+        inc hl
+        ld d,(hl)
+        push de
+        jp NEXT
+;
+CVAR: db 3,'VAR'
+      dw CCONST
+VAR:  dw RUNF
+      dw CONST,SCODE
+_VAR: push de
+      jp NEXT
+;
+CVARIAB: db 8,'VARIABLE'
+         dw CVAR
+VARIAB:  dw RUNF
+         dw ZERO,VAR,ENDF
+;
+CISERR:  db 6,'?ERROR'
+         dw CDDIV   ;CVARIAB
+ISERROR: dw RUNF
+         dw SWAP,BRCH0,ISER1,QUESTION
+ISER1:   dw DROP,ENDF
+;
+CQUESTION: db 8,'QUESTION'
+           dw CISERR
+QUESTION:  dw $+2
+           call CRLF
+           ld hl,(PRECOMP)
+           call IMM
+           ld a,' '
+           call VIDEO
+           ld a,'?'
+           call VIDEO
+Q2:        call CRLF
+           call CRLF
+           ld a,(PMOD)
+           and a
+           jp z,SCANBUF
+           ; REPOE PRECOMP COM A POSICAO DE MEMORIA LIVRE ANTES DA
+           ; TENTATIVA DE COMPILACAO DA PALAVRA ATUAL
+           ld hl,(PUPDC)
+           ld e,(hl)
+           inc hl
+           ld d,(hl)
+           ex de,hl
+           ld (PRECOMP),hl
+           ld a,(hl)
+           add a,l
+           ld l,a
+           jr nc,Q1
+           inc h
+Q1:        inc hl
+           inc hl
+           ld a,(hl)
+           ld (de),a
+           dec hl
+           dec de
+           ld a,(hl)
+           ld (de),a
+           jp SCANBUF
+;
+PVZ: db 12,' PILHA VAZIA'
+;
+VZ: dw $+2
+    pop hl
+    add hl,hl
+    ex de,hl
+    ld hl,(PPP)
+    xor a
+    sbc hl,de
+    and a
+    sbc hl,sp
+    jp nc,NEXT
+    call MSX_BEEP
+    ld hl,PVZ
+    call IMM
+    jp Q2
+;
+
+PZRDIV: db 18,07H,' DIVISAO POR ZERO'
+;
+ZRDIV: dw $+2
+       ld hl,PZRDIV
+       call IMM
+       jp Q2
+
+COUTIN: db 5,'OUTIN'
+        dw CQUESTION
+OUTIN:  dw RUNF
+        dw BLANK,WORD,ISEARCH,BRCH0
+        dw OU1,INUMBER,IGU0,BRCH0,OU2
+OU4:    dw FWORD,PEK16,BRCH0,OU2+2,BRCH
+        dw OUTIN+2
+OU1:    dw IEXEC,BRCH,OU4
+OU2:    dw QUESTION,MODE,PEK16,IGU0,BRCH0,OU3,OK
+OU3:    dw ENDF
+;
+CSET_PRN: db 8,'+PRINTER'
+          dw COUTIN
+          dw $+2
+          ld a,-1
+          ld (LST),a
+          jp NEXT
+;
+CRST_PRN: db 8,'-PRINTER'
+          dw CSET_PRN
+          dw $+2
+          xor a
+          ld (LST),a
+          jp NEXT
+;
+CSET_SCR: db 7,'+SCRMOD'
+          dw CRST_PRN
+          dw $+2
+          ld a,-1
+          ld (CONS),a
+          jp NEXT
+;
+CRST_SCR: db 7,'-SCRMOD'
+          dw CSET_SCR
+          dw $+2
+          xor a
+          ld (CONS),a
+          jp NEXT
+;
+CLIST: db 4,'LIST'
+       dw CRST_PRN
+       dw RUNF
+       dw DUP,DUP,PEK8,MAIS,MAIS1
+       dw SWAP,MAIS1,CR,B_LOOP
+LIST1: dw LELOOP,PEK8,EMIT,LOOP,LIST1
+       dw CR,ENDF
+;
+CLOAD: db 4,'LOAD'
+       dw CLIST
+       dw RUNF
+       dw MAIS1,LBP,POK16,ONE,FWORD
+       dw POK16,OUTIN,ENDF
+;
+CINTXT: db 6,'INTEXT'
+        dw CLOAD
+        dw RUNF
+        dw CR,EXPECT,ENDF
+;
+CBUFFER: db 6,'BUFFER'
+         dw CINTXT
+         dw RUNF
+         dw BUILDS,DUP,DUP,POKD16
+         dw ALLOT,DOES,DUP,PEK16,SWAP
+         dw MAIS2,SWAP,ENDF
+;
+CINBUFF: db 8,'INBUFFER'
+         dw CBUFFER
+         dw RUNF
+         dw CR,EXPECT,ENDF
+;
+CFORGET: db 6,'FORGET'
+         dw CINBUFF
+         dw RUNF
+         dw CURRENT,PEK16,CONTEXT
+         dw POK16,PESQ,DUP,MENOS2,PEK16
+         dw CURRENT,PEK16,POK16,DP,PEK16
+         dw PEK8,THREE,MAIS,MENOS,DP,POK16
+         dw PUSHN,ENDF,PUSHN,FAR,POK16,ENDF
+;
+; TRANSFORMA A ULTIMA PALAVRA INCLUIDA NO DICIONARIO
+; EM COMANDO DE COMPILACAO (USADO ENTRE ":" E ";"
+CIMMEDIATE: db 9,'IMMEDIATE'
+            dw CFORGET
+            dw RUNF
+            dw ENTRY,DUP,DUP,PEK8,MAIS1
+            dw MAIS,DUP,PEK16,CURRENT
+            dw PEK16,POK16,COMPILER
+            dw PEK16,SWAP,POK16,COMPILER
+            dw POK16,ENDF
+;
+CHLOOP: db 5,'LOOPS'
+        dw CIMMEDIATE
+        dw RUNF
+        dw CR,CR,DISP
+        db 44,'Fim+1 In',0A1H,'cio DO <.[I].> [LEAVE] <.[I].> LOOP'
+        dw CR,CR,DISP
+        db 51,'Fim+1 In',0A1H,'cio DO <.[I].> [LEAVE] <.[I].> Valor +LOOP'
+        dw CR,CR,DISP
+        db 16,'BEGIN <..> AGAIN'
+        dw CR,CR,DISP
+        db 21,'BEGIN <..> Flag UNTIL'
+        dw CR,CR,DISP
+        db 35,'BEGIN <..> Flag WHILE [<..>] REPEAT'
+        dw CR,CR,ENDF
+;
+CBEGIN: db 5,'BEGIN'
+        dw CDLOOP   ;CCODI
+        dw RUNF
+        dw HERE,ENDF
+;
+CWHILE: db 5,'WHILE'
+        dw CBEGIN
+        dw RUNF
+        dw PUSHN,BRCH0,MARK_S,ZERO
+        dw POKD16,ENDF
+;
+CREPEAT: db 6,'REPEAT'
+         dw CWHILE
+         dw RUNF
+         dw SWAP,PUSHN,BRCH
+         dw MARK_E,HERE,SWAP,POK16
+         dw ENDF
+;
+CUNTIL: db 5,'UNTIL'
+        dw CREPEAT
+        dw RUNF
+        dw PUSHN,BRCH0,MARK_E,ENDF
+;
+CAGAIN: db 5,'AGAIN'
+        dw CUNTIL
+        dw RUNF
+        dw PUSHN,BRCH,MARK_E,ENDF
+;
+CREM: db 1,'('
+      dw CHLOOP
+      dw RUNF
+      dw PUSHN,29H,WORD,ENDF
+;
+CDECIMAL: db 7,'DECIMAL'
+          dw CREM
+DECIMAL:  dw $+2
+          ld a,10
+BA:       ld (PBAS),a
+          jp NEXT
+;
+COCTAL: db 5,'OCTAL'
+        dw CDECIMAL
+        dw $+2
+        ld a,8
+        jr BA
+;
+CHEX: db 3,'HEX'
+      dw COCTAL
+HEX:  dw $+2
+      ld a,16
+      jr BA
+;
+CBINARY: db 6,'BINARY'
+         dw CHEX
+         dw $+2
+         ld a,2
+         jr BA
+;
+C_CPU: db 4,'.CPU'
+       dw CBINARY
+       dw RUNF
+       dw BASE,PEK16,PUSHN,24H,BASE
+       dw POK16,PUSHN,CPU,PEK32,IMPDS
+       dw BASE,POK16,ENDF
+;
+CMENO1: db 2,'1-'
+        dw C_CPU
+MENOS1: dw $+2
+        pop hl
+        dec hl
+        jp HPUSH
+;
+CMENO2: db 2,'2-'
+        dw CMENO1
+MENOS2: dw $+2
+        pop hl
+        dec hl
+        dec hl
+        jp HPUSH
+;
+CNUIN: db 3,'#IN'
+       dw CMENO2
+NUIN:  dw RUNF
+       dw DISP,2301H,PUSHN,BFTC
+       dw PEK16,DUP,MAIS1,LBP,POK16
+       dw PUSHN,8,EXPECT,BLANK,WORD
+       dw NUMBER,BRCH0,NUIN+2,ENDF
+;
+CAND: db 3,'AND'
+      dw CNUIN
+AND:  dw $+2
+      pop hl
+      pop de
+      ld a,e
+      and l
+      ld l,a
+      ld a,d
+      and h
+      ld h,a
+      jp HPUSH
+;
+COR: db 2,'OR'
+     dw CAND
+OR:  dw $+2
+     pop hl
+     pop de
+     ld a,e
+     or l
+     ld l,a
+     ld a,d
+     or h
+     ld h,a
+     jp HPUSH
+;
+CXOR: db 3,'XOR'
+      dw COR
+XOR:  dw $+2
+      pop hl
+XO:   pop de
+      ld a,e
+      xor l
+      ld l,a
+      ld a,d
+      xor h
+      ld h,a
+      jp HPUSH
+;
+CNOT: db 3,'NOT'
+      dw CXOR
+NOT:  dw RUNF
+      dw IGU0,ENDF
+;
+CINV: db 6,'INVERT'
+      dw CNOT
+      dw RUNF
+      dw TRUE,XOR,ENDF
+;
+CTRUE: db 4,'TRUE'
+       dw CINV
+TRUE:  dw $+2
+       ld hl,-1
+       jp HPUSH
+;
+CZERO: db 4,'ZERO'
+       dw CTRUE
+ZERO:  dw $+2
+       ld hl,0
+       jp HPUSH
+;
+CONE: db 3,'ONE'
+      dw CZERO
+ONE:  dw $+2
+      ld hl,1
+      jp HPUSH
+;
+CTWO: db 3,'TWO'
+      dw CONE
+TWO:  dw $+2
+      ld hl,2
+      jp HPUSH
+;
+CTHREE: db 5,'THREE'
+        dw CTWO
+THREE:  dw $+2
+        ld hl,3
+        jp HPUSH
+;
+CALLOT: db 5,'ALLOT'
+        dw CTHREE
+ALLOT:  dw RUNF
+        dw DP,SOMEM,ENDF
+;
+CM_VEZES: db 2,'M*'
+          dw CALLOT
+M_VEZES:  dw RUNF
+          dw DDUP,XOR,INRP,ABS,SWAP
+          dw ABS,UVEZES,OUTRP,DMODUL,ENDF
+;
+CM_DIV: db 2,'M/'
+        dw CM_VEZES
+M_DIV:  dw RUNF
+        dw OVER,INRP,INRP,DABS,LERP
+        dw ABS,UDIV,OUTRP,LERP,XOR,MODUL
+        dw SWAP,OUTRP,MODUL,SWAP,ENDF
+;
+CDIV: db 1,'/'
+      dw CM_DIV
+DIV:  dw RUNF
+      dw ZERO,SWAP,DMOD,DROP,ENDF
+;
+CDVMOD: db 4,'/MOD'
+        dw CDIV
+DVMOD:  dw RUNF
+        dw ZERO,SWAP,DMOD,SWAP,ENDF
+;
+CMOD: db 3,'MOD'
+      dw CDVMOD
+_MOD: dw RUNF
+      dw DVMOD,DROP,ENDF
+;
+CVDMOD: db 5,'*/MOD'
+        dw CMOD
+VDMOD:  dw RUNF
+        dw INRP,M_VEZES,OUTRP,M_DIV,ENDF
+;
+CVDIV:   db 2,'*/'
+         dw CVDMOD
+VEZ_DIV: dw RUNF
+         dw VDMOD,SWAP,DROP,ENDF
+;
+CDTZ: db 3,'DTZ'
+      dw CVDIV
+      dw RUNF
+      dw DUP,PEK16,MENOS1,DUP,OVER
+      dw POK16,IGU0,SWAP,DROP,ENDF
+;
+CPPEK: db 2,'P@'
+       dw CDTZ
+       dw $+2
+       exx
+       pop bc
+       in l,(c)
+       ld h,0
+       push hl
+       jp RG
+;
+CPPOK: db 2,'P!'
+       dw CPPEK
+       dw $+2
+       exx
+       pop bc
+       pop hl
+       out (c),l
+       jp RG
+;
+CVLIST: db 5,'VLIST'
+        dw CPPOK
+        dw $+2
+        exx
+        call LNCND
+        ld hl,(UPDC)
+        ld (PF),hl
+        ld de,(UPCC)
+        ld (PC),de
+        xor a
+        ld (NL),a
+        ld (NA),a
+        inc a
+        ld (MSX_CSRX),a
+VL7:    ld hl,(PC)
+        ld de,(PF)
+        xor a
+        cp h
+        jr nz,VL10
+        cp l
+        jr z,VL12
+VL10:   cp d
+        jr nz,VL11
+        cp e
+        jr z,VL1
+VL11:   xor a
+        sbc hl,de
+        jp p,VL1
+VL12:   ld hl,(PF)
+        ld a,' '
+        jr VL2
+VL1:   ld hl,(PC)
+       ld a,MSX_SHOWKEYS
+VL2:   push af
+       ld b,(hl)
+       ld a,(MSX_LINLEN)
+       ld e,a
+       ld a,(NA)
+       add a,b
+       add a,3
+       ld (NA),a
+       cp e
+       jp m,VL0
+       ld a,b
+       inc a
+       ld (NA),a
+       call CRLF
+       push hl
+       ld a,(MSX_CRTCNT)
+       dec a
+       dec a
+       ld e,a
+       ld hl,NL
+       inc (hl)
+       ld a,(hl)
+       cp e
+       jp m,VL4
+       xor a
+       ld (hl),a
+       call TECLA
+       cp 3
+       jr z,VL5
+       cp 27
+       jr nz,VL4
+VL5:   xor a
+       ld (MSX_INTFLG),a
+       pop hl
+       pop hl
+VL8:   jp RG
+VL4:   pop hl
+VL0:   ld a,(MSX_CSRX)
+       cp 1
+       jr z,VLA
+       ld a,' '
+       call VIDEO
+       ld a,' '
+       call VIDEO
+VLA:   pop af
+       push af
+       call VIDEO
+VL3:   inc hl
+       ld a,(hl)
+       call VIDEO
+       djnz VL3
+       inc hl
+       ld e,(hl)
+       inc hl
+       ld d,(hl)
+       ex de,hl
+       pop af
+       cp ' '
+       jr z,VL6
+       ld (PC),hl
+       jr VL9
+VL6:   ld (PF),hl
+VL9:   ld hl,(PC)
+       ld de,(PF)
+       ld a,h
+       or l
+       or d
+       or e
+       jr z,VLB
+       jp VL7
+VLB:   call CRLF
+       jp RG
+;
+CWORDS: db 5,'WORDS'
+        dw CVLIST
+       dw $+2
+       exx
+       ld hl,0
+       ld (VAR1),hl
+       ld hl,(UPDC)
+       ld (PF),hl
+       ld de,(UPCC)
+       ld (PC),de
+WS1:   ld hl,(PC)
+       ld de,(PF)
+       xor a
+       cp h
+       jr nz,WS2
+       cp l
+       jr z,WS4
+WS2:   cp d
+       jr nz,WS3
+       cp e
+       jr z,WS5
+WS3:   xor a
+       sbc hl,de
+       jp p,WS5
+WS4:   ld hl,(PF)
+       jr WS6
+WS5:   ld hl,(PC)
+       dec a
+WS6:   push af
+       ld e,(hl)
+       ld d,0
+       inc hl
+       add hl,de
+       push hl
+       ld hl,(VAR1)
+       inc hl
+       ld (VAR1),hl
+       pop hl
+       ld e,(hl)
+       inc hl
+       ld d,(hl)
+       ex de,hl
+       pop af
+       and a
+       jr z,WS7
+       ld (PC),hl
+       jr WS8
+WS7:   ld (PF),hl
+WS8:   ld hl,(PC)
+       ld de,(PF)
+       xor a
+       or h
+       or l
+       or d
+       or e
+       jr nz,WS1
+       ld hl,(VAR1)
+       push hl
+       jp RG
+;
+CDEFSTR: db 6,'DEFSTR'
+         dw CWORDS
+         dw RUNF
+         dw BUILDS,DUP,POKD16,ALLOT
+         dw DOES,TWO,MAIS,MAIS,ENDF
+;
+CTRANS: db 1,'"'
+        dw CDEFSTR
+        dw RUNF
+        dw PUSHN,'"',WORD,HERE,SWAP
+        dw HERE,PEK8,MAIS1,CMOVE,ENDF
+;
+CSPEED: db 5,'SPEED'
+        dw CTRANS
+        dw $+2
+        ld hl,SPD
+        jp HPUSH
+;
+CPROMPT: db 6,'PROMPT'
+         dw CSPEED
+         dw $+2
+         ld hl,PMPT
+         jp HPUSH
+;
+CPOSX: db 4,'POSX'
+       dw CPROMPT
+       dw $+2
+       ld hl,MSX_CSRX
+       jp HPUSH
+;
+CPOSY: db 4,'POSY'
+       dw CPOSX
+       dw $+2
+       ld hl,MSX_CSRY
+       jp HPUSH
+;
+; INCLUI AS PALAVRAS NOVAS NO DICIONARIO FIXO
+CINCL: db 7,'INCLUDE'
+       dw CPOSY
+       dw $+2
+       ld hl,(PRECOMP)
+       ld (PPD),hl
+       ld hl,(UPDC)
+       ld (UPFXD),hl
+       ld hl,ENDF
+       ld (FAR),hl
+       jp NEXT
+;
+; LIMPA AS PALAVRAS QUE NAO FORAM FIXADAS
+CNEW: db 3,'NEW'
+      dw CINCL
+NEW:  dw $+2
+      ld hl,(PPD)
+      ld (PRECOMP),hl
+      ld hl,(UPFXD)
+      ld (UPDC),hl
+      ld hl,ENDF
+      ld (FAR),hl
+      jp NEXT
+;
+; EXECUTA A PALAVRA FORTH APONTADA PELA PILHA DE EXECUCAO
+CRUN: db 3,'RUN'
+      dw CNEW
+      dw RUNF
+      dw PUSHN,FAR,PEK16,EXEC,ENDF
+;
+; MUDA O INTERPRETADOR FORTH PARA A
+; ULTIMA PALAVRA INCLUIDA NO DICIONARIO
+CASS: db 6,'ASSIGN'
+      dw CRUN
+      dw $+2
+      ld hl,(UPDC)
+      ld a,(hl)
+      ld e,a
+      ld d,0
+      add hl,de
+      ld de,3
+      add hl,de
+      ld (FAR),hl
+      jp NEXT
+;
+

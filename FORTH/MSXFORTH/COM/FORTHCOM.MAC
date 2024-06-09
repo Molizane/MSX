@@ -1,0 +1,679 @@
+   PAGE 255
+IF1
+.PRINTX .
+.PRINTX +-------------------------------------+
+.PRINTX |           FORTH MSX V2.10           |
+.PRINTX |                                     |
+.PRINTX |          (c)1989 - B.A.M.           |
+.PRINTX +-------------------------------------+
+.PRINTX .
+.PRINTX Compilando ... Passo 1.
+ELSE
+.PRINTX .              Passo 2.
+ENDIF
+;
+   .Z80
+;
+   INCLUDE FORTHEQU.INC
+;
+   .PHASE 4200H
+;
+; REGISTROS:
+;   SP = PILHA PARAMETROS
+;   BC = FORTH PROGRAM COUNTER
+;   IX = FORTH PROGRAM COUNTER STACK POINTER E DO .. LOOP DATA (I)
+;   IY = SEMPRE APONTA PARA A ROTINA NEXT
+;
+; O PROGRAMA É ORIGINALMENTE CARREGADO
+; NO ENDERECO 0100H.
+; O PRIMEIRO PASSO E' TRANSFERI-LO
+; PARA 4200H
+;
+FORTH:  di
+        ld hl,0100H         ; ORIGEM: 0100H
+        ld de,FORTH         ; DESTINO: 4200H
+        ld bc,KBO-FORTH     ; TAMANHO
+        ldir                ; MOVE
+        ld hl,(MSX_ROM_BDOS_VECTOR) ; SALVA ENDERECO DE CHAMADA BDOS
+        ld (BDS),hl
+        ld hl,MSX_FNKSTR    ; SALVA AS TECLAS DE FUNCOES
+        ld de,FNCKEYS       ; PARA SEREM REPOSTAS NA SAIDA
+        ld bc,160           ; DO FORTH
+        ldir
+        ld hl,FA          ; TRANSFERE AS TECLAS DE FUNCOES DO FORTH
+        ld de,MSX_FNKSTR
+        ld bc,160
+        ldir
+        jp FORTH1           ; E' NECESSARIO, POIS A CHAMADA SE DARA PARA O PROGRAMA JA' REALOCADO
+;
+FORTH1: in a,(MSX_SLOTCFG)  ; RECUPERA A CONFIGURACAO DO SLOT 0
+        ld (SLOT1),a        ; E SALVA
+        and 00110000B       ; OBTEM A CONFIGURACAO DO SLOT 2 ONDE SEMPRE APONTA PARA RAM E DO SLOT 0, PARA ROM
+        ld h,a
+        ; DESLOCA PARA O SLOT 1
+        push af
+        rra
+        rra
+        or h
+        ld h,a
+        ; DESLOCA PARA O SLOT 3
+        pop af
+        rla
+        rla
+        or h
+        out (MSX_SLOTCFG),a ; LIGA 48K DE RAM E DEIXA AS ROTINAS DA ROM ATIVAS
+        ei
+        jp INIC
+;
+COM:     dw FORTH   ; INICIO
+PINI:    dw INIC    ; ROTINA INICIAL
+BDS:     dw 0       ; ENDER.ROT.BDOS
+FCB:     dw 0B000H  ; ENDER.FCB
+PPP:     dw 0D000H  ; PONT.PILHA PARAM.
+PPR:     dw 0CD70H  ; PONT.PILHA RET.
+TEXE:    dw LELIN   ; LE LINHA DIGITADA
+PLBP:    dw 4140H   ; BUFFER DE DIGITACAO
+PBUF:    dw 0       ; PONT.POS.VARREDURA.BUF.DIGITACAO
+POFFSET: dw 0
+PRNUM:   dw 0
+PMOD:    dw 0       ; MODO IMED. (0) OU EXEC.
+PBAS:    dw 10      ; Base Decimal
+
+; ESTAS VARIAVEIS POSSIBILITAM O ACESSO AOS DICIONARIOS
+PUPDP:   dw UPDC    ; PONTEIRO ULTIMA PALAVRA DICIONARIO PRINCIPAL (FIXO)
+PUPDC:   dw UPDC    ; PONTEIRO ULTIMA PALAVRA DICIONARIO CORRENTE
+UPDC:    dw CBYE    ; ULTIMA PALAVRA DICIONARIO CORRENTE
+UPFXD:   dw CBYE    ; ULTIMA PALAVRA DICIONARIO QUE NAO PODE SER APAGADA (ATUALIZADA POR 'INCLUDE')
+UPCC:    dw CAGAIN  ; ULTIMA PALAVRA COMPILADOR
+
+PPD:     dw KBO     ; PONTEIRO PARA PROXIMA PALAVRA A SER INCLUIDA NO DICIONARIO
+PRECOMP: dw KBO     ; PONTEIRO DE POSICAO DE MEMORIA ENQUANTO UMA NOVA PALAVRA NAO E' COMPILADA COMPLETAMENTE
+FAR:     dw FIM     ; ENDER. RUN. ROTINA QUE EXECUTA OS COMANDOS FORTH
+
+PSTE:    dw 0       ; STATE
+PDPL:    dw 0       ; USADO POR DPL
+BFTC:    dw 4003H   ; BUFFER TECLADO
+NCOLG:   db 32      ; WIDTH P/ GRAF.
+PF:      dw 0       ; USADO POR VLIST
+PC:      dw 0       ; USADO POR VLIST
+NL:      dw 0       ; USADO POR VLIST
+NA:      dw 0       ; USADO POR VLIST
+PMPT:    dw 0 ; '>' ; PROMPT PADRAO
+SPD:     dw 0A8H    ; SPEED CURSOR
+CTL:     db 0       ; CONT. SPEED CURSOR
+SLOT1:   db 0       ; CONF.SLOT
+DRV:     db 0       ; DRIVE EM USO
+ATRIB:   db 0       ; MASC.ATRIB.VHGR
+BCOR:    dw 0       ; USADO POR SCROLL
+BLINHA:  dw 0       ; USADO POR SCROLL
+FLGDWN:  db 0       ; FLAG EXIBE CARAC. < ESPACO ESTAMPAVEL
+TABCAR:  dw 1BBFH   ; TAB. CARACTERES
+FUPCS:   dw 1       ; CONV.MIN->MAI
+SEMT:    dw 0120H   ; SEMENTE RAND. 1
+SEMT2:   dw 0A55H   ; SEMENTE RAND. 2
+CPU:     dw 0       ; Z80 CODIFICADO
+         dw 0B250H  ; NA BASE 24H
+PHLD:    dw 0       ; USADO POR HLD
+VHLD:    dw 0       ; VAR. HLD
+TUN:     dw 0       ; SE O ULT. NUMERO
+                    ; CRIADO POR NUMBER
+                    ; E' DE 16 OU 32 BIT'S
+LST:     db 0       ; FLAG PRINTER (OFF)
+CONS:    db 1       ; FLAG VIDEO (ON)
+LASTK:   db 0       ; ULTIMA TECLA LIDA
+FNCKEYS: ds 160     ; BUFF. FUNC. DOS
+VAR1:    dw 0
+VAR2:    dw 0
+VAR3:    dw 0
+;
+;
+MEN:  db 110
+      db '        [[[[ FORTH MSX V2.1 ]]]]' ; 32
+      db 0DH,0AH,0AH ; 3
+      db ' Por B.A. Molizane (C) ' ; 23
+      ;db '06/1988' ; 7
+      ;db '1989' ; 4
+      db '01/2024' ; 7
+      db '.',0DH,0AH,0AH ; 4
+      db ' Para listar os comandos, ' ; 26
+      db 'digite VLIST' ; 12
+      db 0DH,0AH,0AH ; 3
+;
+; TECLAS DE FUNCOES PARA O FORTH
+FA: db ': '
+    dw 00,00,00,00,00,00,00
+    db ' ;'
+    dw 13,00,00,00,00,00,00
+    db 'CREATE ',0
+    dw 00,00,00,00
+    db ' NEXT',13
+    dw 00,00,00,00,00
+    db 'FORGET ',0
+    dw 00,00,00,00
+    db ' , ',0
+    dw 00,00,00,00,00,00
+    db ' C, '
+    dw 00,00,00,00,00,00
+    db ' <BUILDS ',0
+    dw 00,00,00
+    db ' DOES> ',0
+    dw 00,00,00,00
+    db 'BYE',13
+    dw 00,00,00,00,00,00
+;
+PSC: di
+     push af
+     push bc
+     push de
+     push hl
+     ld hl,(SEMT) ; INCREMENTA A SEMENTE RANDOMICA DE 32 BITS
+     ld de,1
+     add hl,de
+     ld (SEMT),hl
+     ld hl,(SEMT2)
+     adc hl,de
+     ld (SEMT2),hl
+     ld hl,CTL   ; VERIFICA SE O CURSOR VAI PISCAR
+     inc (hl)
+     ld a,(SPD)  ; COMPARA COM A VELOCIDADE DEFINIDA
+     cp (hl)
+     jp m,DS2
+     xor a
+     ld (hl),a
+     ld a,(CCRS) ; MUDA O CURSOR
+     ld e,a
+     ld a,(CCRL)
+     cp e
+     jr z,DS1
+     ld a,(CCRS)  ; LIGA O CURSOR
+     ld (CCRL),a
+DS2: pop hl
+     pop de
+     pop bc
+     pop af
+     ret
+DS1: ld a,' '     ; DESLIGA O CURSOR
+     ld (CCRL),a
+     jr DS2
+;
+; EXIBE O SIMBOLO DE PROMPT CONTIDO EM PMPT
+READY:  dw $+2
+     call LNCND  ; PULA LINHA OU NAO, DEPENDENDO DE X DO CURSOR
+     ld a,(PMPT)
+     and a
+     jp z,NEXT ; SE NAO HA CURSOR DEFINIDO, PULA
+     cp ' '
+     jp p,RDY1   ; SE O CURSOR FOR MENOR OU IGUAL A ESPACO
+     ld a,1      ; MUDA O CURSOR PARA SER EXIBIDO CORRETAMENTE
+     call VIDEO  ; PELO MSX
+     ld a,(PMPT)
+     add a,64
+RDY1: call VIDEO
+     jp NEXT
+;
+; GANCHO PARA CHAMADA DA ROTINA LNCND EM FORTH
+LNCOND: dw $+2
+        call LNCND
+        jp NEXT
+;
+; VERIFICA SE VAI QUEBRAR LINHA
+LNCND: ld a,(MSX_CSRX)
+       cp 1            ; CURSOR ESTA' NA PRIMEIRA COLUNA?
+       jp nz,CRLF      ; NAO, PULA LINHA
+       ret
+;
+; IMPRIME Ok NA TELA
+OK:  dw $+2
+     call XOK
+     jp NEXT
+
+XOK:  ld a,(MSX_CSRX)
+      cp 1
+      jr z,XOK1
+      ld a,' '
+      call VIDEO
+XOK1: ld a,'O'
+      call VIDEO
+      ld a,'k'
+      jp VIDEO
+;
+VIDEO:  push af
+        ld a,(LST)   ; VERIFICA SE SAI NA IMPRESSORA
+        and a
+        jr nz,LISTER
+        ld a,(CONS)  ; VERIFICA SE SAI NO VIDEO
+        and a
+        jr nz,CONSOL
+        pop af
+        ret
+;
+LISTER: pop af
+        jp MSX_PRN   ; IMPRESSORA
+;
+CONSOL: ld a,(MSX_SCRMOD)
+        cp 2
+        jp p,VHGR
+        pop af
+        jp MSX_CON   ; VIDEO
+;
+; EXIBICAO DE CARACTERES EM TELA GRAFICA
+VHGR:  pop af
+       push bc
+       push de
+       push hl
+       push af
+       ld a,(FLGDWN)
+       and a
+       jr nz,IDWN
+       pop af
+       cp ' '
+       jr nc,VT0
+       cp 1
+       jr nz,VHGR1
+       ld a,-1
+       ld (FLGDWN),a
+       jp VT3
+VHGR1: cp 7
+       jr z,BEEP
+       cp 8
+       jr z,BS
+       cp 9
+       jr z,TABU
+       cp 10
+       jp z,LF
+       cp 11
+       jr z,HOME
+       cp 12
+       jr z,LIMPTEL
+       cp 13
+       jr z,CARRET
+       jp VT3
+;
+BEEP: call MSX_BEEP
+TABU: jp VT3
+;
+LIMPTEL: call CLS
+         jp VT3
+;
+BS:   ld a,(MSX_CSRX)
+      dec a
+      jr nz,BS2
+      ld a,(MSX_CSRY)
+      dec a
+      jr nz,BS1
+HOME: ld a,1
+      ld (MSX_CSRY),a
+BS2:  ld (MSX_CSRX),a
+      jp VT3
+BS1:  ld (MSX_CSRY),a
+      ld a,(NCOLG)
+      dec a
+      jr BS2
+;
+CARRET: ld a,1
+        ld (MSX_CSRX),a
+        jp VT3
+;
+IDWN: xor a
+      ld (FLGDWN),a
+      pop af
+      sub 64
+VT0:  push af
+      ld a,(MSX_CSRY)
+      dec a
+      ld d,0
+      ld e,a
+      ld hl,(MSX_TXTNAM+24)
+      add hl,de
+      ld b,8
+VT1:  add hl,hl
+      djnz VT1 ; *256
+      ex de,hl
+      xor a
+      ld a,(NCOLG)
+      ld l,a
+      ld a,33
+      sbc a,l
+      ld l,a
+      xor a
+      rr l
+      ld a,(MSX_CSRX)
+      add a,l
+      dec a
+      ld h,0
+      ld l,a
+      add hl,hl ; * 2
+      add hl,hl ; * 4
+      add hl,hl ; * 8
+      add hl,de
+      ld a,(MSX_FORCLR)
+      ld b,4
+VH1:  add a,a
+      djnz VH1 ; * 16
+      ld d,a
+      ld a,(MSX_BAKCLR)
+      add a,d
+      ld (ATRIB),a
+      pop af
+      push hl
+      ld h,0
+      ld l,a
+      add hl,hl ; * 2
+      add hl,hl ; * 4
+      add hl,hl ; * 8
+      ld de,(TABCAR)
+      add hl,de
+      ld b,8
+VT2:  ld a,(hl)
+      ex (sp),hl
+      call MSX_WRTVRAM
+      push hl
+      ld de,(MSX_TXTNAM+22)
+      add hl,de
+      ld a,(ATRIB)
+      call MSX_WRTVRAM
+      pop hl
+      inc hl
+      ex (sp),hl
+      inc hl
+      djnz VT2
+      pop hl
+      ld a,(MSX_CSRX)
+      inc a
+      ld (MSX_CSRX),a
+      ld hl,NCOLG
+      cp (hl)
+      jp m,VT3
+      ld a,1
+      ld (MSX_CSRX),a
+LF:   ld a,(MSX_CSRY)
+      inc a
+      ld (MSX_CSRY),a
+      ld hl,MSX_CRTCNT
+      cp (hl)
+      jp m,VT3
+      call SCROLL
+VT3:  pop hl
+      pop de
+      pop bc
+      ret
+;
+SCROLL: ld hl,(MSX_TXTNAM+24) ; BASE(12)
+        ld de,256
+        add hl,de
+        ld (BLINHA),hl
+        ld hl,(MSX_TXTNAM+22) ; BASE(11)
+        add hl,de
+        ld (BCOR),hl
+        ld a,(MSX_CRTCNT)
+        dec a
+SCROL1: ld c,a
+        push bc
+        ld hl,(BLINHA)
+        ld de,(PRECOMP)
+        ld bc,256
+        call MSX_LDIRVR
+        ld hl,(PRECOMP)
+        ld de,256
+        add hl,de
+        ex de,hl
+        ld hl,(BCOR)
+        ld bc,256
+        call MSX_LDIRVR
+        ld hl,(BLINHA)
+        ld de,256
+        xor a
+        sbc hl,de
+        ex de,hl
+        ld hl,(PRECOMP)
+        ld bc,256
+        call MSX_LDIRRV
+        ld hl,(BCOR)
+        ld de,256
+        xor a
+        sbc hl,de
+        push hl
+        ld hl,(PRECOMP)
+        ld de,256
+        add hl,de
+        pop de
+        ld bc,256
+        call MSX_LDIRRV
+        ld hl,(BLINHA)
+        ld de,256
+        add hl,de
+        ld (BLINHA),hl
+        ld hl,(BCOR)
+        add hl,de
+        ld (BCOR),hl
+        pop bc
+        ld a,c
+        dec a
+        jr nz,SCROL1
+        ld hl,(BLINHA)
+        ld de,256
+        xor a
+        sbc hl,de
+        ld bc,256
+        call MSX_VFILL
+        ld hl,(BCOR)
+        ld de,256
+        xor a
+        sbc hl,de
+        ld a,(MSX_BAKCLR)
+        and 15
+        ld e,a
+        rr a
+        rr a
+        rr a
+        rr a
+        or e
+        ld bc,256
+        call MSX_VFILL
+        ld a,(MSX_CRTCNT)
+        dec a
+        ld (MSX_CSRY),a
+        ret
+;
+CLS: call MSX_CLS
+     push hl
+     ld hl,0101H
+     ld (MSX_CSRY),hl ; POSICIONA O CURSOR NA LINHA 1, COLUNA 1
+     pop hl
+     ret
+;
+TECLA:
+; ROTINA DESATIVADA
+;       jr TECX
+;       call MSX_ISKEY
+;       jr nz,TECX
+;       ld a,(CCRS)
+;       ld (CCRL),a
+;       xor a
+;       ld (CTL),a
+;       ld a,0F7H
+;       ld (MSX_HKEYI),a
+;TEC1:  ld a,(CCRL)
+;       bit 7,a
+;       jr nz,TEC2
+;       cp ' '
+;       jp p,TEC2
+;       push af
+;       ld a,1
+;       call SVIDEO
+;       pop af
+;       add a,64
+;TEC2:  call SVIDEO
+;       ld a,8
+;       call SVIDEO
+;       call MSX_ISKEY
+;       jr z,TEC1
+;       ld a,' '
+;       call SVIDEO
+;       ld a,8
+;       call SVIDEO
+;       ld a,0C9H
+;       ld (MSX_HKEYI),a
+;       ;
+;TECX:
+       call MSX_CHRGET
+       ld (LASTK),a     ; SALVA A TECLA LIDA
+       ret
+;
+; RETORNA EM "A" SE UMA TECLA FOI PRESSIONADA
+IKEY: call MSX_ISKEY
+      ld a,0
+      ret z
+      dec a
+      ret
+;
+; PULA UMA LINHA
+CRLF: ld a,13
+      call VIDEO
+      ld a,10
+      jp VIDEO
+;
+;
+; IMPRIME UM TEXTO EM QUE A PRIMEIRA POSICAO E' SEU COMPRIMENTO
+IMM:  push bc
+      ld b,(hl)
+      inc hl
+IMM1: ld a,(hl)
+      call VIDEO
+      inc hl
+      djnz IMM1
+      pop bc
+      ret
+;
+; RETORNA EM BC O PROGRAM STACK POINTER
+; ROTINA CHAMADA APOS UMA EXECUCAO DE UM
+; COMANDO FORTH
+ENDF: dw $+2
+     ld c,(ix)
+     inc ix
+     ld b,(ix)
+     inc ix
+     jr NEXT
+
+; ROTINA QUE EXECUTA UMA INTERRUPCAO
+; DA EXECUCAO DO PROGRAMA, VOLTANDO
+; AO PROMPT FORTH
+BREAK: xor a
+       ld (MSX_INTFLG),a ; LIMPA O FLAG DE TECLA STOP/CTRL-STOP
+       call TECLA        ; TIRA A TECLA STOP DO BUFFER
+       jp SCANBUF
+
+DPUSH:  push de
+HPUSH:  push hl           ; 2OS = DE, TOS = HL
+NEXT:   ld a,(MSX_BASROM) ; SE NAO ESTIVER NO BASIC, PROCESSA TECLA STOP
+        and a
+        jr nz,NEXTI
+        ld a,(MSX_INTFLG)
+        and a
+        jr z,NEXTI  ; TECLA NAO FOI PRESSIONADA
+        cp 3        ; CTRL-STOP?
+        jp z,BREAK
+        xor a
+        ld (MSX_INTFLG),a ; LIMPA O FLAG DE TECLA STOP/CTRL-STOP
+PAUSA:  ld a,(MSX_INTFLG)
+        and a
+        jr z,PAUSA        ; ESPERA A TECLA SER PRESSIONADA NOVAMENTE
+        cp 3              ; CTRL-STOP?
+        jp z,BREAK
+        xor a
+        ld (MSX_INTFLG),a ; LIMPA O FLAG DE TECLA STOP/CTRL-STOP
+NEXTI:  ld a,(bc)         ; OBTEM O ENDERECO DA PROXIMA INSTRUCAO
+        ld l,a            ; E COLOCA EM HL
+        inc bc
+        ld a,(bc)
+        ld h,a
+        inc bc
+RO1:    ld e,(hl) ; OBTEM A PROXIMA INSTRUCAO
+        inc hl    ; A PARTIR DE HL
+        ld d,(hl)
+        inc hl
+        ex de,hl
+        jp (hl)
+;
+; ROTINA DE CHAMADA DE COMANDOS FORTH (MICROCODIGO)
+RUNF: dec ix     ; SALVA O FORTH PROGRAM COUNTER ATUAL (BC)
+      ld (ix),b
+      dec ix
+      ld (ix),c
+      ld c,e     ; COPIA REGISTROS "DE" PARA BC
+      ld b,d
+      jp (iy)
+;
+; CODIGO FORTH PARA RECEBER UMA LINHA DIGITADA
+LELIN:  dw RUNF
+LELIN1: dw READY
+LELIN2: dw INPUT,PUSHN,BFTC
+        dw PEK16,PEK8,MAI0,BRCH0,LELIN3,OUTIN
+LELIN3: dw MODE,PEK16,BRCH0,LELIN1,CR
+        dw BRCH,LELIN2
+;
+CINIC: dw $+2
+INIC:  xor a ;; ld a, '>'
+       ld (PMPT),a
+       ld a,' '
+       ld (CCRL),a
+       ld a,30
+       ld (NCOLG),a
+       ld hl,1BBFH
+       ld (TABCAR),hl
+       xor a
+       ld (MSX_CSRSW),a  ; DESLIGA O CURSOR
+       ld (MSX_INTFLG),a ; LIMPA O FLAG DE TECLA STOP/CTRL-STOP
+
+; EXIBICAO DA TELA DE BOAS-VINDAS
+HSTRT: call CLS
+       ;call CRLF
+       ld hl,MEN
+       call IMM
+       call MSX_SHOWKEYS
+
+SCANBUF: ld hl,-1      ; CONVERTE AS PALAVRAS DIGITADAS PARA MAIUSCULAS
+         ld (FUPCS),hl ; PARA BUSCA NO DICIONARIO
+         ld sp,(PPP)
+         ld ix,(PPR)
+         ld iy,NEXT
+         ld bc,WLCOME
+         ld hl,0
+         ld (PMOD),hl ; SETA MODO IMEDIATO (INTERPRETACAO DO PROMPT)
+         call XOK
+         ld hl,(TEXE) ; CHAMA ROTINA DE LEITURA DE
+         jp RO1       ; LINHA DIGITADA
+;
+; CHAMADA EM FORTH PARA EXIBIR A TELA DE BOAS VINDAS
+WLCOME: dw $+2
+        dw $+2
+        jp HSTRT
+
+   INCLUDE FORTHDIC.IN1
+   INCLUDE FORTHLNG.INC
+   INCLUDE FORTHDIC.IN2
+   INCLUDE FORTHCAS.INC
+   INCLUDE FORTHDSK.INC
+   INCLUDE BACKUP.INC
+   INCLUDE FORTHMSX.INC
+
+CBYE: db 3,'BYE'
+      dw CNORML
+      dw $+2
+      call 0D2H
+      ld hl,FNCKEYS
+      ld de,MSX_FNKSTR
+      ld bc,160
+      ldir
+      call 0CCH
+      ld a,(SLOT1)
+      out (MSX_SLOTCFG),a
+      rst 00H
+;
+KBO: nop
+;
+   .DEPHASE
+;
+   end
+;
+

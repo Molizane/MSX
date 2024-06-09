@@ -1,0 +1,1547 @@
+
+L0100:	00          		NOP
+L0101:	C3 C1 10    		JP	L10C1
+L0104:	00          		NOP
+L0105:	C3 AC 10    		JP	L10AC
+L012A:	D5          		PUSH	DE
+L012B:	E5          		PUSH	HL
+L012C:	0A          		LD	A,(BC)
+L012D:	03          		INC	BC
+L012E:	6F          		LD	L,A
+L012F:	0A          		LD	A,(BC)
+L0130:	03          		INC	BC
+L0131:	67          		LD	H,A
+L0132:	5E          		LD	E,(HL)
+L0133:	23          		INC	HL
+L0134:	56          		LD	D,(HL)
+L0135:	EB          		EX	DE,HL
+L0136:	E9          		JP	(HL)
+L013F:	0A          		LD	A,(BC)
+L0140:	03          		INC	BC
+L0141:	6F          		LD	L,A
+L0142:	0A          		LD	A,(BC)
+L0143:	03          		INC	BC
+L0144:	67          		LD	H,A
+L0145:	C3 2B 01    		JP	L012B
+L0154:	E1          		POP	HL
+L0155:	C3 32 01    		JP	L0132
+L0163:	60          		LD	H,B
+L0164:	69          		LD	L,C
+L0165:	5E          		LD	E,(HL)
+L0166:	23          		INC	HL
+L0167:	56          		LD	D,(HL)
+L0168:	2B          		DEC	HL
+L0169:	19          		ADD	HL,DE
+L016A:	4D          		LD	C,L
+L016B:	44          		LD	B,H
+L016C:	C3 2C 01    		JP	L012C
+L017B:	E1          		POP	HL
+L017C:	7D          		LD	A,L
+L017D:	B4          		OR	H
+L017E:	CA 63 01    		JP	Z,L0163
+L0181:	03          		INC	BC
+L0182:	03          		INC	BC
+L0183:	C3 2C 01    		JP	L012C
+L0191:	11 01 00    		LD	DE,L0001
+L0194:	2A 28 01    		LD	HL,(L0128)
+L0197:	7E          		LD	A,(HL)
+L0198:	83          		ADD	A,E
+L0199:	77          		LD	(HL),A
+L019A:	5F          		LD	E,A
+L019B:	23          		INC	HL
+L019C:	7E          		LD	A,(HL)
+L019D:	8A          		ADC	A,D
+L019E:	77          		LD	(HL),A
+L019F:	23          		INC	HL
+L01A0:	14          		INC	D
+L01A1:	15          		DEC	D
+L01A2:	57          		LD	D,A
+L01A3:	FA AE 01    		JP	M,L01AE
+L01A6:	7B          		LD	A,E
+L01A7:	96          		SUB	(HL)
+L01A8:	7A          		LD	A,D
+L01A9:	23          		INC	HL
+L01AA:	9E          		SBC	A,(HL)
+L01AB:	C3 B3 01    		JP	L01B3
+L01AE:	7E          		LD	A,(HL)
+L01AF:	93          		SUB	E
+L01B0:	23          		INC	HL
+L01B1:	7E          		LD	A,(HL)
+L01B2:	9A          		SBC	A,D
+L01B3:	FA 63 01    		JP	M,L0163
+L01B6:	23          		INC	HL
+L01B7:	22 28 01    		LD	(L0128),HL
+L01BA:	03          		INC	BC
+L01BB:	03          		INC	BC
+L01BC:	C3 2C 01    		JP	L012C
+L01CB:	D1          		POP	DE
+L01CC:	C3 94 01    		JP	L0194
+L01D8:	2A 28 01    		LD	HL,(L0128)
+L01DB:	2B          		DEC	HL
+L01DC:	2B          		DEC	HL
+L01DD:	2B          		DEC	HL
+L01DE:	2B          		DEC	HL
+L01DF:	22 28 01    		LD	(L0128),HL
+L01E2:	D1          		POP	DE
+L01E3:	73          		LD	(HL),E
+L01E4:	23          		INC	HL
+L01E5:	72          		LD	(HL),D
+L01E6:	D1          		POP	DE
+L01E7:	23          		INC	HL
+L01E8:	73          		LD	(HL),E
+L01E9:	23          		INC	HL
+L01EA:	72          		LD	(HL),D
+L01EB:	C3 2C 01    		JP	L012C
+L01F4:	2A 28 01    		LD	HL,(L0128)
+L01F7:	5E          		LD	E,(HL)
+L01F8:	23          		INC	HL
+L01F9:	56          		LD	D,(HL)
+L01FA:	D5          		PUSH	DE
+L01FB:	C3 2C 01    		JP	L012C
+L0208:	E1          		POP	HL
+L0209:	D1          		POP	DE
+L020A:	7B          		LD	A,E
+L020B:	D6 30       		SUB	'0'
+L020D:	FA 27 02    		JP	M,L0227
+L0210:	FE 0A       		CP	LF
+L0212:	FA 1C 02    		JP	M,L021C
+L0215:	D6 07       		SUB	BEL
+L0217:	FE 0A       		CP	LF
+L0219:	FA 27 02    		JP	M,L0227
+L021C:	BD          		CP	L
+L021D:	F2 27 02    		JP	P,L0227
+L0220:	5F          		LD	E,A
+L0221:	21 01 00    		LD	HL,L0001
+L0224:	C3 2A 01    		JP	L012A
+L0227:	6C          		LD	L,H
+L0228:	C3 2B 01    		JP	L012B
+L0236:	D1          		POP	DE
+L0237:	E1          		POP	HL
+L0238:	E5          		PUSH	HL
+L0239:	1A          		LD	A,(DE)
+L023A:	AE          		XOR	(HL)
+L023B:	E6 3F       		AND	'?'
+L023D:	C2 62 02    		JP	NZ,L0262
+L0240:	23          		INC	HL
+L0241:	13          		INC	DE
+L0242:	1A          		LD	A,(DE)
+L0243:	AE          		XOR	(HL)
+L0244:	87          		ADD	A,A
+L0245:	C2 5F 02    		JP	NZ,L025F
+L0248:	D2 40 02    		JP	NC,L0240
+L024B:	21 05 00    		LD	HL,L0005
+L024E:	19          		ADD	HL,DE
+L024F:	E3          		EX	(SP),HL
+L0250:	1B          		DEC	DE
+L0251:	1A          		LD	A,(DE)
+L0252:	B7          		OR	A
+L0253:	F2 50 02    		JP	P,L0250
+L0256:	5F          		LD	E,A
+L0257:	16 00       		LD	D,NUL
+L0259:	21 01 00    		LD	HL,L0001
+L025C:	C3 2A 01    		JP	L012A
+L025F:	DA 68 02    		JP	C,L0268
+L0262:	13          		INC	DE
+L0263:	1A          		LD	A,(DE)
+L0264:	B7          		OR	A
+L0265:	F2 62 02    		JP	P,L0262
+L0268:	13          		INC	DE
+L0269:	EB          		EX	DE,HL
+L026A:	5E          		LD	E,(HL)
+L026B:	23          		INC	HL
+L026C:	56          		LD	D,(HL)
+L026D:	7A          		LD	A,D
+L026E:	B3          		OR	E
+L026F:	C2 37 02    		JP	NZ,L0237
+L0272:	E1          		POP	HL
+L0273:	21 00 00    		LD	HL,L0000
+L0276:	C3 2B 01    		JP	L012B
+L0285:	D9          		EXX
+L0286:	D1          		POP	DE
+L0287:	E1          		POP	HL
+L0288:	E5          		PUSH	HL
+L0289:	7B          		LD	A,E
+L028A:	57          		LD	D,A
+L028B:	01 FF FF    		LD	BC,LFFFF
+L028E:	2B          		DEC	HL
+L028F:	23          		INC	HL
+L0290:	03          		INC	BC
+L0291:	BE          		CP	(HL)
+L0292:	CA 8F 02    		JP	Z,L028F
+L0295:	C5          		PUSH	BC
+L0296:	57          		LD	D,A
+L0297:	7E          		LD	A,(HL)
+L0298:	A7          		AND	A
+L0299:	C2 A3 02    		JP	NZ,L02A3
+L029C:	03          		INC	BC
+L029D:	C5          		PUSH	BC
+L029E:	0B          		DEC	BC
+L029F:	C5          		PUSH	BC
+L02A0:	C3 B7 02    		JP	L02B7
+L02A3:	7A          		LD	A,D
+L02A4:	23          		INC	HL
+L02A5:	03          		INC	BC
+L02A6:	BE          		CP	(HL)
+L02A7:	CA B4 02    		JP	Z,L02B4
+L02AA:	7E          		LD	A,(HL)
+L02AB:	A7          		AND	A
+L02AC:	C2 A3 02    		JP	NZ,L02A3
+L02AF:	C5          		PUSH	BC
+L02B0:	C5          		PUSH	BC
+L02B1:	C3 B7 02    		JP	L02B7
+L02B4:	C5          		PUSH	BC
+L02B5:	03          		INC	BC
+L02B6:	C5          		PUSH	BC
+L02B7:	D9          		EXX
+L02B8:	C3 2C 01    		JP	L012C
+L02D6:	C3 9D 16    		JP	L169D
+L02E7:	21 00 00    		LD	HL,L0000
+L02EA:	C3 92 16    		JP	L1692
+L02F4:	C3 D8 16    		JP	L16D8
+L0301:	69          		LD	L,C
+L0302:	60          		LD	H,B
+L0303:	C1          		POP	BC
+L0304:	D1          		POP	DE
+L0305:	E3          		EX	(SP),HL
+L0306:	C3 0E 03    		JP	L030E
+L0309:	7E          		LD	A,(HL)
+L030A:	23          		INC	HL
+L030B:	12          		LD	(DE),A
+L030C:	13          		INC	DE
+L030D:	0B          		DEC	BC
+L030E:	78          		LD	A,B
+L030F:	B1          		OR	C
+L0310:	C2 09 03    		JP	NZ,L0309
+L0313:	C1          		POP	BC
+L0314:	C3 2C 01    		JP	L012C
+L031E:	D1          		POP	DE
+L031F:	E1          		POP	HL
+L0320:	C5          		PUSH	BC
+L0321:	44          		LD	B,H
+L0322:	7D          		LD	A,L
+L0323:	CD 3A 03    		CALL	L033A
+L0326:	E5          		PUSH	HL
+L0327:	67          		LD	H,A
+L0328:	78          		LD	A,B
+L0329:	44          		LD	B,H
+L032A:	CD 3A 03    		CALL	L033A
+L032D:	D1          		POP	DE
+L032E:	4A          		LD	C,D
+L032F:	09          		ADD	HL,BC
+L0330:	CE 00       		ADC	A,NUL
+L0332:	55          		LD	D,L
+L0333:	6C          		LD	L,H
+L0334:	67          		LD	H,A
+L0335:	C1          		POP	BC
+L0336:	D5          		PUSH	DE
+L0337:	C3 2B 01    		JP	L012B
+L033A:	21 00 00    		LD	HL,L0000
+L033D:	0E 08       		LD	C,BS
+L033F:	29          		ADD	HL,HL
+L0340:	17          		RLA
+L0341:	D2 47 03    		JP	NC,L0347
+L0344:	19          		ADD	HL,DE
+L0345:	CE 00       		ADC	A,NUL
+L0347:	0D          		DEC	C
+L0348:	C2 3F 03    		JP	NZ,L033F
+L034B:	C9          		RET
+L0353:	21 04 00    		LD	HL,L0004
+L0356:	39          		ADD	HL,SP
+L0357:	5E          		LD	E,(HL)
+L0358:	71          		LD	(HL),C
+L0359:	23          		INC	HL
+L035A:	56          		LD	D,(HL)
+L035B:	70          		LD	(HL),B
+L035C:	C1          		POP	BC
+L035D:	E1          		POP	HL
+L035E:	7D          		LD	A,L
+L035F:	91          		SUB	C
+L0360:	7C          		LD	A,H
+L0361:	98          		SBC	A,B
+L0362:	DA 6E 03    		JP	C,L036E
+L0365:	21 FF FF    		LD	HL,LFFFF
+L0368:	11 FF FF    		LD	DE,LFFFF
+L036B:	C3 99 03    		JP	L0399
+L036E:	3E 10       		LD	A,DLE
+L0370:	29          		ADD	HL,HL
+L0371:	17          		RLA
+L0372:	EB          		EX	DE,HL
+L0373:	29          		ADD	HL,HL
+L0374:	D2 79 03    		JP	NC,L0379
+L0377:	13          		INC	DE
+L0378:	A7          		AND	A
+L0379:	EB          		EX	DE,HL
+L037A:	1F          		RRA
+L037B:	F5          		PUSH	AF
+L037C:	D2 88 03    		JP	NC,L0388
+L037F:	7D          		LD	A,L
+L0380:	91          		SUB	C
+L0381:	6F          		LD	L,A
+L0382:	7C          		LD	A,H
+L0383:	98          		SBC	A,B
+L0384:	67          		LD	H,A
+L0385:	C3 93 03    		JP	L0393
+L0388:	7D          		LD	A,L
+L0389:	91          		SUB	C
+L038A:	6F          		LD	L,A
+L038B:	7C          		LD	A,H
+L038C:	98          		SBC	A,B
+L038D:	67          		LD	H,A
+L038E:	D2 93 03    		JP	NC,L0393
+L0391:	09          		ADD	HL,BC
+L0392:	1B          		DEC	DE
+L0393:	13          		INC	DE
+L0394:	F1          		POP	AF
+L0395:	3D          		DEC	A
+L0396:	C2 70 03    		JP	NZ,L0370
+L0399:	C1          		POP	BC
+L039A:	E5          		PUSH	HL
+L039B:	D5          		PUSH	DE
+L039C:	C3 2C 01    		JP	L012C
+L03A7:	D1          		POP	DE
+L03A8:	E1          		POP	HL
+L03A9:	7B          		LD	A,E
+L03AA:	A5          		AND	L
+L03AB:	6F          		LD	L,A
+L03AC:	7A          		LD	A,D
+L03AD:	A4          		AND	H
+L03AE:	67          		LD	H,A
+L03AF:	C3 2B 01    		JP	L012B
+L03B9:	D1          		POP	DE
+L03BA:	E1          		POP	HL
+L03BB:	7B          		LD	A,E
+L03BC:	B5          		OR	L
+L03BD:	6F          		LD	L,A
+L03BE:	7A          		LD	A,D
+L03BF:	B4          		OR	H
+L03C0:	67          		LD	H,A
+L03C1:	C3 2B 01    		JP	L012B
+L03CC:	D1          		POP	DE
+L03CD:	E1          		POP	HL
+L03CE:	7B          		LD	A,E
+L03CF:	AD          		XOR	L
+L03D0:	6F          		LD	L,A
+L03D1:	7A          		LD	A,D
+L03D2:	AC          		XOR	H
+L03D3:	67          		LD	H,A
+L03D4:	C3 2B 01    		JP	L012B
+L03DF:	21 00 00    		LD	HL,L0000
+L03E2:	39          		ADD	HL,SP
+L03E3:	C3 2B 01    		JP	L012B
+L03EE:	2A 26 01    		LD	HL,(L0126)
+L03F1:	11 06 00    		LD	DE,L0006
+L03F4:	19          		ADD	HL,DE
+L03F5:	5E          		LD	E,(HL)
+L03F6:	23          		INC	HL
+L03F7:	56          		LD	D,(HL)
+L03F8:	EB          		EX	DE,HL
+L03F9:	F9          		LD	SP,HL
+L03FA:	C3 2C 01    		JP	L012C
+L0405:	2A 28 01    		LD	HL,(L0128)
+L0408:	C3 2B 01    		JP	L012B
+L0413:	2A 26 01    		LD	HL,(L0126)
+L0416:	11 08 00    		LD	DE,L0008
+L0419:	19          		ADD	HL,DE
+L041A:	5E          		LD	E,(HL)
+L041B:	23          		INC	HL
+L041C:	56          		LD	D,(HL)
+L041D:	EB          		EX	DE,HL
+L041E:	22 28 01    		LD	(L0128),HL
+L0421:	C3 2C 01    		JP	L012C
+L042B:	2A 28 01    		LD	HL,(L0128)
+L042E:	4E          		LD	C,(HL)
+L042F:	23          		INC	HL
+L0430:	46          		LD	B,(HL)
+L0431:	23          		INC	HL
+L0432:	22 28 01    		LD	(L0128),HL
+L0435:	C3 2C 01    		JP	L012C
+L0442:	2A 28 01    		LD	HL,(L0128)
+L0445:	5E          		LD	E,(HL)
+L0446:	23          		INC	HL
+L0447:	56          		LD	D,(HL)
+L0448:	23          		INC	HL
+L0449:	73          		LD	(HL),E
+L044A:	23          		INC	HL
+L044B:	72          		LD	(HL),D
+L044C:	C3 2C 01    		JP	L012C
+L0456:	D1          		POP	DE
+L0457:	2A 28 01    		LD	HL,(L0128)
+L045A:	2B          		DEC	HL
+L045B:	2B          		DEC	HL
+L045C:	22 28 01    		LD	(L0128),HL
+L045F:	73          		LD	(HL),E
+L0460:	23          		INC	HL
+L0461:	72          		LD	(HL),D
+L0462:	C3 2C 01    		JP	L012C
+L046C:	2A 28 01    		LD	HL,(L0128)
+L046F:	5E          		LD	E,(HL)
+L0470:	23          		INC	HL
+L0471:	56          		LD	D,(HL)
+L0472:	23          		INC	HL
+L0473:	22 28 01    		LD	(L0128),HL
+L0476:	D5          		PUSH	DE
+L0477:	C3 2C 01    		JP	L012C
+L0487:	E1          		POP	HL
+L0488:	7D          		LD	A,L
+L0489:	B4          		OR	H
+L048A:	21 00 00    		LD	HL,L0000
+L048D:	C2 91 04    		JP	NZ,L0491
+L0490:	23          		INC	HL
+L0491:	C3 2B 01    		JP	L012B
+L049B:	E1          		POP	HL
+L049C:	29          		ADD	HL,HL
+L049D:	21 00 00    		LD	HL,L0000
+L04A0:	D2 A4 04    		JP	NC,L04A4
+L04A3:	23          		INC	HL
+L04A4:	C3 2B 01    		JP	L012B
+L04AD:	D1          		POP	DE
+L04AE:	E1          		POP	HL
+L04AF:	19          		ADD	HL,DE
+L04B0:	C3 2B 01    		JP	L012B
+L04BA:	21 06 00    		LD	HL,L0006
+L04BD:	39          		ADD	HL,SP
+L04BE:	5E          		LD	E,(HL)
+L04BF:	71          		LD	(HL),C
+L04C0:	23          		INC	HL
+L04C1:	56          		LD	D,(HL)
+L04C2:	70          		LD	(HL),B
+L04C3:	C1          		POP	BC
+L04C4:	E1          		POP	HL
+L04C5:	19          		ADD	HL,DE
+L04C6:	EB          		EX	DE,HL
+L04C7:	E1          		POP	HL
+L04C8:	7D          		LD	A,L
+L04C9:	89          		ADC	A,C
+L04CA:	6F          		LD	L,A
+L04CB:	7C          		LD	A,H
+L04CC:	88          		ADC	A,B
+L04CD:	67          		LD	H,A
+L04CE:	C1          		POP	BC
+L04CF:	D5          		PUSH	DE
+L04D0:	C3 2B 01    		JP	L012B
+L04DD:	E1          		POP	HL
+L04DE:	7D          		LD	A,L
+L04DF:	2F          		CPL
+L04E0:	6F          		LD	L,A
+L04E1:	7C          		LD	A,H
+L04E2:	2F          		CPL
+L04E3:	67          		LD	H,A
+L04E4:	23          		INC	HL
+L04E5:	C3 2B 01    		JP	L012B
+L04F3:	E1          		POP	HL
+L04F4:	D1          		POP	DE
+L04F5:	97          		SUB	A
+L04F6:	93          		SUB	E
+L04F7:	5F          		LD	E,A
+L04F8:	3E 00       		LD	A,NUL
+L04FA:	9A          		SBC	A,D
+L04FB:	57          		LD	D,A
+L04FC:	3E 00       		LD	A,NUL
+L04FE:	9D          		SBC	A,L
+L04FF:	6F          		LD	L,A
+L0500:	3E 00       		LD	A,NUL
+L0502:	9C          		SBC	A,H
+L0503:	67          		LD	H,A
+L0504:	D5          		PUSH	DE
+L0505:	C3 2B 01    		JP	L012B
+L0511:	D1          		POP	DE
+L0512:	E1          		POP	HL
+L0513:	E5          		PUSH	HL
+L0514:	C3 2A 01    		JP	L012A
+L0520:	E1          		POP	HL
+L0521:	C3 2C 01    		JP	L012C
+L052D:	E1          		POP	HL
+L052E:	E3          		EX	(SP),HL
+L052F:	C3 2B 01    		JP	L012B
+L053A:	E1          		POP	HL
+L053B:	E5          		PUSH	HL
+L053C:	C3 2B 01    		JP	L012B
+L0548:	E1          		POP	HL
+L0549:	D1          		POP	DE
+L054A:	D5          		PUSH	DE
+L054B:	E5          		PUSH	HL
+L054C:	C3 2A 01    		JP	L012A
+L0556:	E1          		POP	HL
+L0557:	D1          		POP	DE
+L0558:	7E          		LD	A,(HL)
+L0559:	83          		ADD	A,E
+L055A:	77          		LD	(HL),A
+L055B:	23          		INC	HL
+L055C:	7E          		LD	A,(HL)
+L055D:	8A          		ADC	A,D
+L055E:	77          		LD	(HL),A
+L055F:	C3 2C 01    		JP	L012C
+L056D:	D1          		POP	DE
+L056E:	E1          		POP	HL
+L056F:	7E          		LD	A,(HL)
+L0570:	AB          		XOR	E
+L0571:	77          		LD	(HL),A
+L0572:	C3 2C 01    		JP	L012C
+L057B:	E1          		POP	HL
+L057C:	5E          		LD	E,(HL)
+L057D:	23          		INC	HL
+L057E:	56          		LD	D,(HL)
+L057F:	D5          		PUSH	DE
+L0580:	C3 2C 01    		JP	L012C
+L058A:	E1          		POP	HL
+L058B:	6E          		LD	L,(HL)
+L058C:	26 00       		LD	H,NUL
+L058E:	C3 2B 01    		JP	L012B
+L0598:	E1          		POP	HL
+L0599:	11 02 00    		LD	DE,L0002
+L059C:	19          		ADD	HL,DE
+L059D:	5E          		LD	E,(HL)
+L059E:	23          		INC	HL
+L059F:	56          		LD	D,(HL)
+L05A0:	D5          		PUSH	DE
+L05A1:	11 FD FF    		LD	DE,LFFFD
+L05A4:	19          		ADD	HL,DE
+L05A5:	5E          		LD	E,(HL)
+L05A6:	23          		INC	HL
+L05A7:	56          		LD	D,(HL)
+L05A8:	D5          		PUSH	DE
+L05A9:	C3 2C 01    		JP	L012C
+L05B2:	E1          		POP	HL
+L05B3:	D1          		POP	DE
+L05B4:	73          		LD	(HL),E
+L05B5:	23          		INC	HL
+L05B6:	72          		LD	(HL),D
+L05B7:	C3 2C 01    		JP	L012C
+L05C1:	E1          		POP	HL
+L05C2:	D1          		POP	DE
+L05C3:	73          		LD	(HL),E
+L05C4:	C3 2C 01    		JP	L012C
+L05CE:	E1          		POP	HL
+L05CF:	D1          		POP	DE
+L05D0:	73          		LD	(HL),E
+L05D1:	23          		INC	HL
+L05D2:	72          		LD	(HL),D
+L05D3:	23          		INC	HL
+L05D4:	D1          		POP	DE
+L05D5:	73          		LD	(HL),E
+L05D6:	23          		INC	HL
+L05D7:	72          		LD	(HL),D
+L05D8:	C3 2C 01    		JP	L012C
+L05F3:	2A 28 01    		LD	HL,(L0128)
+L05F6:	2B          		DEC	HL
+L05F7:	70          		LD	(HL),B
+L05F8:	2B          		DEC	HL
+L05F9:	71          		LD	(HL),C
+L05FA:	22 28 01    		LD	(L0128),HL
+L05FD:	13          		INC	DE
+L05FE:	4B          		LD	C,E
+L05FF:	42          		LD	B,D
+L0600:	C3 2C 01    		JP	L012C
+L0635:	13          		INC	DE
+L0636:	EB          		EX	DE,HL
+L0637:	5E          		LD	E,(HL)
+L0638:	23          		INC	HL
+L0639:	56          		LD	D,(HL)
+L063A:	D5          		PUSH	DE
+L063B:	C3 2C 01    		JP	L012C
+L064F:	13          		INC	DE
+L0650:	D5          		PUSH	DE
+L0651:	C3 2C 01    		JP	L012C
+L0661:	13          		INC	DE
+L0662:	EB          		EX	DE,HL
+L0663:	5E          		LD	E,(HL)
+L0664:	16 00       		LD	D,NUL
+L0666:	2A 26 01    		LD	HL,(L0126)
+L0669:	19          		ADD	HL,DE
+L066A:	C3 2B 01    		JP	L012B
+L0830:	7D          		LD	A,L
+L0831:	93          		SUB	E
+L0832:	6F          		LD	L,A
+L0833:	7C          		LD	A,H
+L0834:	9A          		SBC	A,D
+L0835:	67          		LD	H,A
+L0836:	C9          		RET
+L083D:	D1          		POP	DE
+L083E:	E1          		POP	HL
+L083F:	CD 30 08    		CALL	L0830
+L0842:	C3 2B 01    		JP	L012B
+L0857:	D1          		POP	DE
+L0858:	E1          		POP	HL
+L0859:	7A          		LD	A,D
+L085A:	AC          		XOR	H
+L085B:	FA 61 08    		JP	M,L0861
+L085E:	CD 30 08    		CALL	L0830
+L0861:	24          		INC	H
+L0862:	25          		DEC	H
+L0863:	FA 6C 08    		JP	M,L086C
+L0866:	21 00 00    		LD	HL,L0000
+L0869:	C3 2B 01    		JP	L012B
+L086C:	21 01 00    		LD	HL,L0001
+L086F:	C3 2B 01    		JP	L012B
+L08A7:	D1          		POP	DE
+L08A8:	E1          		POP	HL
+L08A9:	E3          		EX	(SP),HL
+L08AA:	C3 2A 01    		JP	L012A
+L0A94:	15          		DEC	D
+L0A95:	0A          		LD	A,(BC)
+L0A96:	1C          		INC	E
+L0A97:	06 29       		LD	B,')'
+L0A99:	04          		INC	B
+L0AC0:	2A 28 01    		LD	HL,(L0128)
+L0AC3:	2B          		DEC	HL
+L0AC4:	70          		LD	(HL),B
+L0AC5:	2B          		DEC	HL
+L0AC6:	71          		LD	(HL),C
+L0AC7:	22 28 01    		LD	(L0128),HL
+L0ACA:	13          		INC	DE
+L0ACB:	EB          		EX	DE,HL
+L0ACC:	4E          		LD	C,(HL)
+L0ACD:	23          		INC	HL
+L0ACE:	46          		LD	B,(HL)
+L0ACF:	23          		INC	HL
+L0AD0:	C3 2B 01    		JP	L012B
+L0C7A:	69          		LD	L,C
+L0C7B:	60          		LD	H,B
+L0C7C:	D1          		POP	DE
+L0C7D:	C1          		POP	BC
+L0C7E:	E3          		EX	(SP),HL
+L0C7F:	EB          		EX	DE,HL
+L0C80:	78          		LD	A,B
+L0C81:	B1          		OR	C
+L0C82:	CA 8C 0C    		JP	Z,L0C8C
+L0C85:	7D          		LD	A,L
+L0C86:	12          		LD	(DE),A
+L0C87:	13          		INC	DE
+L0C88:	0B          		DEC	BC
+L0C89:	C3 80 0C    		JP	L0C80
+L0C8C:	C1          		POP	BC
+L0C8D:	C3 2C 01    		JP	L012C
+L1028:	81          		ADD	A,C
+L1029:	A0          		AND	B
+L102A:	4C          		LD	C,H
+L102B:	64          		LD	H,H
+L102C:	00          		NOP
+L102D:	00          		NOP
+L10AC:	01 B2 10    		LD	BC,L10B2
+L10AF:	C3 2C 01    		JP	L012C
+L10C1:	01 CB 10    		LD	BC,L10CB
+L10C4:	2A 12 01    		LD	HL,(L0112)
+L10C7:	F9          		LD	SP,HL
+L10C8:	C3 2C 01    		JP	L012C
+L1123:	D1          		POP	DE
+L1124:	21 00 00    		LD	HL,L0000
+L1127:	7A          		LD	A,D
+L1128:	E6 80       		AND	NUL+80H
+L112A:	CA 2E 11    		JP	Z,L112E
+L112D:	2B          		DEC	HL
+L112E:	C3 2A 01    		JP	L012A
+L12D8:	D1          		POP	DE
+L12D9:	21 DE 12    		LD	HL,L12DE
+L12DC:	73          		LD	(HL),E
+L12DD:	DB 00       		IN	A,(IOPORT00H)
+L12DF:	6F          		LD	L,A
+L12E0:	26 00       		LD	H,NUL
+L12E2:	C3 2B 01    		JP	L012B
+L12EC:	D1          		POP	DE
+L12ED:	21 F4 12    		LD	HL,L12F4
+L12F0:	73          		LD	(HL),E
+L12F1:	E1          		POP	HL
+L12F2:	7D          		LD	A,L
+L12F3:	D3 00       		OUT	(IOPORT00H),A
+L12F5:	C3 2C 01    		JP	L012C
+L14A7:	2A 01 00    		LD	HL,(L0001)
+L14AA:	19          		ADD	HL,DE
+L14AB:	E9          		JP	(HL)
+L14B7:	C5          		PUSH	BC
+L14B8:	2A 22 13    		LD	HL,(L1322)
+L14BB:	44          		LD	B,H
+L14BC:	4D          		LD	C,L
+L14BD:	11 21 00    		LD	DE,L0021
+L14EA:	C5          		PUSH	BC
+L14EB:	3A 02 13    		LD	A,(L1302)
+L14EE:	4F          		LD	C,A
+L14EF:	11 18 00    		LD	DE,L0018
+L14F2:	CD A7 14    		CALL	L14A7
+L14F5:	C1          		POP	BC
+L14F6:	C3 2C 01    		JP	L012C
+L1582:	C5          		PUSH	BC
+L1583:	11 24 00    		LD	DE,L0024
+L1586:	CD A7 14    		CALL	L14A7
+L1589:	32 66 13    		LD	(L1366),A
+L158C:	C1          		POP	BC
+L158D:	C3 2C 01    		JP	L012C
+L159E:	C5          		PUSH	BC
+L159F:	11 27 00    		LD	DE,L0027
+L15A2:	CD A7 14    		CALL	L14A7
+L15A5:	32 66 13    		LD	(L1366),A
+L15A8:	C1          		POP	BC
+L15A9:	C3 2C 01    		JP	L012C
+L1671:	00          		NOP
+L1672:	00          		NOP
+L1673:	1E FF       		LD	E,0FFH
+L1675:	0E 06       		LD	C,ACK
+L1677:	CD 05 00    		CALL	L0005
+L167A:	C9          		RET
+L167B:	0E 05       		LD	C,ENQ
+L167D:	CD 05 00    		CALL	L0005
+L1680:	C9          		RET
+L1681:	3A 72 16    		LD	A,(L1672)
+L1684:	B7          		OR	A
+L1685:	D5          		PUSH	DE
+L1686:	CC 75 16    		CALL	Z,L1675
+L1689:	D1          		POP	DE
+L168A:	3A 71 16    		LD	A,(L1671)
+L168D:	B7          		OR	A
+L168E:	C4 7B 16    		CALL	NZ,L167B
+L1691:	C9          		RET
+L1692:	C5          		PUSH	BC
+L1693:	CD 73 16    		CALL	L1673
+L1696:	6F          		LD	L,A
+L1697:	26 00       		LD	H,NUL
+L1699:	C1          		POP	BC
+L169A:	C3 2B 01    		JP	L012B
+L169D:	C5          		PUSH	BC
+L169E:	0E 07       		LD	C,BEL
+L16A0:	CD 05 00    		CALL	L0005
+L16A3:	00          		NOP
+L16A4:	6F          		LD	L,A
+L16A5:	FE 10       		CP	DLE
+L16A7:	20 09       		JR	NZ,L16B2
+L16A9:	11 71 16    		LD	DE,L1671
+L16AC:	1A          		LD	A,(DE)
+L16AD:	EE 01       		XOR	SOH
+L16AF:	12          		LD	(DE),A
+L16B0:	2E 20       		LD	L,' '
+L16B2:	26 00       		LD	H,NUL
+L16B4:	C1          		POP	BC
+L16B5:	C3 2B 01    		JP	L012B
+L16B8:	BA          		CP	D
+L16B9:	16 D1       		LD	D,'Q'+80H
+L16BB:	C5          		PUSH	BC
+L16BC:	CD 81 16    		CALL	L1681
+L16BF:	C1          		POP	BC
+L16C0:	C3 2C 01    		JP	L012C
+L16C3:	EE 01       		XOR	SOH
+L16C5:	77          		LD	(HL),A
+L16C6:	6B          		LD	L,E
+L16C7:	26 00       		LD	H,NUL
+L16C9:	C3 2B 01    		JP	L012B
+L16CC:	CE 16       		ADC	A,SYN
+L16CE:	E1          		POP	HL
+L16CF:	C5          		PUSH	BC
+L16D0:	4D          		LD	C,L
+L16D1:	CD 95 16    		CALL	L1695
+L16D4:	C1          		POP	BC
+L16D5:	C3 2C 01    		JP	L012C
+L16D8:	C5          		PUSH	BC
+L16D9:	1E 0D       		LD	E,CR
+L16DB:	00          		NOP
+L16DC:	CD 81 16    		CALL	L1681
+L16DF:	1E 0A       		LD	E,LF
+L16E1:	00          		NOP
+L16E2:	CD 81 16    		CALL	L1681
+L16E5:	C1          		POP	BC
+L16E6:	C3 2C 01    		JP	L012C
+L19BB:	C3 00 00    		JP	L0000
+L1ABD:	D1          		POP	DE
+L1ABE:	D5          		PUSH	DE
+L1ABF:	D9          		EXX
+L1AC0:	C1          		POP	BC
+L1AC1:	D1          		POP	DE
+L1AC2:	D9          		EXX
+L1AC3:	E1          		POP	HL
+L1AC4:	D9          		EXX
+L1AC5:	E1          		POP	HL
+L1AC6:	E5          		PUSH	HL
+L1AC7:	D9          		EXX
+L1AC8:	E5          		PUSH	HL
+L1AC9:	A7          		AND	A
+L1ACA:	ED 52       		SBC	HL,DE
+L1ACC:	E1          		POP	HL
+L1ACD:	DA FE 1A    		JP	C,L1AFE
+L1AD0:	D9          		EXX
+L1AD1:	C5          		PUSH	BC
+L1AD2:	D5          		PUSH	DE
+L1AD3:	E5          		PUSH	HL
+L1AD4:	1A          		LD	A,(DE)
+L1AD5:	BE          		CP	(HL)
+L1AD6:	C2 E4 1A    		JP	NZ,L1AE4
+L1AD9:	13          		INC	DE
+L1ADA:	23          		INC	HL
+L1ADB:	0B          		DEC	BC
+L1ADC:	78          		LD	A,B
+L1ADD:	B1          		OR	C
+L1ADE:	C2 D4 1A    		JP	NZ,L1AD4
+L1AE1:	C3 ED 1A    		JP	L1AED
+L1AE4:	E1          		POP	HL
+L1AE5:	D1          		POP	DE
+L1AE6:	C1          		POP	BC
+L1AE7:	23          		INC	HL
+L1AE8:	D9          		EXX
+L1AE9:	2B          		DEC	HL
+L1AEA:	C3 C8 1A    		JP	L1AC8
+L1AED:	E1          		POP	HL
+L1AEE:	D1          		POP	DE
+L1AEF:	C1          		POP	BC
+L1AF0:	D1          		POP	DE
+L1AF1:	A7          		AND	A
+L1AF2:	ED 52       		SBC	HL,DE
+L1AF4:	09          		ADD	HL,BC
+L1AF5:	11 01 00    		LD	DE,L0001
+L1AF8:	D5          		PUSH	DE
+L1AF9:	E5          		PUSH	HL
+L1AFA:	D9          		EXX
+L1AFB:	C3 2C 01    		JP	L012C
+L1AFE:	E5          		PUSH	HL
+L1AFF:	D9          		EXX
+L1B00:	D1          		POP	DE
+L1B01:	19          		ADD	HL,DE
+L1B02:	D1          		POP	DE
+L1B03:	A7          		AND	A
+L1B04:	ED 52       		SBC	HL,DE
+L1B06:	11 00 00    		LD	DE,L0000
+L1B09:	D5          		PUSH	DE
+L1B0A:	E5          		PUSH	HL
+L1B0B:	D9          		EXX
+L1B0C:	C3 2C 01    		JP	L012C
+L1B3D:	C5          		PUSH	BC
+L1B3E:	2A 1C 1B    		LD	HL,(L1B1C)
+L1B41:	4D          		LD	C,L
+L1B42:	2A 2C 1B    		LD	HL,(L1B2C)
+L1B45:	54          		LD	D,H
+L1B46:	5D          		LD	E,L
+L1B47:	CD 05 00    		CALL	L0005
+L1B4A:	22 2E 1B    		LD	(L1B2E),HL
+L1B4D:	26 00       		LD	H,NUL
+L1B4F:	6F          		LD	L,A
+L1B50:	22 2C 1B    		LD	(L1B2C),HL
+L1B53:	C1          		POP	BC
+L1B54:	C3 2C 01    		JP	L012C
+L5709:	EB          		EX	DE,HL
+L570A:	E5          		PUSH	HL
+L570B:	21 00 00    		LD	HL,L0000
+L570E:	A7          		AND	A
+L570F:	ED 52       		SBC	HL,DE
+L5711:	D1          		POP	DE
+L5712:	D9          		EXX
+L5713:	EB          		EX	DE,HL
+L5714:	E5          		PUSH	HL
+L5715:	21 00 00    		LD	HL,L0000
+L5718:	ED 52       		SBC	HL,DE
+L571A:	D1          		POP	DE
+L571B:	D9          		EXX
+L571C:	C9          		RET
+L571D:	F5          		PUSH	AF
+L571E:	D9          		EXX
+L571F:	7C          		LD	A,H
+L5720:	B5          		OR	L
+L5721:	D9          		EXX
+L5722:	B4          		OR	H
+L5723:	B5          		OR	L
+L5724:	28 36       		JR	Z,L575C
+L5726:	7C          		LD	A,H
+L5727:	B5          		OR	L
+L5728:	D9          		EXX
+L5729:	B5          		OR	L
+L572A:	D9          		EXX
+L572B:	20 0E       		JR	NZ,L573B
+L572D:	D9          		EXX
+L572E:	7C          		LD	A,H
+L572F:	D9          		EXX
+L5730:	FE 80       		CP	NUL+80H
+L5732:	20 07       		JR	NZ,L573B
+L5734:	D9          		EXX
+L5735:	CB 2C       		SRA	H
+L5737:	D9          		EXX
+L5738:	04          		INC	B
+L5739:	F1          		POP	AF
+L573A:	C9          		RET
+L573B:	D9          		EXX
+L573C:	7C          		LD	A,H
+L573D:	D9          		EXX
+L573E:	A7          		AND	A
+L573F:	F5          		PUSH	AF
+L5740:	FC 09 57    		CALL	M,L5709
+L5743:	D9          		EXX
+L5744:	CB 74       		BIT	6,H
+L5746:	D9          		EXX
+L5747:	20 0D       		JR	NZ,L5756
+L5749:	CB 25       		SLA	L
+L574B:	CB 14       		RL	H
+L574D:	D9          		EXX
+L574E:	CB 15       		RL	L
+L5750:	CB 14       		RL	H
+L5752:	D9          		EXX
+L5753:	05          		DEC	B
+L5754:	18 ED       		JR	L5743
+L5756:	F1          		POP	AF
+L5757:	FC 09 57    		CALL	M,L5709
+L575A:	F1          		POP	AF
+L575B:	C9          		RET
+L575C:	06 00       		LD	B,NUL
+L575E:	F1          		POP	AF
+L575F:	C9          		RET
+L5760:	F5          		PUSH	AF
+L5761:	3E C0       		LD	A,'@'+80H
+L5763:	D9          		EXX
+L5764:	B4          		OR	H
+L5765:	A5          		AND	L
+L5766:	D9          		EXX
+L5767:	A4          		AND	H
+L5768:	A5          		AND	L
+L5769:	3C          		INC	A
+L576A:	28 08       		JR	Z,L5774
+L576C:	23          		INC	HL
+L576D:	7C          		LD	A,H
+L576E:	B5          		OR	L
+L576F:	20 03       		JR	NZ,L5774
+L5771:	D9          		EXX
+L5772:	23          		INC	HL
+L5773:	D9          		EXX
+L5774:	F1          		POP	AF
+L5775:	C9          		RET
+L5776:	3D          		DEC	A
+L5777:	28 0C       		JR	Z,L5785
+L5779:	D9          		EXX
+L577A:	CB 2C       		SRA	H
+L577C:	CB 1D       		RR	L
+L577E:	D9          		EXX
+L577F:	CB 1C       		RR	H
+L5781:	CB 1D       		RR	L
+L5783:	18 F1       		JR	L5776
+L5785:	D9          		EXX
+L5786:	CB 2C       		SRA	H
+L5788:	CB 1D       		RR	L
+L578A:	D9          		EXX
+L578B:	CB 1C       		RR	H
+L578D:	CB 1D       		RR	L
+L578F:	DC 60 57    		CALL	C,L5760
+L5792:	C9          		RET
+L5793:	D9          		EXX
+L5794:	7A          		LD	A,D
+L5795:	B3          		OR	E
+L5796:	D9          		EXX
+L5797:	B2          		OR	D
+L5798:	B3          		OR	E
+L5799:	C8          		RET	Z
+L579A:	D9          		EXX
+L579B:	7C          		LD	A,H
+L579C:	B5          		OR	L
+L579D:	D9          		EXX
+L579E:	B4          		OR	H
+L579F:	B5          		OR	L
+L57A0:	20 06       		JR	NZ,L57A8
+L57A2:	D9          		EXX
+L57A3:	EB          		EX	DE,HL
+L57A4:	D9          		EXX
+L57A5:	EB          		EX	DE,HL
+L57A6:	41          		LD	B,C
+L57A7:	C9          		RET
+L57A8:	78          		LD	A,B
+L57A9:	B9          		CP	C
+L57AA:	28 38       		JR	Z,L57E4
+L57AC:	ED 44       		NEG
+L57AE:	81          		ADD	A,C
+L57AF:	F2 B4 57    		JP	P,L57B4
+L57B2:	ED 44       		NEG
+L57B4:	FE 1F       		CP	US
+L57B6:	38 12       		JR	C,L57CA
+L57B8:	78          		LD	A,B
+L57B9:	A9          		XOR	C
+L57BA:	FA C1 57    		JP	M,L57C1
+L57BD:	78          		LD	A,B
+L57BE:	91          		SUB	C
+L57BF:	18 01       		JR	L57C2
+L57C1:	78          		LD	A,B
+L57C2:	A7          		AND	A
+L57C3:	F0          		RET	P
+L57C4:	D9          		EXX
+L57C5:	EB          		EX	DE,HL
+L57C6:	D9          		EXX
+L57C7:	EB          		EX	DE,HL
+L57C8:	41          		LD	B,C
+L57C9:	C9          		RET
+L57CA:	F5          		PUSH	AF
+L57CB:	78          		LD	A,B
+L57CC:	A9          		XOR	C
+L57CD:	FA D4 57    		JP	M,L57D4
+L57D0:	78          		LD	A,B
+L57D1:	91          		SUB	C
+L57D2:	18 01       		JR	L57D5
+L57D4:	78          		LD	A,B
+L57D5:	A7          		AND	A
+L57D6:	FA DF 57    		JP	M,L57DF
+L57D9:	D9          		EXX
+L57DA:	EB          		EX	DE,HL
+L57DB:	D9          		EXX
+L57DC:	EB          		EX	DE,HL
+L57DD:	18 01       		JR	L57E0
+L57DF:	41          		LD	B,C
+L57E0:	F1          		POP	AF
+L57E1:	CD 76 57    		CALL	L5776
+L57E4:	CD E8 57    		CALL	L57E8
+L57E7:	C9          		RET
+L57E8:	19          		ADD	HL,DE
+L57E9:	D9          		EXX
+L57EA:	ED 5A       		ADC	HL,DE
+L57EC:	D9          		EXX
+L57ED:	E2 FE 57    		JP	PO,L57FE
+L57F0:	D9          		EXX
+L57F1:	CB 1C       		RR	H
+L57F3:	CB 1D       		RR	L
+L57F5:	D9          		EXX
+L57F6:	CB 1C       		RR	H
+L57F8:	CB 1D       		RR	L
+L57FA:	04          		INC	B
+L57FB:	DC 60 57    		CALL	C,L5760
+L57FE:	CD 1D 57    		CALL	L571D
+L5801:	C9          		RET
+L5802:	58          		LD	E,B
+L5803:	16 00       		LD	D,NUL
+L5805:	CB 7B       		BIT	7,E
+L5807:	28 01       		JR	Z,L580A
+L5809:	15          		DEC	D
+L580A:	C1          		POP	BC
+L580B:	E5          		PUSH	HL
+L580C:	D9          		EXX
+L580D:	E5          		PUSH	HL
+L580E:	D9          		EXX
+L580F:	D5          		PUSH	DE
+L5810:	C3 2C 01    		JP	L012C
+L5813:	F5          		PUSH	AF
+L5814:	78          		LD	A,B
+L5815:	41          		LD	B,C
+L5816:	4F          		LD	C,A
+L5817:	F1          		POP	AF
+L5818:	D9          		EXX
+L5819:	EB          		EX	DE,HL
+L581A:	D9          		EXX
+L581B:	EB          		EX	DE,HL
+L581C:	C9          		RET
+L581D:	D9          		EXX
+L581E:	7C          		LD	A,H
+L581F:	D9          		EXX
+L5820:	A7          		AND	A
+L5821:	FC 09 57    		CALL	M,L5709
+L5824:	C9          		RET
+L5825:	D9          		EXX
+L5826:	7A          		LD	A,D
+L5827:	D9          		EXX
+L5828:	A7          		AND	A
+L5829:	F0          		RET	P
+L582A:	CD 13 58    		CALL	L5813
+L582D:	CD 1D 58    		CALL	L581D
+L5830:	CD 13 58    		CALL	L5813
+L5833:	C9          		RET
+L5834:	D9          		EXX
+L5835:	7A          		LD	A,D
+L5836:	AC          		XOR	H
+L5837:	D9          		EXX
+L5838:	F5          		PUSH	AF
+L5839:	CD 1D 58    		CALL	L581D
+L583C:	CD 25 58    		CALL	L5825
+L583F:	CD 47 58    		CALL	L5847
+L5842:	F1          		POP	AF
+L5843:	FC 09 57    		CALL	M,L5709
+L5846:	C9          		RET
+L5847:	78          		LD	A,B
+L5848:	81          		ADD	A,C
+L5849:	F5          		PUSH	AF
+L584A:	D9          		EXX
+L584B:	44          		LD	B,H
+L584C:	4D          		LD	C,L
+L584D:	21 00 00    		LD	HL,L0000
+L5850:	D9          		EXX
+L5851:	44          		LD	B,H
+L5852:	4D          		LD	C,L
+L5853:	21 00 00    		LD	HL,L0000
+L5856:	3E 20       		LD	A,' '
+L5858:	29          		ADD	HL,HL
+L5859:	D9          		EXX
+L585A:	ED 6A       		ADC	HL,HL
+L585C:	D9          		EXX
+L585D:	EB          		EX	DE,HL
+L585E:	ED 6A       		ADC	HL,HL
+L5860:	EB          		EX	DE,HL
+L5861:	D9          		EXX
+L5862:	EB          		EX	DE,HL
+L5863:	ED 6A       		ADC	HL,HL
+L5865:	EB          		EX	DE,HL
+L5866:	D9          		EXX
+L5867:	30 11       		JR	NC,L587A
+L5869:	09          		ADD	HL,BC
+L586A:	D9          		EXX
+L586B:	ED 4A       		ADC	HL,BC
+L586D:	D9          		EXX
+L586E:	30 0A       		JR	NC,L587A
+L5870:	13          		INC	DE
+L5871:	F5          		PUSH	AF
+L5872:	7A          		LD	A,D
+L5873:	B3          		OR	E
+L5874:	20 03       		JR	NZ,L5879
+L5876:	D9          		EXX
+L5877:	13          		INC	DE
+L5878:	D9          		EXX
+L5879:	F1          		POP	AF
+L587A:	3D          		DEC	A
+L587B:	20 DB       		JR	NZ,L5858
+L587D:	F1          		POP	AF
+L587E:	47          		LD	B,A
+L587F:	D9          		EXX
+L5880:	CB 14       		RL	H
+L5882:	D9          		EXX
+L5883:	CB 13       		RL	E
+L5885:	CB 12       		RL	D
+L5887:	D9          		EXX
+L5888:	CB 13       		RL	E
+L588A:	CB 12       		RL	D
+L588C:	CB 7C       		BIT	7,H
+L588E:	EB          		EX	DE,HL
+L588F:	D9          		EXX
+L5890:	EB          		EX	DE,HL
+L5891:	C4 60 57    		CALL	NZ,L5760
+L5894:	CD 1D 57    		CALL	L571D
+L5897:	C9          		RET
+L5898:	F5          		PUSH	AF
+L5899:	D9          		EXX
+L589A:	7C          		LD	A,H
+L589B:	D9          		EXX
+L589C:	A7          		AND	A
+L589D:	F5          		PUSH	AF
+L589E:	FC 09 57    		CALL	M,L5709
+L58A1:	78          		LD	A,B
+L58A2:	FE 1F       		CP	US
+L58A4:	28 1C       		JR	Z,L58C2
+L58A6:	38 0D       		JR	C,L58B5
+L58A8:	05          		DEC	B
+L58A9:	CB 25       		SLA	L
+L58AB:	CB 14       		RL	H
+L58AD:	D9          		EXX
+L58AE:	CB 15       		RL	L
+L58B0:	CB 14       		RL	H
+L58B2:	D9          		EXX
+L58B3:	18 EC       		JR	L58A1
+L58B5:	04          		INC	B
+L58B6:	D9          		EXX
+L58B7:	CB 2C       		SRA	H
+L58B9:	CB 1D       		RR	L
+L58BB:	D9          		EXX
+L58BC:	CB 1C       		RR	H
+L58BE:	CB 1D       		RR	L
+L58C0:	18 DF       		JR	L58A1
+L58C2:	F1          		POP	AF
+L58C3:	FC 09 57    		CALL	M,L5709
+L58C6:	F1          		POP	AF
+L58C7:	C9          		RET
+L58C8:	D1          		POP	DE
+L58C9:	D9          		EXX
+L58CA:	E1          		POP	HL
+L58CB:	D9          		EXX
+L58CC:	E1          		POP	HL
+L58CD:	C5          		PUSH	BC
+L58CE:	7B          		LD	A,E
+L58CF:	06 1F       		LD	B,US
+L58D1:	CD 1D 57    		CALL	L571D
+L58D4:	A7          		AND	A
+L58D5:	28 2B       		JR	Z,L5902
+L58D7:	FA EE 58    		JP	M,L58EE
+L58DA:	11 00 00    		LD	DE,L0000
+L58DD:	D9          		EXX
+L58DE:	11 00 50    		LD	DE,L5000
+L58E1:	D9          		EXX
+L58E2:	0E 04       		LD	C,EOT
+L58E4:	F5          		PUSH	AF
+L58E5:	CD 34 58    		CALL	L5834
+L58E8:	F1          		POP	AF
+L58E9:	3D          		DEC	A
+L58EA:	20 EE       		JR	NZ,L58DA
+L58EC:	18 14       		JR	L5902
+L58EE:	ED 44       		NEG
+L58F0:	11 00 00    		LD	DE,L0000
+L58F3:	D9          		EXX
+L58F4:	11 00 50    		LD	DE,L5000
+L58F7:	D9          		EXX
+L58F8:	0E 04       		LD	C,EOT
+L58FA:	F5          		PUSH	AF
+L58FB:	CD 77 59    		CALL	L5977
+L58FE:	F1          		POP	AF
+L58FF:	3D          		DEC	A
+L5900:	20 EE       		JR	NZ,L58F0
+L5902:	C3 02 58    		JP	L5802
+L5905:	D9          		EXX
+L5906:	7C          		LD	A,H
+L5907:	B5          		OR	L
+L5908:	D9          		EXX
+L5909:	B4          		OR	H
+L590A:	B5          		OR	L
+L590B:	20 0B       		JR	NZ,L5918
+L590D:	06 00       		LD	B,NUL
+L590F:	D9          		EXX
+L5910:	21 00 00    		LD	HL,L0000
+L5913:	D9          		EXX
+L5914:	21 00 00    		LD	HL,L0000
+L5917:	C9          		RET
+L5918:	D9          		EXX
+L5919:	7A          		LD	A,D
+L591A:	B3          		OR	E
+L591B:	D9          		EXX
+L591C:	B2          		OR	D
+L591D:	B3          		OR	E
+L591E:	20 0B       		JR	NZ,L592B
+L5920:	06 7F       		LD	B,07FH
+L5922:	D9          		EXX
+L5923:	21 FF 7F    		LD	HL,L7FFF
+L5926:	D9          		EXX
+L5927:	21 FF FF    		LD	HL,LFFFF
+L592A:	C9          		RET
+L592B:	78          		LD	A,B
+L592C:	91          		SUB	C
+L592D:	3C          		INC	A
+L592E:	F5          		PUSH	AF
+L592F:	AF          		XOR	A
+L5930:	4F          		LD	C,A
+L5931:	3E 1F       		LD	A,US
+L5933:	A7          		AND	A
+L5934:	ED 52       		SBC	HL,DE
+L5936:	D9          		EXX
+L5937:	ED 52       		SBC	HL,DE
+L5939:	D9          		EXX
+L593A:	30 06       		JR	NC,L5942
+L593C:	19          		ADD	HL,DE
+L593D:	D9          		EXX
+L593E:	ED 5A       		ADC	HL,DE
+L5940:	D9          		EXX
+L5941:	37          		SCF
+L5942:	3F          		CCF
+L5943:	CB 11       		RL	C
+L5945:	CB 10       		RL	B
+L5947:	D9          		EXX
+L5948:	CB 11       		RL	C
+L594A:	CB 10       		RL	B
+L594C:	D9          		EXX
+L594D:	CB 25       		SLA	L
+L594F:	CB 14       		RL	H
+L5951:	D9          		EXX
+L5952:	CB 15       		RL	L
+L5954:	CB 14       		RL	H
+L5956:	D9          		EXX
+L5957:	3D          		DEC	A
+L5958:	20 D9       		JR	NZ,L5933
+L595A:	A7          		AND	A
+L595B:	ED 52       		SBC	HL,DE
+L595D:	D9          		EXX
+L595E:	ED 52       		SBC	HL,DE
+L5960:	D9          		EXX
+L5961:	17          		RLA
+L5962:	60          		LD	H,B
+L5963:	69          		LD	L,C
+L5964:	D9          		EXX
+L5965:	60          		LD	H,B
+L5966:	69          		LD	L,C
+L5967:	D9          		EXX
+L5968:	4F          		LD	C,A
+L5969:	F1          		POP	AF
+L596A:	47          		LD	B,A
+L596B:	CB 19       		RR	C
+L596D:	D4 60 57    		CALL	NC,L5760
+L5970:	CD 1D 57    		CALL	L571D
+L5973:	C9          		RET
+L5974:	CD 13 58    		CALL	L5813
+L5977:	D9          		EXX
+L5978:	7A          		LD	A,D
+L5979:	AC          		XOR	H
+L597A:	D9          		EXX
+L597B:	F5          		PUSH	AF
+L597C:	CD 1D 58    		CALL	L581D
+L597F:	CD 25 58    		CALL	L5825
+L5982:	CD 05 59    		CALL	L5905
+L5985:	F1          		POP	AF
+L5986:	FC 09 57    		CALL	M,L5709
+L5989:	C9          		RET
+L598A:	0E 04       		LD	C,EOT
+L598C:	D9          		EXX
+L598D:	11 00 50    		LD	DE,L5000
+L5990:	D9          		EXX
+L5991:	11 00 00    		LD	DE,L0000
+L5994:	C9          		RET
+L5995:	F5          		PUSH	AF
+L5996:	78          		LD	A,B
+L5997:	A7          		AND	A
+L5998:	F2 AE 59    		JP	P,L59AE
+L599B:	0E 0A       		LD	C,LF
+L599D:	D9          		EXX
+L599E:	11 00 7D    		LD	DE,L7D00
+L59A1:	D9          		EXX
+L59A2:	11 00 00    		LD	DE,L0000
+L59A5:	CD 47 58    		CALL	L5847
+L59A8:	F1          		POP	AF
+L59A9:	C6 FD       		ADD	A,'}'+80H
+L59AB:	F5          		PUSH	AF
+L59AC:	18 E8       		JR	L5996
+L59AE:	78          		LD	A,B
+L59AF:	FE 1B       		CP	ESC
+L59B1:	30 0B       		JR	NC,L59BE
+L59B3:	CD 8A 59    		CALL	L598A
+L59B6:	CD 47 58    		CALL	L5847
+L59B9:	F1          		POP	AF
+L59BA:	3D          		DEC	A
+L59BB:	F5          		PUSH	AF
+L59BC:	18 F0       		JR	L59AE
+L59BE:	0E 1B       		LD	C,ESC
+L59C0:	D9          		EXX
+L59C1:	11 A1 A0    		LD	DE,LA0A1
+L59C4:	D9          		EXX
+L59C5:	11 00 F0    		LD	DE,LF000
+L59C8:	E5          		PUSH	HL
+L59C9:	D9          		EXX
+L59CA:	E5          		PUSH	HL
+L59CB:	D9          		EXX
+L59CC:	C5          		PUSH	BC
+L59CD:	CD 93 57    		CALL	L5793
+L59D0:	D9          		EXX
+L59D1:	7C          		LD	A,H
+L59D2:	D9          		EXX
+L59D3:	A7          		AND	A
+L59D4:	C1          		POP	BC
+L59D5:	D9          		EXX
+L59D6:	E1          		POP	HL
+L59D7:	D9          		EXX
+L59D8:	E1          		POP	HL
+L59D9:	F2 E7 59    		JP	P,L59E7
+L59DC:	CD 8A 59    		CALL	L598A
+L59DF:	CD 47 58    		CALL	L5847
+L59E2:	F1          		POP	AF
+L59E3:	3D          		DEC	A
+L59E4:	F5          		PUSH	AF
+L59E5:	18 D7       		JR	L59BE
+L59E7:	F1          		POP	AF
+L59E8:	C9          		RET
+L59E9:	F5          		PUSH	AF
+L59EA:	78          		LD	A,B
+L59EB:	FE 31       		CP	'1'
+L59ED:	38 13       		JR	C,L5A02
+L59EF:	0E 0A       		LD	C,LF
+L59F1:	D9          		EXX
+L59F2:	11 00 7D    		LD	DE,L7D00
+L59F5:	D9          		EXX
+L59F6:	11 00 00    		LD	DE,L0000
+L59F9:	CD 05 59    		CALL	L5905
+L59FC:	F1          		POP	AF
+L59FD:	C6 03       		ADD	A,ETX
+L59FF:	F5          		PUSH	AF
+L5A00:	18 E8       		JR	L59EA
+L5A02:	78          		LD	A,B
+L5A03:	FE 1F       		CP	US
+L5A05:	38 0B       		JR	C,L5A12
+L5A07:	CD 8A 59    		CALL	L598A
+L5A0A:	CD 05 59    		CALL	L5905
+L5A0D:	F1          		POP	AF
+L5A0E:	3C          		INC	A
+L5A0F:	F5          		PUSH	AF
+L5A10:	18 F0       		JR	L5A02
+L5A12:	0E 1E       		LD	C,RS
+L5A14:	D9          		EXX
+L5A15:	11 CA 88    		LD	DE,L88CA
+L5A18:	D9          		EXX
+L5A19:	11 00 6C    		LD	DE,L6C00
+L5A1C:	E5          		PUSH	HL
+L5A1D:	D9          		EXX
+L5A1E:	E5          		PUSH	HL
+L5A1F:	D9          		EXX
+L5A20:	C5          		PUSH	BC
+L5A21:	CD 93 57    		CALL	L5793
+L5A24:	D9          		EXX
+L5A25:	7C          		LD	A,H
+L5A26:	D9          		EXX
+L5A27:	A7          		AND	A
+L5A28:	C1          		POP	BC
+L5A29:	D9          		EXX
+L5A2A:	E1          		POP	HL
+L5A2B:	D9          		EXX
+L5A2C:	E1          		POP	HL
+L5A2D:	FA 3B 5A    		JP	M,L5A3B
+L5A30:	CD 8A 59    		CALL	L598A
+L5A33:	CD 05 59    		CALL	L5905
+L5A36:	F1          		POP	AF
+L5A37:	3C          		INC	A
+L5A38:	F5          		PUSH	AF
+L5A39:	18 D7       		JR	L5A12
+L5A3B:	F1          		POP	AF
+L5A3C:	C9          		RET
+L5A3D:	D9          		EXX
+L5A3E:	7C          		LD	A,H
+L5A3F:	B5          		OR	L
+L5A40:	D9          		EXX
+L5A41:	B4          		OR	H
+L5A42:	B5          		OR	L
+L5A43:	28 2D       		JR	Z,L5A72
+L5A45:	D9          		EXX
+L5A46:	7C          		LD	A,H
+L5A47:	D9          		EXX
+L5A48:	A7          		AND	A
+L5A49:	F5          		PUSH	AF
+L5A4A:	CD 1D 58    		CALL	L581D
+L5A4D:	3E 08       		LD	A,BS
+L5A4F:	CD 95 59    		CALL	L5995
+L5A52:	CD E9 59    		CALL	L59E9
+L5A55:	F5          		PUSH	AF
+L5A56:	0E 03       		LD	C,ETX
+L5A58:	D9          		EXX
+L5A59:	11 00 50    		LD	DE,L5000
+L5A5C:	D9          		EXX
+L5A5D:	11 00 00    		LD	DE,L0000
+L5A60:	CD 93 57    		CALL	L5793
+L5A63:	F1          		POP	AF
+L5A64:	CD E9 59    		CALL	L59E9
+L5A67:	CD 98 58    		CALL	L5898
+L5A6A:	47          		LD	B,A
+L5A6B:	F1          		POP	AF
+L5A6C:	FC 09 57    		CALL	M,L5709
+L5A6F:	C3 02 58    		JP	L5802
+L5A72:	06 00       		LD	B,NUL
+L5A74:	C3 02 58    		JP	L5802
+L5A7E:	D9          		EXX
+L5A7F:	C1          		POP	BC
+L5A80:	79          		LD	A,C
+L5A81:	E1          		POP	HL
+L5A82:	D9          		EXX
+L5A83:	E1          		POP	HL
+L5A84:	D9          		EXX
+L5A85:	C1          		POP	BC
+L5A86:	47          		LD	B,A
+L5A87:	D1          		POP	DE
+L5A88:	D9          		EXX
+L5A89:	D1          		POP	DE
+L5A8A:	C5          		PUSH	BC
+L5A8B:	D9          		EXX
+L5A8C:	C5          		PUSH	BC
+L5A8D:	D9          		EXX
+L5A8E:	C1          		POP	BC
+L5A8F:	CD 93 57    		CALL	L5793
+L5A92:	C3 02 58    		JP	L5802
+L5A9C:	D9          		EXX
+L5A9D:	C1          		POP	BC
+L5A9E:	79          		LD	A,C
+L5A9F:	E1          		POP	HL
+L5AA0:	D9          		EXX
+L5AA1:	E1          		POP	HL
+L5AA2:	D9          		EXX
+L5AA3:	C1          		POP	BC
+L5AA4:	47          		LD	B,A
+L5AA5:	D1          		POP	DE
+L5AA6:	D9          		EXX
+L5AA7:	D1          		POP	DE
+L5AA8:	C5          		PUSH	BC
+L5AA9:	D9          		EXX
+L5AAA:	C5          		PUSH	BC
+L5AAB:	D9          		EXX
+L5AAC:	C1          		POP	BC
+L5AAD:	CD 34 58    		CALL	L5834
+L5AB0:	C3 02 58    		JP	L5802
+L5ABF:	D1          		POP	DE
+L5AC0:	D9          		EXX
+L5AC1:	E1          		POP	HL
+L5AC2:	D9          		EXX
+L5AC3:	E1          		POP	HL
+L5AC4:	C5          		PUSH	BC
+L5AC5:	43          		LD	B,E
+L5AC6:	CD 98 58    		CALL	L5898
+L5AC9:	C1          		POP	BC
+L5ACA:	E5          		PUSH	HL
+L5ACB:	D9          		EXX
+L5ACC:	E5          		PUSH	HL
+L5ACD:	D9          		EXX
+L5ACE:	C3 2C 01    		JP	L012C
+L5ADB:	C3 C8 58    		JP	L58C8
+L5AE5:	D9          		EXX
+L5AE6:	C1          		POP	BC
+L5AE7:	79          		LD	A,C
+L5AE8:	E1          		POP	HL
+L5AE9:	D9          		EXX
+L5AEA:	E1          		POP	HL
+L5AEB:	D9          		EXX
+L5AEC:	C1          		POP	BC
+L5AED:	47          		LD	B,A
+L5AEE:	D1          		POP	DE
+L5AEF:	D9          		EXX
+L5AF0:	D1          		POP	DE
+L5AF1:	C5          		PUSH	BC
+L5AF2:	D9          		EXX
+L5AF3:	C5          		PUSH	BC
+L5AF4:	D9          		EXX
+L5AF5:	C1          		POP	BC
+L5AF6:	CD 74 59    		CALL	L5974
+L5AF9:	C3 02 58    		JP	L5802
+L5B05:	D1          		POP	DE
+L5B06:	D9          		EXX
+L5B07:	E1          		POP	HL
+L5B08:	D9          		EXX
+L5B09:	E1          		POP	HL
+L5B0A:	C5          		PUSH	BC
+L5B0B:	43          		LD	B,E
+L5B0C:	C3 3D 5A    		JP	L5A3D
+L5B16:	D9          		EXX
+L5B17:	C1          		POP	BC
+L5B18:	79          		LD	A,C
+L5B19:	E1          		POP	HL
+L5B1A:	D9          		EXX
+L5B1B:	E1          		POP	HL
+L5B1C:	D9          		EXX
+L5B1D:	C1          		POP	BC
+L5B1E:	47          		LD	B,A
+L5B1F:	D1          		POP	DE
+L5B20:	D9          		EXX
+L5B21:	D1          		POP	DE
+L5B22:	C5          		PUSH	BC
+L5B23:	D9          		EXX
+L5B24:	C5          		PUSH	BC
+L5B25:	D9          		EXX
+L5B26:	C1          		POP	BC
+L5B27:	CD 09 57    		CALL	L5709
+L5B2A:	CD 93 57    		CALL	L5793
+L5B2D:	C3 02 58    		JP	L5802
+L5B37:	E1          		POP	HL
+L5B38:	D1          		POP	DE
+L5B39:	73          		LD	(HL),E
+L5B3A:	23          		INC	HL
+L5B3B:	72          		LD	(HL),D
+L5B3C:	23          		INC	HL
+L5B3D:	D1          		POP	DE
+L5B3E:	73          		LD	(HL),E
+L5B3F:	23          		INC	HL
+L5B40:	72          		LD	(HL),D
+L5B41:	23          		INC	HL
+L5B42:	D1          		POP	DE
+L5B43:	73          		LD	(HL),E
+L5B44:	23          		INC	HL
+L5B45:	72          		LD	(HL),D
+L5B46:	C3 2C 01    		JP	L012C
+L5B50:	E1          		POP	HL
+L5B51:	11 05 00    		LD	DE,L0005
+L5B54:	19          		ADD	HL,DE
+L5B55:	56          		LD	D,(HL)
+L5B56:	2B          		DEC	HL
+L5B57:	5E          		LD	E,(HL)
+L5B58:	2B          		DEC	HL
+L5B59:	D5          		PUSH	DE
+L5B5A:	56          		LD	D,(HL)
+L5B5B:	2B          		DEC	HL
+L5B5C:	5E          		LD	E,(HL)
+L5B5D:	2B          		DEC	HL
+L5B5E:	D5          		PUSH	DE
+L5B5F:	56          		LD	D,(HL)
+L5B60:	2B          		DEC	HL
+L5B61:	5E          		LD	E,(HL)
+L5B62:	D5          		PUSH	DE
+L5B63:	C3 2C 01    		JP	L012C
+L5B70:	D1          		POP	DE
+L5B71:	E1          		POP	HL
+L5B72:	D9          		EXX
+L5B73:	E1          		POP	HL
+L5B74:	D1          		POP	DE
+L5B75:	C1          		POP	BC
+L5B76:	E3          		EX	(SP),HL
+L5B77:	D9          		EXX
+L5B78:	E5          		PUSH	HL
+L5B79:	D5          		PUSH	DE
+L5B7A:	D9          		EXX
+L5B7B:	E5          		PUSH	HL
+L5B7C:	C5          		PUSH	BC
+L5B7D:	D5          		PUSH	DE
+L5B7E:	D9          		EXX
+L5B7F:	C3 2C 01    		JP	L012C

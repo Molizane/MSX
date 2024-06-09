@@ -1,0 +1,7178 @@
+;
+        .Z80
+;
+IF1
+.PRINTX .
+.PRINTX +-------------------------------------+
+.PRINTX |                                     |
+.PRINTX |            FIG FORTH CPM            |
+.PRINTX |                                     |
+.PRINTX +-------------------------------------+
+.PRINTX .
+.PRINTX Compilando ... Passo 1.
+ELSE
+.PRINTX .              Passo 2.
+ENDIF
+;
+BDOS equ 0005H
+;
+        .PHASE  0100H
+;
+START:  NOP
+        JP MAIN
+        NOP
+        JP ENTRY
+;
+        dw START+1
+        dw 0E00H
+ULTPL:  dw CPAGE        ; ULTIMA PALAVRA DO DICIONARIO
+        dw 0008H
+        dw 0B7A8H
+STACK:  dw 0B708H
+        dw 0B7A8H
+        dw 0B708H
+        dw 001FH
+        dw 0000H
+        dw KBO
+        dw KBO
+        dw L5707
+        dw 0000H
+        dw 0B250H
+PSP:    dw 0B7A8H       ; PONTEIRO STACK POINTER
+PTOP:   dw 0B7A0H       ; PONTEIRO TOPO MEMORIA DISPONIVEL
+;
+SVDEHL: PUSH DE
+SVHL:   PUSH HL
+BC2PC:  LD A,(BC)
+        INC BC
+        LD L,A
+        LD A,(BC)
+        INC BC
+        LD H,A
+HL2PC:  LD E,(HL)
+        INC HL
+        LD D,(HL)
+        EX DE,HL
+        JP (HL)
+;
+CLIT:   db 83H
+        dc 'LIT'
+        dw 0
+LIT:    dw $+2
+        LD A,(BC)
+        INC BC
+        LD L,A
+        LD A,(BC)
+        INC BC
+        LD H,A
+        JP SVHL
+;
+CEXECUTE:  db 87H
+        dc 'EXECUTE'
+        dw CLIT
+EXECUTE:dw $+2
+EXEC:   POP HL
+        JP HL2PC
+;
+CBRANCH:  db 86H
+        dc 'BRANCH'
+        dw CEXECUTE
+BRCH:   dw $+2
+BRANCH: LD H,B
+        LD L,C
+        LD E,(HL)
+        INC HL
+        LD D,(HL)
+        DEC HL
+        ADD HL,DE
+        LD C,L
+        LD B,H
+        JP BC2PC
+;
+C0BRANCH:  db 87H
+        dc '0BRANCH'
+        dw CBRANCH
+BRANCH0:  dw $+2
+        POP HL
+        LD A,L
+        OR H
+        JP Z,BRANCH
+        INC BC
+        INC BC
+        JP BC2PC
+;
+CSOSTEPONE:  db 86H
+        dc '(LOOP)'
+        dw C0BRANCH
+SOSTEPONE:  dw $+2
+        LD DE,0001H
+DOSTEPX:  LD HL,(PTOP)
+        LD A,(HL)
+        ADD A,E
+        LD (HL),A
+        LD E,A
+        INC HL
+        LD A,(HL)
+        ADC A,D
+        LD (HL),A
+        INC HL
+        INC D
+        DEC D
+        LD D,A
+        JP M,DOSTEPX1
+        LD A,E
+        SUB (HL)
+        LD A,D
+        INC HL
+        SBC A,(HL)
+        JP DOSTEPX2
+DOSTEPX1: LD A,(HL)
+        SUB E
+        INC HL
+        LD A,(HL)
+        SBC A,D
+DOSTEPX2: JP M,BRANCH
+        INC HL
+        LD (PTOP),HL
+        INC BC
+        INC BC
+        JP BC2PC
+;
+CDOSTEP:  db 87H
+        dc '(+LOOP)'
+        dw CSOSTEPONE
+DOSTEP:   dw $+2
+        POP DE
+        JP DOSTEPX
+;
+CDOINILOOP:  db 84H
+        dc '(DO)'
+        dw CDOSTEP
+DOINILOOP:  dw $+2
+        LD HL,(PTOP)
+        DEC HL
+        DEC HL
+        DEC HL
+        DEC HL
+        LD (PTOP),HL
+        POP DE
+        LD (HL),E
+        INC HL
+        LD (HL),D
+        POP DE
+        INC HL
+        LD (HL),E
+        INC HL
+        LD (HL),D
+        JP BC2PC
+;
+CI:     db 81H
+        dc 'I'
+        dw CDOINILOOP
+VAR_I:  dw $+2
+GETI:  LD HL,(PTOP)
+        LD E,(HL)
+        INC HL
+        LD D,(HL)
+        PUSH DE
+        JP BC2PC
+;
+CDIGIT: db 85H
+        dc 'DIGIT'
+        dw CI
+DIGIT:  dw $+2
+        POP HL
+        POP DE
+        LD A,E
+        SUB '0'
+        JP M,DIGIT2
+        CP 0AH
+        JP M,DIGIT1
+        SUB 07H
+        CP 0AH
+        JP M,DIGIT2
+DIGIT1: CP L
+        JP P,DIGIT2
+        LD E,A
+        LD HL,0001H
+        JP SVDEHL
+DIGIT2: LD L,H
+        JP SVHL
+;
+L022B:  db 86H
+        dc '(FIND)'
+        dw CDIGIT
+FIND:   dw $+2
+        POP DE
+FIND1: POP HL
+        PUSH HL
+        LD A,(DE)
+        XOR (HL)
+        AND '?'
+        JP NZ,FIND5
+FIND2: INC HL
+        INC DE
+        LD A,(DE)
+        XOR (HL)
+        ADD A,A
+        JP NZ,FIND4
+        JP NC,FIND2
+        LD HL,0005H
+        ADD HL,DE
+        EX (SP),HL
+FIND3: DEC DE
+        LD A,(DE)
+        OR A
+        JP P,FIND3
+        LD E,A
+        LD D,00H
+        LD HL,0001H
+        JP SVDEHL
+FIND4: JP C,FIND6
+FIND5: INC DE
+        LD A,(DE)
+        OR A
+        JP P,FIND5
+FIND6: INC DE
+        EX DE,HL
+        LD E,(HL)
+        INC HL
+        LD D,(HL)
+        LD A,D
+        OR E
+        JP NZ,FIND1
+        POP HL
+        LD HL,0000H
+        JP SVHL
+;
+CENCLOSE:  db 87H
+        dc 'ENCLOSE'
+        dw L022B
+ENCLOSE:dw $+2
+        EXX
+        POP DE
+        POP HL
+        PUSH HL
+        LD A,E
+        LD D,A
+        LD BC,0FFFFH
+        DEC HL
+ENCLOS1:INC HL
+        INC BC
+        CP (HL)
+        JP Z,ENCLOS1
+        PUSH BC
+        LD D,A
+        LD A,(HL)
+        AND A
+        JP NZ,ENCLOS2
+        INC BC
+        PUSH BC
+        DEC BC
+        PUSH BC
+        JP ENCLOS4
+ENCLOS2:LD A,D
+        INC HL
+        INC BC
+        CP (HL)
+        JP Z,ENCLOS3
+        LD A,(HL)
+        AND A
+        JP NZ,ENCLOS2
+        PUSH BC
+        PUSH BC
+        JP ENCLOS4
+ENCLOS3:PUSH BC
+        INC BC
+        PUSH BC
+ENCLOS4:EXX
+        JP BC2PC
+;
+CEMIT:  db 84H
+        dc 'EMIT'
+        dw CENCLOSE
+EMIT:   dw RUNFORTH
+        dw PUTCH,ONE,CONOUT,ADDMEM
+        dw ENDFORTH
+;
+CKEY:   db 83H
+        dc 'KEY'
+        dw CEMIT
+KEY:    dw $+2
+        JP READKEY
+;
+CINTERMINAL:  db 89H
+        dc '?TERMINAL'
+        dw CKEY
+INTERMINAL:dw $+2
+        LD HL,0000H
+        JP SAVECHR
+;
+CCR:    db 82H
+        dc 'CR'
+        dw CINTERMINAL
+CR:     dw $+2
+        JP CRLF
+;
+CCMOVE: db 85H
+        dc 'CMOVE'
+        dw CCR
+CMOVE:  dw $+2
+        LD L,C
+        LD H,B
+        POP BC
+        POP DE
+        EX (SP),HL
+        JP CMOVE2
+CMOVE1: LD A,(HL)
+        INC HL
+        LD (DE),A
+        INC DE
+        DEC BC
+CMOVE2: LD A,B
+        OR C
+        JP NZ,CMOVE1
+        POP BC
+        JP BC2PC
+;
+CUTIMES: db 82H
+        dc 'U*'
+        dw CCMOVE
+UTIMES: dw $+2
+        POP DE
+        POP HL
+        PUSH BC
+        LD B,H
+        LD A,L
+        CALL UTIMES1
+        PUSH HL
+        LD H,A
+        LD A,B
+        LD B,H
+        CALL UTIMES1
+        POP DE
+        LD C,D
+        ADD HL,BC
+        ADC A,00H
+        LD D,L
+        LD L,H
+        LD H,A
+        POP BC
+        PUSH DE
+        JP SVHL
+UTIMES1: LD HL,0000H
+        LD C,08H
+UTIMES2: ADD HL,HL
+        RLA
+        JP NC,UTIMES3
+        ADD HL,DE
+        ADC A,00H
+UTIMES3: DEC C
+        JP NZ,UTIMES2
+        RET
+;
+CUDIV:  db 82H
+        dc 'U/'
+        dw CUTIMES
+UDIV:   dw $+2
+        LD HL,0004H
+        ADD HL,SP
+        LD E,(HL)
+        LD (HL),C
+        INC HL
+        LD D,(HL)
+        LD (HL),B
+        POP BC
+        POP HL
+        LD A,L
+        SUB C
+        LD A,H
+        SBC A,B
+        JP C,UDIV1
+        LD HL,0FFFFH
+        LD DE,0FFFFH
+        JP UDIV6
+UDIV1:  LD A,10H
+UDIV2:  ADD HL,HL
+        RLA
+        EX DE,HL
+        ADD HL,HL
+        JP NC,UDIV3
+        INC DE
+        AND A
+UDIV3:  EX DE,HL
+        RRA
+        PUSH AF
+        JP NC,UDIV4
+        LD A,L
+        SUB C
+        LD L,A
+        LD A,H
+        SBC A,B
+        LD H,A
+        JP UDIV5
+UDIV4:  LD A,L
+        SUB C
+        LD L,A
+        LD A,H
+        SBC A,B
+        LD H,A
+        JP NC,UDIV5
+        ADD HL,BC
+        DEC DE
+UDIV5:  INC DE
+        POP AF
+        DEC A
+        JP NZ,UDIV2
+UDIV6:  POP BC
+        PUSH HL
+        PUSH DE
+        JP BC2PC
+;
+CAND:   db 83H
+        dc 'AND'
+        dw CUDIV
+AND:    dw $+2
+AND_:   POP DE
+        POP HL
+        LD A,E
+        AND L
+        LD L,A
+        LD A,D
+        AND H
+        LD H,A
+        JP SVHL
+;
+COR:    db 82H
+        dc 'OR'
+        dw CAND
+OR:     dw $+2
+OR_:    POP DE
+        POP HL
+        LD A,E
+        OR L
+        LD L,A
+        LD A,D
+        OR H
+        LD H,A
+        JP SVHL
+;
+CXOR:   db 83H
+        dc 'XOR'
+        dw COR
+XOR:    dw $+2
+        POP DE
+        POP HL
+        LD A,E
+        XOR L
+        LD L,A
+        LD A,D
+        XOR H
+        LD H,A
+        JP SVHL
+;
+CPEEKSP: db 83H
+        dc 'SP@'
+        dw CXOR
+PEEKSP: dw $+2
+        LD HL,0000H
+        ADD HL,SP
+        JP SVHL
+;
+CPOKESP:db 83H
+        dc 'SP!'
+        dw CPEEKSP
+POKESP: dw $+2
+        LD HL,(PSP)
+        LD DE,0006H
+        ADD HL,DE
+        LD E,(HL)
+        INC HL
+        LD D,(HL)
+        EX DE,HL
+        LD SP,HL
+        JP BC2PC
+;
+CPEEKRP: db 83H
+        dc 'RP@'
+        dw CPOKESP
+        dw $+2
+        LD HL,(PTOP)
+        JP SVHL
+;
+CPOKERP:db 83H
+        dc 'RP!'
+        dw CPEEKRP
+POKERP: dw $+2
+        LD HL,(PSP)
+        LD DE,0008H
+        ADD HL,DE
+        LD E,(HL)
+        INC HL
+        LD D,(HL)
+        EX DE,HL
+        LD (PTOP),HL
+        JP BC2PC
+;
+CENDFORTH:db 82H
+        dc ';S'
+        dw CPOKERP
+ENDFORTH: dw $+2
+        LD HL,(PTOP)
+        LD C,(HL)
+        INC HL
+        LD B,(HL)
+        INC HL
+        LD (PTOP),HL
+        JP BC2PC
+;
+CLEAVE: db 85H
+        dc 'LEAVE'
+        dw CENDFORTH
+LEAVE:  dw $+2
+        LD HL,(PTOP)
+        LD E,(HL)
+        INC HL
+        LD D,(HL)
+        INC HL
+        LD (HL),E
+        INC HL
+        LD (HL),D
+        JP BC2PC
+;
+CPOPRP: db 82H
+        dc '>R'
+        dw CLEAVE
+POPRP: dw $+2
+        POP DE
+        LD HL,(PTOP)
+        DEC HL
+        DEC HL
+        LD (PTOP),HL
+        LD (HL),E
+        INC HL
+        LD (HL),D
+        JP BC2PC
+;
+CPUSHRP:  db 82H
+        dc 'R>'
+        dw CPOPRP
+PUSHRP:  dw $+2
+        LD HL,(PTOP)
+        LD E,(HL)
+        INC HL
+        LD D,(HL)
+        INC HL
+        LD (PTOP),HL
+        PUSH DE
+        JP BC2PC
+;
+CGETR:  db 81H
+        dc 'R'
+        dw CPUSHRP
+GETR:   dw GETI
+;
+CEQUAL0:db 82H
+        dc '0='
+        dw CGETR
+EQUAL0: dw $+2
+        POP HL
+        LD A,L
+        OR H
+        LD HL,0000H
+        JP NZ,EQU0
+        INC HL
+EQU0:   JP SVHL
+;
+CLESS0:  db 82H
+        dc '0<'
+        dw CEQUAL0
+LESS0:  dw $+2
+        POP HL
+        ADD HL,HL
+        LD HL,0000H
+        JP NC,LESS01
+        INC HL
+LESS01: JP SVHL
+;
+CPLUS:  db 81H
+        dc '+'
+        dw CLESS0
+PLUS:   dw $+2
+DOPLUS: POP DE
+        POP HL
+        ADD HL,DE
+        JP SVHL
+;
+CDPLUS: db 82H
+        dc 'D+'
+        dw CPLUS
+DPLUS:  dw $+2
+        LD HL,0006H
+        ADD HL,SP
+        LD E,(HL)
+        LD (HL),C
+        INC HL
+        LD D,(HL)
+        LD (HL),B
+        POP BC
+        POP HL
+        ADD HL,DE
+        EX DE,HL
+        POP HL
+        LD A,L
+        ADC A,C
+        LD L,A
+        LD A,H
+        ADC A,B
+        LD H,A
+        POP BC
+        PUSH DE
+        JP SVHL
+;
+CMINUS: db 85H
+        dc 'MINUS'
+        dw CDPLUS
+MINUS:  dw $+2
+        POP HL
+        LD A,L
+        CPL
+        LD L,A
+        LD A,H
+        CPL
+        LD H,A
+        INC HL
+        JP SVHL
+;
+CCMINUS: db 86H
+        dc 'DMINUS'
+        dw CMINUS
+DMINUS: dw $+2
+        POP HL
+        POP DE
+        SUB A
+        SUB E
+        LD E,A
+        LD A,00H
+        SBC A,D
+        LD D,A
+        LD A,00H
+        SBC A,L
+        LD L,A
+        LD A,00H
+        SBC A,H
+        LD H,A
+        PUSH DE
+        JP SVHL
+;
+COVER:  db 84H
+        dc 'OVER'
+        dw CCMINUS
+OVER:   dw $+2
+        POP DE
+        POP HL
+        PUSH HL
+        JP SVDEHL
+;
+CDROP:  db 84H
+        dc 'DROP'
+        dw COVER
+DROP:   dw $+2
+        POP HL
+        JP BC2PC
+;
+CSWAP:  db 84H
+        dc 'SWAP'
+        dw CDROP
+SWAP:   dw $+2
+        POP HL
+        EX (SP),HL
+        JP SVHL
+;
+CDUP:  db 83H
+        dc 'DUP'
+        dw CSWAP
+DUP:    dw $+2
+        POP HL
+        PUSH HL
+        JP SVHL
+;
+C2DUP:  db 84H
+        dc '2DUP'
+        dw CDUP
+DUP2:   dw $+2
+        POP HL
+        POP DE
+        PUSH DE
+        PUSH HL
+        JP SVDEHL
+;
+CADDMEM: db 82H
+        dc '+!'
+        dw C2DUP
+ADDMEM: dw $+2
+        POP HL
+        POP DE
+        LD A,(HL)
+        ADD A,E
+        LD (HL),A
+        INC HL
+        LD A,(HL)
+        ADC A,D
+        LD (HL),A
+        JP BC2PC
+;
+CTOGGLE: db 86H
+        dc 'TOGGLE'
+        dw CADDMEM
+TOGGLE: dw $+2
+        POP DE
+        POP HL
+        LD A,(HL)
+        XOR E
+        LD (HL),A
+        JP BC2PC
+;
+CPEEK16: db 81H
+        dc '@'
+        dw CTOGGLE
+PEEK16: dw $+2
+        POP HL
+        LD E,(HL)
+        INC HL
+        LD D,(HL)
+        PUSH DE
+        JP BC2PC
+;
+CPEEK8: db 82H
+        dc 'C@'
+        dw CPEEK16
+PEEK8:  dw $+2
+        POP HL
+        LD L,(HL)
+        LD H,00H
+        JP SVHL
+;
+CPEEK32: db 82H
+        dc '2@'
+        dw CPEEK8
+PEEK32: dw $+2
+        POP HL
+        LD DE,0002H
+        ADD HL,DE
+        LD E,(HL)
+        INC HL
+        LD D,(HL)
+        PUSH DE
+        LD DE,-3
+        ADD HL,DE
+        LD E,(HL)
+        INC HL
+        LD D,(HL)
+        PUSH DE
+        JP BC2PC
+;
+CPOKE16:  db 81H
+        dc '!'
+        dw CPEEK32
+POKE16: dw $+2
+        POP HL
+        POP DE
+        LD (HL),E
+        INC HL
+        LD (HL),D
+        JP BC2PC
+;
+CPOKE8:  db 82H
+        dc 'C!'
+        dw CPOKE16
+POKE8:  dw $+2
+        POP HL
+        POP DE
+        LD (HL),E
+        JP BC2PC
+;
+CPOKE32: db 82H
+        dc '2!'
+        dw CPOKE8
+        dw $+2
+        POP HL
+        POP DE
+        LD (HL),E
+        INC HL
+        LD (HL),D
+        INC HL
+        POP DE
+        LD (HL),E
+        INC HL
+        LD (HL),D
+        JP BC2PC
+;
+CINICOMP: db 0C1H
+        dc ':'
+        dw CPOKE32
+        dw RUNFORTH
+        dw ISEXEC,POKECSP,CURRENT,PEEK16,CONTEXT
+        dw POKE16,CREATE,ENDDEF,EXEC_LM
+RUNFORTH:    LD HL,(PTOP)
+        DEC HL
+        LD (HL),B
+        DEC HL
+        LD (HL),C
+        LD (PTOP),HL
+        INC DE
+        LD C,E
+        LD B,D
+        JP BC2PC
+;
+CENDCOMP: db 0C1H
+        dc ';'
+        dw CINICOMP
+        dw RUNFORTH
+        dw ISCSP,COMPILE,ENDFORTH,SMUDGE,INIDEF
+        dw ENDFORTH
+;
+CNOOP:  db 84H
+        dc 'NOOP'
+        dw CENDCOMP
+NOOP:   dw RUNFORTH
+        dw ENDFORTH
+;
+CCONSTANT:  db 88H
+        dc 'CONSTANT'
+        dw CNOOP
+CONSTANT:dw RUNFORTH
+        dw CREATE,SMUDGE,POKED16,EXEC_LM
+CONST:  INC DE
+        EX DE,HL
+        LD E,(HL)
+        INC HL
+        LD D,(HL)
+        PUSH DE
+        JP BC2PC
+;
+CVARIABLE: db 88H
+        dc 'VARIABLE'
+        dw CCONSTANT
+VARIABLE:dw RUNFORTH
+        dw CONSTANT,EXEC_LM
+VAR:    INC DE
+        PUSH DE
+        JP BC2PC
+;
+CUSER:  db 84H
+        dc 'USER'
+        dw CVARIABLE
+        dw RUNFORTH
+        dw CONSTANT,EXEC_LM
+USER:   INC DE
+        EX DE,HL
+        LD E,(HL)
+        LD D,00H
+        LD HL,(PSP)
+        ADD HL,DE
+        JP SVHL
+;
+CZERO:  db 81H
+        dc '0'
+        dw CUSER
+ZERO:   dw CONST
+        dw 0000H
+;
+CONE:   db 81H
+        dc '1'
+        dw CZERO
+ONE:    dw CONST
+        dw 0001H
+;
+CTWO:   db 81H
+        dc '2'
+        dw CONE
+TWO:    dw CONST
+        dw 0002H
+;
+CTHREE: db 81H
+        dc '3'
+        dw CTWO
+THREE:  dw CONST
+        dw 0003H
+;
+CBL:    db 82H
+        dc 'BL'
+        dw CTHREE
+BL:     dw CONST
+        dw 0020H
+;
+CCL:    db 83H
+        dc 'C/L'
+        dw CBL
+CL:     dw CONST
+        dw 0040H
+;
+CFIRST: db 85H
+        dc 'FIRST'
+        dw CCL
+FIRST:  dw CONST
+        dw 0B7E8H
+;
+CLIMIT: db 85H
+        dc 'LIMIT'
+        dw CFIRST
+LIMIT:  dw CONST
+        dw 0D000H
+;
+CBBUF:  db 85H
+        dc 'B/BUF'
+        dw CLIMIT
+BBUF:   dw CONST
+        dw 0400H
+;
+CBSCR:  db 85H
+        dc 'B/SCR'
+        dw CBBUF
+BSCR:   dw CONST
+        dw 0001H
+;
+CADDORIGIN: db 87H
+        dc '+ORIGIN'
+        dw CBSCR
+ADDORIGIN: dw RUNFORTH
+        dw LIT,START,PLUS
+        dw ENDFORTH
+;
+CS0:    db 82H
+        dc 'S0'
+        dw CADDORIGIN
+S0:     dw USER
+        dw 0006H
+;
+CR0:    db 82H
+        dc 'R0'
+        dw CS0
+        dw USER
+        dw 0008H
+;
+CTIB:   db 83H
+        dc 'TIB'
+        dw CR0
+TIB:    dw USER
+        dw 000AH
+;
+CWIDTH: db 85H
+        dc 'WIDTH'
+        dw CTIB
+WIDTH:  dw USER
+        dw 000CH
+;
+CWARNING: db 87H
+        dc 'WARNING'
+        dw CWIDTH
+WARNING:dw USER
+        dw 000EH
+;
+CFENCE: db 85H
+        dc 'FENCE'
+        dw CWARNING
+FENCE:  dw USER
+        dw 0010H
+;
+CDP:    db 82H
+        dc 'DP'
+        dw CFENCE
+DP:     dw USER
+        dw 0012H
+;
+CVOCLINK:  db 88H
+        dc 'VOC-LINK'
+        dw CDP
+VOCLINK:dw USER
+        dw 0014H
+;
+CBLK:   db 83H
+        dc 'BLK'
+        dw CVOCLINK
+BLK:    dw USER
+        dw 0016H
+;
+CIN:   db 82H
+        dc 'IN'
+        dw CBLK
+CONIN:  dw USER
+        dw 0018H
+;
+COUT:   db 83H
+        dc 'OUT'
+        dw CIN
+CONOUT: dw USER
+        dw 001AH
+;
+CSCR:   db 83H
+        dc 'SCR'
+        dw COUT
+SCR:    dw USER
+        dw 001CH
+;
+COFFSET:db 86H
+        dc 'OFFSET'
+        dw CSCR
+OFFSET: dw USER
+        dw 001EH
+;
+CCONTEXT:db 87H
+        dc 'CONTEXT'
+        dw COFFSET
+CONTEXT:dw USER
+        dw 0020H
+;
+CCURRENT:db 87H
+        dc 'CURRENT'
+        dw CCONTEXT
+CURRENT:dw USER
+        dw 0022H
+;
+CSTATE: db 85H
+        dc 'STATE'
+        dw CCURRENT
+STATE:  dw USER
+        dw 0024H
+;
+CBASE:  db 84H
+        dc 'BASE'
+        dw CSTATE
+BASE:   dw USER
+        dw 0026H
+;
+CDPL:   db 83H
+        dc 'DPL'
+        dw CBASE
+DPL:    dw USER
+        dw 0028H
+;
+CFLD:   db 83H
+        dc 'FLD'
+        dw CDPL
+        dw USER
+        dw 002AH
+;
+CCSP:   db 83H
+        dc 'CSP'
+        dw CFLD
+CSP:    dw USER
+        dw 002CH
+;
+CRNUM:  db 82H
+        dc 'R#'
+        dw CCSP
+RNUM:   dw USER
+        dw 002EH
+;
+CHLD:   db 83H
+        dc 'HLD'
+        dw CRNUM
+HLD:    dw USER
+        dw 0030H
+;
+CPLUSONE:db 82H
+        dc '1+'
+        dw CHLD
+PLUSONE:dw RUNFORTH
+        dw ONE,PLUS
+        dw ENDFORTH
+;
+CPLUSTWO:db 82H
+        dc '2+'
+        dw CPLUSONE
+PLUSTWO:dw RUNFORTH
+        dw TWO,PLUS
+        dw ENDFORTH
+;
+CHERE:  db 84H
+        dc 'HERE'
+        dw CPLUSTWO
+HERE:   dw RUNFORTH
+        dw DP,PEEK16
+        dw ENDFORTH
+;
+CALLOT: db 85H
+        dc 'ALLOT'
+        dw CHERE
+ALLOT:  dw RUNFORTH
+        dw DP,ADDMEM
+        dw ENDFORTH
+;
+CPOKED16:db 81H
+        dc ','
+        dw CALLOT
+POKED16:dw RUNFORTH
+        dw HERE,POKE16,TWO,ALLOT
+        dw ENDFORTH
+;
+CPOKED8:db 82H
+        dc 'C,'
+        dw CPOKED16
+POKED8: dw RUNFORTH
+        dw HERE,POKE8,ONE,ALLOT
+        dw ENDFORTH
+;
+DOSUBTRACT:  LD A,L
+        SUB E
+        LD L,A
+        LD A,H
+        SBC A,D
+        LD H,A
+        RET
+;
+L0837:  db 81H
+        dc '-'
+        dw CPOKED8
+SUBTR:  dw $+2
+SUBT:   POP DE
+        POP HL
+        CALL DOSUBTRACT
+        JP SVHL
+;
+L0845:  db 81H
+        dc '='
+        dw L0837
+EQUAL:  dw RUNFORTH
+        dw SUBTR,EQUAL0
+        dw ENDFORTH
+;
+L0851:  db 81H
+        dc '<'
+        dw L0845
+LESSER: dw $+2
+        POP DE
+        POP HL
+        LD A,D
+        XOR H
+        JP M,LESSR1
+        CALL DOSUBTRACT
+LESSR1: INC H
+        DEC H
+        JP M,LESSR2
+        LD HL,0000H
+        JP SVHL
+LESSR2: LD HL,0001H
+        JP SVHL
+;
+L0872:  db 82H
+        dc 'U<'
+        dw L0851
+UMENOR: dw RUNFORTH
+        dw DUP2,XOR,LESS0,BRANCH0,0CH
+        dw DROP,LESS0,EQUAL0,BRCH,6
+        dw SUBTR,LESS0
+        dw ENDFORTH
+;
+L0893:  db 81H
+        dc '>'
+        dw L0872
+MAIOR:  dw RUNFORTH
+        dw SWAP,LESSER
+        dw ENDFORTH
+;
+L089F:  db 83H
+        dc 'ROT'
+        dw L0893
+ROT:    dw $+2
+        POP DE
+        POP HL
+        EX (SP),HL
+        JP SVDEHL
+;
+L08AD:  db 85H
+        dc 'SPACE'
+        dw L089F
+SPACE:  dw RUNFORTH
+        dw BL,EMIT
+        dw ENDFORTH
+;
+L08BD:  db 84H
+        dc '-DUP'
+        dw L08AD
+MDUP:   dw RUNFORTH
+        dw DUP,BRANCH0,4,DUP
+        dw ENDFORTH
+;
+L08D0:  db 88H
+        dc 'TRAVERSE'
+        dw L08BD
+TRAVERSE:dw RUNFORTH
+        dw SWAP,OVER,PLUS,LIT,7FH
+        dw OVER,PEEK8,LESSER,BRANCH0,0FFF0H
+        dw SWAP,DROP
+        dw ENDFORTH
+;
+L08F7:  db 86H
+        dc 'LATEST'
+        dw L08D0
+LATEST: dw RUNFORTH
+        dw CURRENT,PEEK16,PEEK16
+        dw ENDFORTH
+;
+L090A:  db 83H
+        dc 'LFA'
+        dw L08F7
+LFA:    dw RUNFORTH
+        dw LIT,4,SUBTR
+        dw ENDFORTH
+;
+L091A:  db 83H
+        dc 'CFA'
+        dw L090A
+CFA:    dw RUNFORTH
+        dw TWO,SUBTR
+        dw ENDFORTH
+;
+L0928:  db 83H
+        dc 'NFA'
+        dw L091A
+NFA:    dw RUNFORTH
+        dw LIT,5,SUBTR,LIT,-1
+        dw TRAVERSE
+        dw ENDFORTH
+;
+L093E:  db 83H
+        dc 'PFA'
+        dw L0928
+PFA:    dw RUNFORTH
+        dw ONE,TRAVERSE,LIT,5,PLUS
+        dw ENDFORTH
+;
+L0952:  db 84H
+        dc '!CSP'
+        dw L093E
+POKECSP:dw RUNFORTH
+        dw PEEKSP,CSP,POKE16
+        dw ENDFORTH
+;
+L0963:  db 86H
+        dc '?ERROR'
+        dw L0952
+ISERROR:dw RUNFORTH
+        dw SWAP,BRANCH0,8,ERROR,BRCH
+        dw 4,DROP
+        dw ENDFORTH
+;
+L097E:  db 85H
+        dc '?COMP'
+        dw L0963
+ISCOMP: dw RUNFORTH
+        dw STATE,PEEK16,EQUAL0,LIT,11H
+        dw ISERROR
+        dw ENDFORTH
+;
+L0996:  db 85H
+        dc '?EXEC'
+        dw L097E
+ISEXEC: dw RUNFORTH
+        dw STATE,PEEK16,LIT,12H,ISERROR
+        dw ENDFORTH
+;
+L09AC:  db 86H
+        dc '?PAIRS'
+        dw L0996
+ISPAIRS:dw RUNFORTH
+        dw SUBTR,LIT,13H,ISERROR
+        dw ENDFORTH
+;
+L09C1:  db 84H
+        dc '?CSP'
+        dw L09AC
+ISCSP:  dw RUNFORTH
+        dw PEEKSP,CSP,PEEK16,SUBTR,LIT
+        dw 14H,ISERROR
+        dw ENDFORTH
+;
+L09DA:  db 88H
+        dc '?LOADING'
+        dw L09C1
+ISLOADING:dw RUNFORTH
+        dw BLK,PEEK16,EQUAL0,LIT,16H
+        dw ISERROR
+        dw ENDFORTH
+;
+L09F5:  db 87H
+        dc 'COMPILE'
+        dw L09DA
+COMPILE:dw RUNFORTH
+        dw ISCOMP,PUSHRP,DUP,PLUSTWO,POPRP
+        dw PEEK16,POKED16
+        dw ENDFORTH
+;
+L0A11:  db 0C1H
+        dc '['
+        dw L09F5
+INIDEF: dw RUNFORTH
+        dw ZERO,STATE,POKE16
+        dw ENDFORTH
+;
+L0A1F:  db 81H
+        dc ']'
+        dw L0A11
+ENDDEF: dw RUNFORTH
+        dw LIT,0C0H,STATE,POKE16
+        dw ENDFORTH
+;
+L0A2F:  db 86H
+        dc 'SMUDGE'
+        dw L0A1F
+SMUDGE: dw RUNFORTH
+        dw LATEST,LIT,20H,TOGGLE
+        dw ENDFORTH
+;
+L0A44:  db 83H
+        dc 'HEX'
+        dw L0A2F
+HEX:    dw RUNFORTH
+        dw LIT,10H,BASE,POKE16
+        dw ENDFORTH
+;
+L0A56:  db 87H
+        dc 'DECIMAL'
+        dw L0A44
+DECIMAL:dw RUNFORTH
+        dw LIT,0AH,BASE,POKE16
+        dw ENDFORTH
+;
+L0A6C:  db 87H
+        dc '(;CODE)'
+        dw L0A56
+EXEC_LM:dw RUNFORTH
+        dw PUSHRP,LATEST,PFA,CFA,POKE16
+        dw ENDFORTH
+;
+L0A84:  db 0C5H
+        dc ';CODE'
+        dw L0A6C
+        dw RUNFORTH
+        dw ISCSP,COMPILE,EXEC_LM,INIDEF,NOOP
+        dw ENDFORTH
+;
+L0A9A:  db 87H
+        dc '<BUILDS'
+        dw L0A84
+BUILDS: dw RUNFORTH
+        dw ZERO,CONSTANT
+        dw ENDFORTH
+;
+L0AAC:  db 85H
+        dc 'DOES>'
+        dw L0A9A
+DOES:   dw RUNFORTH
+        dw PUSHRP,LATEST,PFA,POKE16,EXEC_LM
+ATIVATE:LD HL,(PTOP)
+        DEC HL
+        LD (HL),B
+        DEC HL
+        LD (HL),C
+        LD (PTOP),HL
+        INC DE
+        EX DE,HL
+        LD C,(HL)
+        INC HL
+        LD B,(HL)
+        INC HL
+        JP SVHL
+;
+L0AD3:  db 85H
+        dc 'COUNT'
+        dw L0AAC
+COUNT:  dw RUNFORTH
+        dw DUP,PLUSONE,SWAP,PEEK8
+        dw ENDFORTH
+;
+L0AE7:  db 84H
+        dc 'TYPE'
+        dw L0AD3
+TYPE1:  dw RUNFORTH
+        dw MDUP,BRANCH0,18H,OVER,PLUS
+        dw SWAP,DOINILOOP,VAR_I,PEEK8,EMIT
+        dw SOSTEPONE,0FFF8H,BRCH,4,DROP
+        dw ENDFORTH
+;
+L0B10:  db 89H
+        dc '-TRAILING'
+        dw L0AE7
+MTRAIL: dw RUNFORTH
+        dw DUP,ZERO,DOINILOOP,OVER,OVER
+        dw PLUS,ONE,SUBTR,PEEK8,BL
+        dw SUBTR,BRANCH0,8,LEAVE,BRCH
+        dw 6,ONE,SUBTR,SOSTEPONE,0FFE0H
+        dw ENDFORTH
+;
+L0B48:  db 84H
+        dc '(.")'
+        dw L0B10
+PRINT:  dw RUNFORTH
+        dw GETR,COUNT,DUP,PLUSONE,PUSHRP
+        dw PLUS,POPRP,TYPE1
+        dw ENDFORTH
+;
+L0B63:  db 0C2H
+        dc '."'
+        dw L0B48
+        dw RUNFORTH
+        dw LIT,22H,STATE,PEEK16,BRANCH0
+        dw 14H,COMPILE,PRINT,WORD,HERE
+        dw PEEK8,PLUSONE,ALLOT,BRCH,0AH
+        dw WORD,HERE,COUNT,TYPE1
+        dw ENDFORTH
+;
+L0B92:  db 86H
+        dc 'EXPECT'
+        dw L0B63
+EXPECT: dw RUNFORTH
+        dw OVER,PLUS,OVER,DOINILOOP,KEY
+        dw DUP,LIT,0EH,ADDORIGIN,PEEK16
+        dw EQUAL,BRANCH0,34H,DROP,DUP
+        dw VAR_I,EQUAL,DUP,PUSHRP,TWO
+        dw SUBTR,PLUS,POPRP,BRANCH0,0AH
+        dw LIT,7,BRCH,10H,LIT
+        dw 8,EMIT,BL,EMIT,LIT
+        dw 8,BRCH,28H,DUP,LIT
+        dw 0DH,EQUAL,BRANCH0,0EH,LEAVE
+        dw DROP,BL,ZERO,BRCH,4
+        dw DUP,VAR_I,POKE8,ZERO,VAR_I
+        dw PLUSONE,POKE16,EMIT,SOSTEPONE,0FF92H
+        dw DROP
+        dw ENDFORTH
+;
+L0C19:  db 85H
+        dc 'QUERY'
+        dw L0B92
+QUERY:  dw RUNFORTH
+        dw TIB,PEEK16,LIT,50H,EXPECT
+        dw ZERO,CONIN,POKE16
+        dw ENDFORTH
+;
+L0C35:  db 0C1H
+        db 80H ; 80h AND 00H ???
+        dw L0C19
+        dw RUNFORTH
+        dw BLK,PEEK16,BRANCH0,2AH,ONE
+        dw BLK,ADDMEM,ZERO,CONIN,POKE16
+        dw BLK,PEEK16,BSCR,ONE,SUBTR
+        dw AND,EQUAL0,BRANCH0,8,ISEXEC
+        dw PUSHRP,DROP,BRCH,6,PUSHRP
+        dw DROP
+        dw ENDFORTH
+;
+L0C71:  db 84H
+        dc 'FILL'
+        dw L0C35
+FILL:   dw $+2
+        LD L,C
+        LD H,B
+        POP DE
+        POP BC
+        EX (SP),HL
+        EX DE,HL
+FILL1:  LD A,B
+        OR C
+        JP Z,FILL2
+        LD A,L
+        LD (DE),A
+        INC DE
+        DEC BC
+        JP FILL1
+FILL2:  POP BC
+        JP BC2PC
+;
+L0C90:  db 85H
+        dc 'ERASE'
+        dw L0C71
+ERASE:  dw RUNFORTH
+        dw ZERO,FILL
+        dw ENDFORTH
+;
+L0CA0:  db 86H
+        dc 'BLANKS'
+        dw L0C90
+BLANKS: dw RUNFORTH
+        dw BL,FILL
+        dw ENDFORTH
+;
+L0CB1:  db 84H
+        dc 'HOLD'
+        dw L0CA0
+HOLD:   dw RUNFORTH
+        dw LIT,-1,HLD,ADDMEM,HLD
+        dw PEEK16,POKE8
+        dw ENDFORTH
+;
+L0CCA:  db 83H
+        dc 'PAD'
+        dw L0CB1
+PAD:    dw RUNFORTH
+        dw HERE,LIT,44H,PLUS
+        dw ENDFORTH
+;
+L0CDC:  db 84H
+        dc 'WORD'
+        dw L0CCA
+WORD:   dw RUNFORTH
+        dw BLK,PEEK16,BRANCH0,0CH,BLK
+        dw PEEK16,BLOCK,BRCH,6,TIB
+        dw PEEK16,CONIN,PEEK16,PLUS,SWAP
+        dw ENCLOSE,HERE,LIT,22H,BLANKS
+        dw CONIN,ADDMEM,OVER,SUBTR,POPRP
+        dw GETR,HERE,POKE8,PLUS,HERE
+        dw PLUSONE,PUSHRP,CMOVE
+        dw ENDFORTH
+;
+L0D29:  db 88H
+        dc '(NUMBER)'
+        dw L0CDC
+NUMBER1:dw RUNFORTH
+        dw PLUSONE,DUP,POPRP,PEEK8,BASE
+        dw PEEK16,DIGIT,BRANCH0,2CH,SWAP
+        dw BASE,PEEK16,UTIMES,DROP,ROT
+        dw BASE,PEEK16,UTIMES,DPLUS,DPL
+        dw PEEK16,PLUSONE,BRANCH0,8,ONE
+        dw DPL,ADDMEM,PUSHRP,BRCH,0FFC6H
+        dw PUSHRP
+        dw ENDFORTH
+;
+L0D76:  db 86H
+        dc 'NUMBER'
+        dw L0D29
+NUMBER2:dw RUNFORTH
+        dw ZERO,ZERO,ROT,DUP,PLUSONE
+        dw PEEK8,LIT,2DH,EQUAL,DUP
+        dw POPRP,PLUS,LIT,-1,DPL
+        dw POKE16,NUMBER1,DUP,PEEK8,BL
+        dw SUBTR,BRANCH0,16H,DUP,PEEK8
+        dw LIT,2EH,SUBTR,ZERO,ISERROR
+        dw ZERO,BRCH,0FFDCH,DROP,PUSHRP
+        dw BRANCH0,4,DMINUS
+        dw ENDFORTH
+;
+L0DCF:  db 85H
+        dc '-FIND'
+        dw L0D76
+MFIND:  dw RUNFORTH
+        dw BL,WORD,HERE,COUNT,OVER
+        dw PLUS,SWAP,DOINILOOP,VAR_I,PEEK8
+        dw LIT,7FH,MAIOR,ZERO,ISERROR
+        dw SOSTEPONE,0FFF0H,HERE,CONTEXT,PEEK16
+        dw PEEK16,FIND,DUP,EQUAL0,BRANCH0
+        dw 0AH,DROP,HERE,LATEST,FIND
+        dw ENDFORTH
+;
+L0E17:  db 87H
+        dc '(ABORT)'
+        dw L0DCF
+ABORT_: dw RUNFORTH
+        dw ABORT
+        dw ENDFORTH
+;
+L0E27:  db 85H
+        dc 'ERROR'
+        dw L0E17
+ERROR:  dw RUNFORTH
+        dw WARNING,PEEK16,LESS0,BRANCH0,4
+        dw ABORT_,HERE,COUNT,TYPE1,PRINT
+        db 02H,'? '
+        dw MESSAGE,POKESP,BLK,PEEK16,MDUP
+        dw BRANCH0,8,CONIN,PEEK16,SWAP
+        dw QUIT
+;
+L0E5E:  db 83H
+        dc 'ID.'
+        dw L0E27
+ID:     dw RUNFORTH
+        dw PAD,LIT,20H,LIT,5FH
+        dw FILL,DUP,PFA,LFA,OVER
+        dw SUBTR,PAD,SWAP,CMOVE,PAD
+        dw COUNT,LIT,1FH,AND,DUP2
+        dw PLUS,ONE,SUBTR,DUP,PEEK8
+        dw LIT,7FH,AND,SWAP,POKE8
+        dw TYPE1,SPACE
+        dw ENDFORTH
+;
+L0EA8:  db 86H
+        dc 'CREATE'
+        dw L0E5E
+CREATE: dw RUNFORTH
+        dw MFIND,BRANCH0,10H,DROP,NFA
+        dw ID,LIT,4,MESSAGE,SPACE
+        dw HERE,DUP,PEEK8,WIDTH,PEEK16
+        dw MIN,PLUSONE,ALLOT,DUP,LIT
+        dw 0A0H,TOGGLE,HERE,ONE,SUBTR
+        dw LIT,80H,TOGGLE,LATEST,POKED16
+        dw CURRENT,PEEK16,POKE16,HERE,PLUSTWO
+        dw POKED16
+        dw ENDFORTH
+;
+L0EFD:  db 0C9H
+        dc '[COMPILE]'
+        dw L0EA8
+        dw RUNFORTH
+        dw MFIND,EQUAL0,ZERO,ISERROR,DROP
+        dw CFA,POKED16
+        dw ENDFORTH
+;
+L0F1B:  db 0C7H
+        dc 'LITERAL'
+        dw L0EFD
+LITERAL:dw RUNFORTH
+        dw STATE,PEEK16,BRANCH0,8,COMPILE
+        dw LIT,POKED16
+        dw ENDFORTH
+;
+L0F37:  db 0C8H
+        dc 'DLITERAL'
+        dw L0F1B
+DLITERAL:dw RUNFORTH
+        dw STATE,PEEK16,BRANCH0,8,SWAP
+        dw LITERAL,LITERAL
+        dw ENDFORTH
+;
+L0F54:  db 86H
+        dc '?STACK'
+        dw L0F37
+INSTACK:dw RUNFORTH
+        dw PEEKSP,S0,PEEK16,SWAP,UMENOR
+        dw ONE,ISERROR,PEEKSP,HERE,LIT
+        dw 80H,PLUS,UMENOR,LIT,7
+        dw ISERROR
+        dw ENDFORTH
+;
+L0F81:  db 89H
+        dc 'INTERPRET'
+        dw L0F54
+        dw RUNFORTH
+        dw MFIND,BRANCH0,1EH,STATE,PEEK16
+        dw LESSER,BRANCH0,0AH,CFA,POKED16
+        dw BRCH,6,CFA,EXECUTE,INSTACK
+        dw BRCH,1CH,HERE,NUMBER2,DPL
+        dw PEEK16,PLUSONE,BRANCH0,8,DLITERAL
+        dw BRCH,6,DROP,LITERAL,INSTACK
+        dw BRCH,0FFC2H
+;
+L0FCF:  db 89H
+        dc 'IMMEDIATE'
+        dw L0F81
+        dw RUNFORTH
+        dw LATEST,LIT,40H,TOGGLE
+        dw ENDFORTH
+;
+L0FE7:  db 8AH
+        dc 'VOCABULARY'
+        dw L0FCF
+        dw RUNFORTH
+        dw BUILDS,LIT,0A081H,POKED16,CURRENT
+        dw PEEK16,CFA,POKED16,HERE,VOCLINK,PEEK16
+        dw POKED16,VOCLINK,POKE16,DOES
+VOCAB: dw PLUSTWO,CONTEXT,POKE16
+        dw ENDFORTH
+;
+L101C:  db 0C5H
+        dc 'FORTH'
+        dw L0FE7
+FORTH:  dw ATIVATE
+        dw VOCAB
+EXITDIC: dw 0A081H
+LASTCM: dw CPAGE
+PEDITOR:dw 0000H
+;
+L102E:  db 8BH
+        dc 'DEFINITIONS'
+        dw L101C
+DEFINITIONS:dw RUNFORTH
+        dw CONTEXT,PEEK16,CURRENT,POKE16
+        dw ENDFORTH
+;
+L1048:  db 0C1H
+        dc '('
+        dw L102E
+        dw RUNFORTH
+        dw LIT,29H,WORD
+        dw ENDFORTH
+;
+L1056:  db 84H
+        dc 'QUIT'
+        dw L1048
+QUIT:   dw RUNFORTH
+        dw ZERO,BLK,POKE16,INIDEF,POKERP
+        dw CR,QUERY,FINTERPRET,STATE,PEEK16
+        dw EQUAL0,BRANCH0,7,PRINT
+        db 02H,'OK'
+        dw BRCH,0FFE7H
+;
+L1082:  db 85H
+        dc 'ABORT'
+        dw L1056
+ABORT:  dw RUNFORTH
+        dw POKESP,DECIMAL,INSTACK,CR,CPU
+        dw PRINT
+        db 0DH,'FIG-FORTH 1.1'
+        dw FORTH,DEFINITIONS,QUIT
+;
+ENTRY:  LD BC,GOWARM
+        JP BC2PC
+;
+GOWARM: dw WARM
+;
+L10B4:  db 84H
+        dc 'WARM'
+        dw L1082
+WARM:   dw RUNFORTH
+        dw EPMPTYBUF,ABORT
+;
+MAIN:  LD BC,GOCOLD
+       LD HL,(STACK)
+       LD SP,HL
+       JP BC2PC
+;
+GOCOLD:  dw COLD
+;
+L10CD:  db 84H
+        dc 'COLD'
+        dw L10B4
+COLD:   dw RUNFORTH
+        dw EPMPTYBUF,ZERO,DENSITY,POKE16,FIRST
+        dw USE,POKE16,FIRST,PREV,POKE16
+        dw DR0,LIT,0,LIT,L1671
+        dw POKE16,LIT,STACK,LIT,PSP
+        dw PEEK16,LIT,6,PLUS,LIT
+        dw 10H,CMOVE,LIT,ULTPL,PEEK16
+        dw LIT,LASTCM,POKE16,ABORT
+;
+L111A:  db 84H
+        dc 'S->D'
+        dw L10CD
+S_D:    dw $+2
+        POP DE
+        LD HL,0000H
+        LD A,D
+        AND 80H
+        JP Z,S_D1
+        DEC HL
+S_D1:   JP SVDEHL
+;
+L1131:  db 82H
+        dc '+-'
+        dw L111A
+SUB_COND:dw RUNFORTH
+        dw LESS0,BRANCH0,4,MINUS
+        dw ENDFORTH
+;
+L1142:  db 83H
+        dc 'D+-'
+        dw L1131
+DSUB_COND:dw RUNFORTH
+        dw LESS0,BRANCH0,4,DMINUS
+        dw ENDFORTH
+;
+L1154:  db 83H
+        dc 'ABS'
+        dw L1142
+ABS:    dw RUNFORTH
+        dw DUP,SUB_COND
+        dw ENDFORTH
+;
+L1162:  db 84H
+        dc 'DABS'
+        dw L1154
+DABS:   dw RUNFORTH
+        dw DUP,DSUB_COND
+        dw ENDFORTH
+;
+L1171:  db 83H
+        dc 'MIN'
+        dw L1162
+MIN:    dw RUNFORTH
+        dw DUP2,MAIOR,BRANCH0,4,SWAP
+        dw DROP
+        dw ENDFORTH
+;
+L1187:  db 83H
+        dc 'MAX'
+        dw L1171
+MAX:    dw RUNFORTH
+        dw DUP2,LESSER,BRANCH0,4,SWAP
+        dw DROP
+        dw ENDFORTH
+;
+L119D:  db 82H
+        dc 'M*'
+        dw L1187
+MTIMES: dw RUNFORTH
+        dw DUP2,XOR,POPRP,ABS,SWAP
+        dw ABS,UTIMES,PUSHRP,DSUB_COND
+        dw ENDFORTH
+;
+L11B8:  db 82H
+        dc 'M/'
+        dw L119D
+MDIV:   dw RUNFORTH
+        dw OVER,POPRP,POPRP,DABS,GETR
+        dw ABS,UDIV,PUSHRP,GETR,XOR
+        dw SUB_COND,SWAP,PUSHRP,SUB_COND,SWAP
+        dw ENDFORTH
+;
+L11DF:  db 81H
+        dc '*'
+        dw L11B8
+TIMES:  dw RUNFORTH
+        dw MTIMES,DROP
+        dw ENDFORTH
+;
+L11EB:  db 84H
+        dc '/MOD'
+        dw L11DF
+DIVMOD: dw RUNFORTH
+        dw POPRP,S_D,PUSHRP,MDIV
+        dw ENDFORTH
+;
+L11FE:  db 81H
+        dc '/'
+        dw L11EB
+DIVIDE: dw RUNFORTH
+        dw DIVMOD,SWAP,DROP
+        dw ENDFORTH
+;
+L120C:  db 83H
+        dc 'MOD'
+        dw L11FE
+MOD:    dw RUNFORTH
+        dw DIVMOD,DROP
+        dw ENDFORTH
+;
+L121A:  db 85H
+        dc '*/MOD'
+        dw L120C
+TMDVMOD:dw RUNFORTH
+        dw POPRP,MTIMES,PUSHRP,MDIV
+        dw ENDFORTH
+;
+L122E:  db 82H
+        dc '*/'
+        dw L121A
+        dw RUNFORTH
+        dw TMDVMOD,SWAP,DROP
+        dw ENDFORTH
+;
+L123D:  db 85H
+        dc 'M/MOD'
+        dw L122E
+MEMDIVMOD:dw RUNFORTH
+        dw POPRP,ZERO,GETR,UDIV,PUSHRP
+        dw SWAP,POPRP,UDIV,PUSHRP
+        dw ENDFORTH
+;
+L125B:  db 86H
+        dc '(LINE)'
+        dw L123D
+LINE1:  dw RUNFORTH
+        dw POPRP,LIT,40H,BBUF,TMDVMOD
+        dw PUSHRP,BSCR,TIMES,PLUS,BLOCK
+        dw PLUS,LIT,40H
+        dw ENDFORTH
+;
+L1282:  db 85H
+        dc '.LINE'
+        dw L125B
+PRT_LINE:dw RUNFORTH
+        dw LINE1,MTRAIL,TYPE1
+        dw ENDFORTH
+;
+L1294:  db 87H
+        dc 'MESSAGE'
+        dw L1282
+MESSAGE:dw RUNFORTH
+        dw WARNING,PEEK16,BRANCH0,1EH,MDUP
+        dw BRANCH0,14H,LIT,4,OFFSET
+        dw PEEK16,BSCR,DIVIDE,SUBTR,PRT_LINE
+        dw SPACE,BRCH,0DH,PRINT
+        db 06H,'MSG # '
+        dw IMPNUM
+        dw ENDFORTH
+;
+L12D1:  db 82H
+        dc 'P@'
+        dw L1294
+        dw $+2
+        POP DE
+        LD HL,IN_A+1
+        LD (HL),E
+IN_A:   IN A,(00H)
+        LD L,A
+        LD H,00H
+        JP SVHL
+;
+L12E5:  db 82H
+        dc 'P!'
+        dw L12D1
+        dw $+2
+        POP DE
+        LD HL,OUT_A+1
+        LD (HL),E
+        POP HL
+        LD A,L
+OUT_A:  OUT (00H),A
+        JP BC2PC
+;
+L12F8:  db 85H
+        dc 'DRIVE'
+        dw L12E5
+DRIVE:  dw VAR
+VDRIVE: dw 0000H
+;
+L1304:  db 83H
+        dc 'SEC'
+        dw L12F8
+SEC:    dw VAR
+VSEC:   dw 000BH
+;
+L130E:  db 85H
+        dc 'TRACK'
+        dw L1304
+TRACK:  dw VAR
+VTRACK: dw 0027H
+;
+L131A:  db 83H
+        dc 'USE'
+        dw L130E
+USE:   dw VAR
+VUSE:  dw 0B7E8H
+;
+L1324:  db 84H
+        dc 'PREV'
+        dw L131A
+PREV:   dw VAR
+        dw 0B7E8H
+;
+L132F:  db 87H
+        dc 'SEC/BLK'
+        dw L1324
+SECBLK: dw CONST
+        dw 0008H
+;
+L133D:  db 85H
+        dc '#BUFF'
+        dw L132F
+NUMBUFF:dw CONST
+        dw 0006H
+;
+L1349:  db 87H
+        dc 'DENSITY'
+        dw L133D
+DENSITY:dw VAR
+        dw 0000H
+;
+L1357:  db 8AH
+        dc 'DISK-ERROR'
+        dw L1349
+DISKERR:dw VAR
+VDISKERR:dw 0000H
+;
+L1368:  db 84H
+        dc '+BUF'
+        dw L1357
+PLBUF:  dw RUNFORTH
+        dw LIT,0404H,PLUS,DUP,LIMIT
+        dw EQUAL,BRANCH0,6,DROP,FIRST
+        dw DUP,PREV,PEEK16,SUBTR
+        dw ENDFORTH
+;
+L138F:  db 86H
+        dc 'UPDATE'
+        dw L1368
+UPDATE: dw RUNFORTH
+        dw PREV,PEEK16,PEEK16,LIT,8000H
+        dw OR,PREV,PEEK16,POKE16
+        dw ENDFORTH
+;
+L13AE:  db 8DH
+        dc 'EMPTY-BUFFERS'
+        dw L138F
+EPMPTYBUF:dw RUNFORTH
+        dw FIRST,LIMIT,OVER,SUBTR,ERASE
+        dw ENDFORTH
+;
+L13CC:  db 83H
+        dc 'DR0'
+        dw L13AE
+DR0:    dw RUNFORTH
+        dw ZERO,OFFSET,POKE16
+        dw ENDFORTH
+;
+L13DC:  db 83H
+        dc 'DR1'
+        dw L13CC
+        dw RUNFORTH
+        dw DENSITY,PEEK16,BRANCH0,0AH,LIT
+        dw EXEC,BRCH,6,LIT,EXEC
+        dw OFFSET,POKE16
+        dw ENDFORTH
+;
+L13FE:  db 86H
+        dc 'BUFFER'
+        dw L13DC
+BUFFER: dw RUNFORTH
+        dw USE,PEEK16,DUP,POPRP,PLBUF
+        dw BRANCH0,0FFFCH,USE,POKE16,GETR
+        dw PEEK16,LESS0,BRANCH0,14H,GETR
+        dw PLUSTWO,GETR,PEEK16,LIT,7FFFH
+        dw AND,ZERO,RW2,GETR,POKE16
+        dw GETR,PREV,POKE16,PUSHRP,PLUSTWO
+        dw ENDFORTH
+;
+L1447:  db 85H
+        dc 'BLOCK'
+        dw L13FE
+BLOCK:  dw RUNFORTH
+        dw OFFSET,PEEK16,PLUS,POPRP,PREV
+        dw PEEK16,DUP,PEEK16,GETR,SUBTR
+        dw DUP,PLUS,BRANCH0,34H,PLBUF
+        dw EQUAL0,BRANCH0,14H,DROP,GETR
+        dw BUFFER,DUP,GETR,ONE,RW2
+        dw TWO,SUBTR,DUP,PEEK16,GETR
+        dw SUBTR,DUP,PLUS,EQUAL0,BRANCH0
+        dw 0FFD6H,DUP,PREV,POKE16,PUSHRP
+        dw DROP,PLUSTWO
+        dw ENDFORTH
+;
+CALLBDOS:LD HL,(0001H)
+        ADD HL,DE
+        JP (HL)
+;
+L14AC:  db 86H
+        dc 'SET-IO'
+        dw L1447
+SETIO:  dw $+2
+        PUSH BC
+        LD HL,(VUSE)
+        LD B,H
+        LD C,L
+        LD DE,0021H
+        CALL CALLBDOS
+        LD HL,(VSEC)
+        LD C,L
+        LD DE,001EH
+        CALL CALLBDOS
+        LD HL,(VTRACK)
+        LD B,H
+        LD C,L
+        LD DE,001BH
+        CALL CALLBDOS
+        POP BC
+        JP BC2PC
+;
+L14DC:  db 89H
+        dc 'SET-DRIVE'
+        dw L14AC
+SETDRIVE:dw $+2
+        PUSH BC
+        LD A,(VDRIVE)
+        LD C,A
+        LD DE,0018H
+        CALL CALLBDOS
+        POP BC
+        JP BC2PC
+;
+L14F9:  db 87H
+        dc 'T&SCALC'
+        dw L14DC
+TSCALC: dw RUNFORTH
+        dw DENSITY,PEEK16,BRANCH0,36H,LIT
+        dw 0320H,DIVMOD,LIT,2,MIN
+        dw DUP,DRIVE,PEEK16,EQUAL,BRANCH0
+        dw 8,DROP,BRCH,8,DRIVE
+        dw POKE16,SETDRIVE,LIT,14H,DIVMOD
+        dw TRACK,POKE16,SEC,POKE16
+        dw ENDFORTH
+        dw LIT,0320H,DIVMOD,LIT,2
+        dw MIN,DUP,DRIVE,PEEK16,EQUAL
+        dw BRANCH0,8,DROP,BRCH,8
+        dw DRIVE,POKE16,SETDRIVE,LIT,14H
+        dw DIVMOD,TRACK,POKE16,SEC,POKE16
+        dw ENDFORTH
+;
+L1575:  db 88H
+        dc 'SEC-READ'
+        dw L14F9
+SECREAD:dw $+2
+        PUSH BC
+        LD DE,0024H
+        CALL CALLBDOS
+        LD (VDISKERR),A
+        POP BC
+        JP BC2PC
+;
+L1590:  db 89H
+        dc 'SEC-WRITE'
+        dw L1575
+SECWRITE:dw $+2
+        PUSH BC
+        LD DE,0027H
+        CALL CALLBDOS
+        LD (VDISKERR),A
+        POP BC
+        JP BC2PC
+;
+L15AC:  db 83H
+        dc 'R/W'
+        dw L1590
+RW1:    dw RUNFORTH
+        dw USE,PEEK16,POPRP,SWAP,ONE
+        dw SUBTR,SECBLK,TIMES,ROT,USE
+        dw POKE16,SECBLK,ZERO,DOINILOOP,OVER
+        dw OVER,TSCALC,SETIO,BRANCH0,8
+        dw SECREAD,BRCH,4,SECWRITE,PLUSONE
+        dw LIT,80H,USE,ADDMEM,SOSTEPONE
+        dw 0FFE0H,DROP,DROP,PUSHRP,USE
+        dw POKE16
+        dw ENDFORTH
+;
+L15FE:  db 85H
+        dc 'FLUSH'
+        dw L15AC
+FLUSH:  dw RUNFORTH
+        dw NUMBUFF,PLUSONE,ZERO,DOINILOOP,ZERO
+        dw BUFFER,DROP,SOSTEPONE,0FFF8H
+        dw ENDFORTH
+;
+L161C:  db 84H
+        dc 'LOAD'
+        dw L15FE
+LOAD:   dw RUNFORTH
+        dw BLK,PEEK16,POPRP,CONIN,PEEK16
+        dw POPRP,ZERO,CONIN,POKE16,BSCR
+        dw TIMES,BLK,POKE16,FINTERPRET,PUSHRP
+        dw CONIN,POKE16,PUSHRP,BLK,POKE16
+        dw ENDFORTH
+;
+L164F:  db 0C3H
+        dc '-->'
+        dw L161C
+        dw RUNFORTH
+        dw ISLOADING,ZERO,CONIN,POKE16,BSCR
+        dw BLK,PEEK16,OVER,MOD,SUBTR
+        dw BLK,ADDMEM
+        dw ENDFORTH
+;
+L1671:  db 00H
+L1672:  db 00H
+;
+CALLGETCH:LD E,0FFH
+CALLPUTCH:LD C,06H
+        CALL BDOS
+        RET
+;
+CHRPRN: LD C,05H
+        CALL BDOS
+        RET
+;
+SHOWCHR:LD A,(L1672)
+        OR A
+        PUSH DE
+        CALL Z,CALLPUTCH
+        POP DE
+        LD A,(L1671)
+        OR A
+        CALL NZ,CHRPRN
+        RET
+;
+SAVECHR:  PUSH BC
+        CALL CALLGETCH
+        LD L,A
+        LD H,00H
+        POP BC
+        JP SVHL
+;
+READKEY:PUSH BC
+        LD C,07H
+        CALL BDOS
+        NOP
+        LD L,A
+        CP 10H
+        JR NZ,READKY1
+        LD DE,L1671
+        LD A,(DE)
+        XOR 01H
+        LD (DE),A
+        LD L,20H
+READKY1:LD H,00H
+        POP BC
+        JP SVHL
+;
+PUTCH:  dw $+2
+        POP DE
+        PUSH BC
+        CALL SHOWCHR
+        POP BC
+        JP BC2PC
+;
+        XOR 01H
+        LD (HL),A
+        LD L,E
+        LD H,00H
+        JP SVHL
+;
+;-----------------------------------------
+; ESTE CÓDIGO PARECE SER LIXO
+        dw $+2
+        dw 0C5E1H,0CD4DH,1695H,0C3C1H,012CH
+;        POP HL
+;        PUSH BC
+;        LD C,L
+;        CALL L1695 -> CAI EM UM PONTO QUE E´O MEIO DE UMA INSTRUCAO L.M.
+;        POP BC
+;        JP BC2PC
+;-----------------------------------------
+;
+CRLF:   PUSH BC
+        LD E,0DH
+        NOP
+        CALL SHOWCHR
+        LD E,0AH
+        NOP
+        CALL SHOWCHR
+        POP BC
+        JP BC2PC
+;
+L16E9:  db 0C1H
+        db 0A7H         ; '
+        dw L164F
+SEARCHF:dw RUNFORTH
+        dw MFIND,EQUAL0,ZERO,ISERROR,DROP
+        dw LITERAL
+        dw ENDFORTH
+;
+L16FD:  db 86H
+        dc 'FORGET'
+        dw L16E9
+        dw RUNFORTH
+        dw CURRENT,PEEK16,CONTEXT,PEEK16,SUBTR
+        dw LIT,18H,ISERROR,SEARCHF,DUP
+        dw FENCE,PEEK16,LESSER,LIT,15H
+        dw ISERROR,DUP,NFA,DP,POKE16
+        dw LFA,PEEK16,CONTEXT,PEEK16,POKE16
+        dw ENDFORTH
+;
+L173C:  db 84H
+        dc 'BACK'
+        dw L16FD
+BACK:   dw RUNFORTH
+        dw HERE,SUBTR,POKED16
+        dw ENDFORTH
+;
+L174D:  db 0C5H
+        dc 'BEGIN'
+        dw L173C
+        dw RUNFORTH
+        dw ISCOMP,HERE,ONE
+        dw ENDFORTH
+;
+L175F:  db 0C5H
+        dc 'ENDIF'
+        dw L174D
+ENDIF_: dw RUNFORTH
+        dw ISCOMP,TWO,ISPAIRS,HERE,OVER
+        dw SUBTR,SWAP,POKE16
+        dw ENDFORTH
+;
+L177B:  db 0C4H
+        dc 'THEN'
+        dw L175F
+        dw RUNFORTH
+        dw ENDIF_
+        dw ENDFORTH
+;
+L1788:  db 0C2H
+        dc 'DO'
+        dw L177B
+        dw RUNFORTH
+        dw COMPILE,DOINILOOP,HERE,THREE
+        dw ENDFORTH
+;
+L1799:  db 0C4H
+        dc 'LOOP'
+        dw L1788
+        dw RUNFORTH
+        dw THREE,ISPAIRS,COMPILE,SOSTEPONE,BACK
+        dw ENDFORTH
+;
+L17AE:  db 0C5H
+        dc '+LOOP'
+        dw L1799
+        dw RUNFORTH
+        dw THREE,ISPAIRS,COMPILE,DOSTEP,BACK
+        dw ENDFORTH
+;
+L17C4:  db 0C5H
+        dc 'UNTIL'
+        dw L17AE
+UNTIL:  dw RUNFORTH
+        dw ONE,ISPAIRS,COMPILE,BRANCH0,BACK
+        dw ENDFORTH
+;
+L17DA:  db 0C3H
+        dc 'END'
+        dw L17C4
+        dw RUNFORTH
+        dw UNTIL
+        dw ENDFORTH
+;
+L17E6:  db 0C5H
+        dc 'AGAIN'
+        dw L17DA
+AGAIN:  dw RUNFORTH
+        dw ONE,ISPAIRS,COMPILE,BRCH,BACK
+        dw ENDFORTH
+;
+L17FC:  db 0C6H
+        dc 'REPEAT'
+        dw L17E6
+        dw RUNFORTH
+        dw POPRP,POPRP,AGAIN,PUSHRP,PUSHRP
+        dw TWO,SUBTR,ENDIF_
+        dw ENDFORTH
+;
+L1819:  db 0C2H
+        dc 'IF'
+        dw L17FC
+IF_:    dw RUNFORTH
+        dw COMPILE,BRANCH0,HERE,ZERO,POKED16
+        dw TWO
+        dw ENDFORTH
+;
+L182E:  db 0C4H
+        dc 'ELSE'
+        dw L1819
+        dw RUNFORTH
+        dw TWO,ISPAIRS,COMPILE,BRCH,HERE
+        dw ZERO,POKED16,SWAP,TWO,ENDIF_
+        dw TWO
+        dw ENDFORTH
+;
+L184F:  db 0C5H
+        dc 'WHILE'
+        dw L182E
+        dw RUNFORTH
+        dw IF_,PLUSTWO
+        dw ENDFORTH
+;
+L185F:  db 86H
+        dc 'SPACES'
+        dw L184F
+SPACES: dw RUNFORTH
+        dw ZERO,MAX,MDUP,BRANCH0,0CH
+        dw ZERO,DOINILOOP,SPACE,SOSTEPONE,0FFFCH
+        dw ENDFORTH
+;
+L1880:  db 82H
+        dc '<#'
+        dw L185F
+ININUM: dw RUNFORTH
+        dw PAD,HLD,POKE16
+        dw ENDFORTH
+;
+L188F:  db 82H
+        dc '#>'
+        dw L1880
+ENDNUM: dw RUNFORTH
+        dw DROP,DROP,HLD,PEEK16,PAD
+        dw OVER,SUBTR
+        dw ENDFORTH
+;
+L18A6:  db 84H
+        dc 'SIGN'
+        dw L188F
+SIGN:   dw RUNFORTH
+        dw ROT,LESS0,BRANCH0,8,LIT
+        dw 2DH,HOLD
+        dw ENDFORTH
+;
+L18BF:  db 81H
+        dc '#'
+        dw L18A6
+GENNUM: dw RUNFORTH
+        dw BASE,PEEK16,MEMDIVMOD,ROT,LIT
+        dw 9,OVER,LESSER,BRANCH0,8
+        dw LIT,7,PLUS,LIT,30H
+        dw PLUS,HOLD
+        dw ENDFORTH
+;
+L18E9:  db 82H
+        dc '#S'
+        dw L18BF
+NUM_S:  dw RUNFORTH
+        dw GENNUM,OVER,OVER,OR,EQUAL0
+        dw BRANCH0,0FFF4H
+        dw ENDFORTH
+;
+L1900:  db 83H
+        dc 'D.R'
+        dw L18E9
+IMPDR:  dw RUNFORTH
+        dw POPRP,SWAP,OVER,DABS,ININUM
+        dw NUM_S,SIGN,ENDNUM,PUSHRP,OVER
+        dw SUBTR,SPACES,TYPE1
+        dw ENDFORTH
+;
+L1924:  db 82H
+        dc '.R'
+        dw L1900
+IMPR:   dw RUNFORTH
+        dw POPRP,S_D,PUSHRP,IMPDR
+        dw ENDFORTH
+;
+L1935:  db 82H
+        dc 'D.'
+        dw L1924
+IMPD:   dw RUNFORTH
+        dw ZERO,IMPDR,SPACE
+        dw ENDFORTH
+;
+L1944:  db 81H
+        dc '.'
+        dw L1935
+IMPNUM: dw RUNFORTH
+        dw S_D,IMPD
+        dw ENDFORTH
+;
+L1950:  db 81H
+        dc '?'
+        dw L1944
+        dw RUNFORTH
+        dw PEEK16,IMPNUM
+        dw ENDFORTH
+;
+L195C:  db 82H
+        dc 'U.'
+        dw L1950
+        dw RUNFORTH
+        dw ZERO,IMPD
+        dw ENDFORTH
+;
+L1969:  db 85H
+        dc 'VLIST'
+        dw L195C
+        dw RUNFORTH
+        dw LIT,80H,CONOUT,POKE16,CONTEXT
+        dw PEEK16,PEEK16,CONOUT,PEEK16,CL
+        dw MAIOR,BRANCH0,0AH,CR,ZERO
+        dw CONOUT,POKE16,DUP,ID,SPACE
+        dw SPACE,PFA,LFA,PEEK16,DUP
+        dw EQUAL0,INTERMINAL,OR,BRANCH0,0FFD4H
+        dw DROP
+        dw ENDFORTH
+;
+L19B3:  db 83H
+        dc 'BYE'
+        dw L1969
+        dw $+2
+        JP 0000H
+;
+L19BE:  db 84H
+        dc 'LIST'
+        dw L19B3
+LIST1:  dw RUNFORTH
+        dw ONE,MAX,DECIMAL,CR,DUP
+        dw SCR,POKE16,PRINT
+        db 06H,'SCR # '
+        dw IMPNUM,LIT,10H,ZERO,DOINILOOP
+        dw CR,VAR_I,LIT,3,IMPR
+        dw SPACE,VAR_I,SCR,PEEK16,PRT_LINE
+        dw INTERMINAL,BRANCH0,4,LEAVE,SOSTEPONE
+        dw 0FFE2H,CR
+        dw ENDFORTH
+;
+L1A0C:  db 85H
+        dc 'INDEX'
+        dw L19BE
+        dw RUNFORTH
+        dw LIT,1AH,EMIT,CR,PLUSONE
+        dw SWAP,DOINILOOP,CR,VAR_I,LIT
+        dw 3,IMPR,SPACE,ZERO,VAR_I
+        dw PRT_LINE,INTERMINAL,BRANCH0,4,LEAVE
+        dw SOSTEPONE,0FFE4H
+        dw ENDFORTH
+;
+L1A44:  db 85H
+        dc 'TRIAD'
+        dw L1A0C
+        dw RUNFORTH
+        dw LIT,1AH,EMIT,THREE,MAX
+        dw LIT,3,DIVIDE,LIT,3
+        dw TIMES,LIT,3,OVER,PLUS
+        dw SWAP,DOINILOOP,CR,VAR_I,LIST1
+        dw INTERMINAL,BRANCH0,4,LEAVE,SOSTEPONE
+        dw 0FFF0H,CR,LIT,0FH,MESSAGE
+        dw CR
+        dw ENDFORTH
+;
+L1A8E:  db 84H
+        dc '.CPU'
+        dw L1A44
+CPU:    dw RUNFORTH
+        dw BASE,PEEK16,LIT,24H,BASE
+        dw POKE16,LIT,22H,ADDORIGIN,PEEK32
+        dw IMPD,BASE,POKE16
+        dw ENDFORTH
+;
+L1AB3:  db 85H
+        dc 'MATCH'
+        dw L1A8E
+MATCH:  dw $+2
+        POP DE
+        PUSH DE
+        EXX
+        POP BC
+        POP DE
+        EXX
+        POP HL
+        EXX
+        POP HL
+        PUSH HL
+        EXX
+MATCH1: PUSH HL
+        AND A
+        SBC HL,DE
+        POP HL
+        JP C,MATCH5
+        EXX
+        PUSH BC
+        PUSH DE
+        PUSH HL
+MATCH2: LD A,(DE)
+        CP (HL)
+        JP NZ,MATCH3
+        INC DE
+        INC HL
+        DEC BC
+        LD A,B
+        OR C
+        JP NZ,MATCH2
+        JP MATCH4
+MATCH3: POP HL
+        POP DE
+        POP BC
+        INC HL
+        EXX
+        DEC HL
+        JP MATCH1
+MATCH4: POP HL
+        POP DE
+        POP BC
+        POP DE
+        AND A
+        SBC HL,DE
+        ADD HL,BC
+        LD DE,0001H
+        PUSH DE
+        PUSH HL
+        EXX
+        JP BC2PC
+MATCH5: PUSH HL
+        EXX
+        POP DE
+        ADD HL,DE
+        POP DE
+        AND A
+        SBC HL,DE
+        LD DE,0000H
+        PUSH DE
+        PUSH HL
+        EXX
+        JP BC2PC
+;
+L1B0F:  db 88H
+        dc 'XDOSFUNC'
+        dw L1AB3
+XDOSFUNC:dw VAR
+VXDOSFUNC:dw 0022H
+;
+L1B1E:  db 89H
+        dc 'XDOSPARAM'
+        dw L1B0F
+XDOSPARAM:dw VAR
+VXDOSPARAM:dw 005CH
+;
+L1B2E:  dw 5800H
+;
+L1B30:  db 88H
+        dc 'XDOSCALL'
+        dw L1B1E
+XDOSCALL:dw $+2
+        PUSH BC
+        LD HL,(VXDOSFUNC)
+        LD C,L
+        LD HL,(VXDOSPARAM)
+        LD D,H
+        LD E,L
+        CALL BDOS
+        LD (L1B2E),HL
+        LD H,00H
+        LD L,A
+        LD (VXDOSPARAM),HL
+        POP BC
+        JP BC2PC
+;
+L1B57:  db 84H
+        dc 'TASK'
+        dw L1B30
+        dw RUNFORTH
+        dw ENDFORTH
+;
+L1B62:  db 88H
+        dc '?DECIMAL'
+        dw L1B57
+INDECIMAL:dw RUNFORTH
+        dw BASE,PEEK16,LIT,0AH,SUBTR
+        dw BRANCH0,1EH,CR,PRINT
+        db 11H,'Use decimal base '
+        dw DECIMAL,POKESP,QUIT
+        dw ENDFORTH
+;
+L1B9B:  db 84H
+        dc 'LIST'
+        dw L1B62
+LIST2:  dw RUNFORTH
+        dw INDECIMAL,LIST1
+        dw ENDFORTH
+;
+L1BAA:  db 84H
+        dc 'LOAD'
+        dw L1B9B
+        dw RUNFORTH
+        dw INDECIMAL,LOAD
+        dw ENDFORTH
+;
+L1BB9:  db 89H
+        dc 'RESETDISC'
+        dw L1BAA
+RESETDISC:dw CONST
+        dw 000DH
+;
+L1BC9:  db 8AH
+        dc 'SELECTDISC'
+        dw L1BB9
+SELECTDISC:dw CONST
+        dw 000EH
+;
+L1BDA:  db 88H
+        dc 'OPENFILE'
+        dw L1BC9
+OPENFILE:dw CONST
+        dw 000FH
+;
+L1BE9:  db 89H
+        dc 'CLOSEFILE'
+        dw L1BDA
+CLOSEFILE:dw CONST
+        dw 0010H
+;
+L1BF9:  db 8BH
+        dc 'SEARCHFIRST'
+        dw L1BE9
+SEARCHFIRST:dw CONST
+        dw 0011H
+;
+L1C0B:  db 8AH
+        dc 'SEARCHNEXT'
+        dw L1BF9
+SEARCHNEXT:dw CONST
+        dw 0012H
+;
+L1C1C:  db 8AH
+        dc 'DELETEFILE'
+        dw L1C0B
+DELETEFILE:dw CONST
+        dw 0013H
+;
+L1C2D:  db 87H
+        dc 'READSEQ'
+        dw L1C1C
+READSEQ:dw CONST
+        dw 0014H
+;
+L1C3B:  db 88H
+        dc 'WRITESEQ'
+        dw L1C2D
+WRITESEQ: dw CONST
+        dw 0015H
+;
+L1C4A:  db 88H
+        dc 'MAKEFILE'
+        dw L1C3B
+MAKEFILE:dw CONST
+        dw 0016H
+;
+L1C59:  db 8AH
+        dc 'RENAMEFILE'
+        dw L1C4A
+RENAMEFILE:dw CONST
+        dw 0017H
+;
+L1C6A:  db 85H
+        dc 'LOGIN'
+        dw L1C59
+        dw CONST
+        dw 0018H
+;
+L1C76:  db 8BH
+        dc 'CURRENTDISC'
+        dw L1C6A
+CURRENTDISC: dw CONST
+        dw 0019H
+;
+L1C88:  db 86H
+        dc 'SETDMA'
+        dw L1C76
+        dw CONST
+        dw 001AH
+;
+L1C95:  db 87H
+        dc 'READRAN'
+        dw L1C88
+READRAN:dw CONST
+        dw 0021H
+;
+L1CA3:  db 88H
+        dc 'WRITERAN'
+        dw L1C95
+WRITERAN:dw CONST
+        dw 0022H
+;
+L1CB2:  db 88H
+        dc 'FILESIZE'
+        dw L1CA3
+FILESIZE:dw CONST
+        dw 0023H
+;
+L1CC1:  db 83H
+        dc 'FCB'
+        dw L1CB2
+FCB:    dw VAR
+        dw 005CH
+;
+L1CCB:  db 89H
+        dc 'DRIVECODE'
+        dw L1CC1
+DRIVECODE:dw RUNFORTH
+        dw FCB,PEEK16,ZERO,PLUS
+        dw ENDFORTH
+;
+L1CE3:  db 88H
+        dc 'FILENAME'
+        dw L1CCB
+FILENAME:dw RUNFORTH
+        dw FCB,PEEK16,ONE,PLUS
+        dw ENDFORTH
+;
+L1CFA:  db 88H
+        dc 'FILETYPE'
+        dw L1CE3
+FILETYPE:dw RUNFORTH
+        dw FCB,PEEK16,LIT,9,PLUS
+        dw ENDFORTH
+;
+L1D13:  db 86H
+        dc 'EXTENT'
+        dw L1CFA
+EXTENT: dw RUNFORTH
+        dw FCB,PEEK16,LIT,0CH,PLUS
+        dw ENDFORTH
+;
+L1D2A:  db 82H
+        dc 'S1'
+        dw L1D13
+        dw RUNFORTH
+        dw FCB,PEEK16,LIT,0DH,PLUS
+        dw ENDFORTH
+;
+L1D3D:  db 82H
+        dc 'S2'
+        dw L1D2A
+S2:     dw RUNFORTH
+        dw FCB,PEEK16,LIT,0EH,PLUS
+        dw ENDFORTH
+;
+L1D50:  db 8BH
+        dc 'RECORDCOUNT'
+        dw L1D3D
+        dw RUNFORTH
+        dw FCB,PEEK16,LIT,0FH,PLUS
+        dw ENDFORTH
+;
+L1D6C:  db 8AH
+        dc 'CURRENTREC'
+        dw L1D50
+CURRENTREC:dw RUNFORTH
+        dw FCB,PEEK16,LIT,20H,PLUS
+        dw ENDFORTH
+;
+L1D87:  db 86H
+        dc 'RANREC'
+        dw L1D6C
+RANREC: dw RUNFORTH
+        dw FCB,PEEK16,LIT,21H,PLUS
+        dw ENDFORTH
+;
+L1D9E:  db 86H
+        dc 'RANOVF'
+        dw L1D87
+RANOVF: dw RUNFORTH
+        dw FCB,PEEK16,LIT,23H,PLUS
+        dw ENDFORTH
+;
+L1DB5:  db 84H
+        dc 'LOGA'
+        dw L1D9E
+LOGA:   dw RUNFORTH
+        dw RESETDISC,XDOSFUNC,POKE16,XDOSCALL
+        dw ENDFORTH
+;
+L1DC8:  db 84H
+        dc 'LOGB'
+        dw L1DB5
+        dw RUNFORTH
+        dw LOGA,ONE,XDOSPARAM,POKE16,SELECTDISC
+        dw XDOSFUNC,POKE16,XDOSCALL
+        dw ENDFORTH
+;
+L1DE3:  db 84H
+        dc 'TEXT'
+        dw L1DC8
+TEXT:   dw RUNFORTH
+        dw HERE,CL,PLUSONE,BLANKS,WORD
+        dw HERE,PAD,CL,PLUSONE,CMOVE
+        dw ENDFORTH
+;
+L1E02:  db 86H
+        dc 'SETFCB'
+        dw L1DE3
+SETFCB: dw RUNFORTH
+        dw ZERO,DRIVECODE,POKE8,FILENAME,LIT
+        dw 0BH,BLANKS,BL,TEXT,PAD
+        dw PLUSONE,PEEK8,BRANCH0,0E2H,PAD
+        dw PLUSONE,POPRP,GETR,PLUSONE,PEEK8
+        dw LIT,3AH,EQUAL,BRANCH0,1EH
+        dw GETR,PEEK8,LIT,40H,SUBTR
+        dw ONE,MAX,TWO,MIN,DRIVECODE
+        dw POKE8,PUSHRP,PLUSTWO,POPRP,GETR
+        dw DUP,PEEK8,DUP,BL,EQUAL
+        dw SWAP,LIT,2EH,EQUAL,OR
+        dw EQUAL0,BRANCH0,8,PLUSONE,BRCH
+        dw 0FFE2H,PUSHRP,OVER,POPRP,SWAP
+        dw OVER,SUBTR,FILENAME,SWAP,LIT
+        dw 8,MIN,CMOVE,PUSHRP,PLUSONE
+        dw POPRP,GETR,DUP,PEEK8,DUP
+        dw BL,EQUAL,SWAP,LIT,2EH
+        dw EQUAL,OR,EQUAL0,BRANCH0,8
+        dw PLUSONE,BRCH,0FFE2H,PUSHRP,OVER
+        dw POPRP,SWAP,OVER,SUBTR,FILETYPE
+        dw SWAP,THREE,MIN,CMOVE,FILENAME
+        dw PEEK8,LIT,2AH,EQUAL,BRANCH0
+        dw 0EH,FILENAME,LIT,8,LIT
+        dw 3FH,FILL,FILETYPE,PEEK8,LIT
+        dw 2AH,EQUAL,BRANCH0,0CH,FILETYPE
+        dw THREE,LIT,3FH,FILL,PUSHRP
+        dw DROP
+        dw ENDFORTH
+;
+L1F0B:  db 85H
+        dc 'OPENF'
+        dw L1E02
+OPENF:  dw RUNFORTH
+        dw ZERO,CURRENTREC,POKE8,ZERO,EXTENT
+        dw POKE8,ZERO,S2,POKE8,FCB
+        dw PEEK16,XDOSPARAM,POKE16,OPENFILE,XDOSFUNC
+        dw POKE16,XDOSCALL
+        dw ENDFORTH
+;
+L1F39:  db 86H
+        dc 'CLOSEF'
+        dw L1F0B
+CLOSEF: dw RUNFORTH
+        dw FCB,PEEK16,XDOSPARAM,POKE16,CLOSEFILE
+        dw XDOSFUNC,POKE16,XDOSCALL
+        dw ENDFORTH
+;
+L1F56:  db 85H
+        dc 'MAKEF'
+        dw L1F39
+MAKEF:  dw RUNFORTH
+        dw ZERO,CURRENTREC,POKE8,ZERO,EXTENT
+        dw POKE8,ZERO,S2,POKE8,FCB
+        dw PEEK16,XDOSPARAM,POKE16,MAKEFILE,XDOSFUNC
+        dw POKE16,XDOSCALL
+        dw ENDFORTH
+;
+L1F84:  db 87H
+        dc 'DELETEF'
+        dw L1F56
+DELETEF:dw RUNFORTH
+        dw FCB,PEEK16,XDOSPARAM,POKE16,DELETEFILE
+        dw XDOSFUNC,POKE16,XDOSCALL
+        dw ENDFORTH
+;
+L1FA2:  db 87H
+        dc 'SENDDMA'
+        dw L1F84
+SENDDMA:dw RUNFORTH
+        dw XDOSPARAM,POKE16,LIT,1AH,XDOSFUNC
+        dw POKE16,XDOSCALL
+        dw ENDFORTH
+;
+L1FBE:  db 85H
+        dc 'VMFCB'
+        dw L1FA2
+VMFCB:  dw VAR
+        dw 1FD3H
+;
+L1FCA:  db 84H
+        dc 'VMF1'
+        dw L1FBE
+VMF1:   dw VAR
+        dw 00,00,00,00,00,00,00,00,00,00
+        dw 00,00,00,00,00,00,00,00,00,00
+;
+L1FFB:  db 84H
+        dc 'VMF2'
+        dw L1FCA
+VMF2:   dw VAR
+        dw 00,00,00,00,00,00,00,00,00,00
+        dw 00,00,00,00,00,00,00,00,00,00
+;
+L202C:  db 84H
+        dc 'VMF3'
+        dw L1FFB
+VMF3:   dw VAR
+        dw 00,00,00,00,00,00,00,00,00,00
+        dw 00,00,00,00,00,00,00,00,00,00
+;
+L205D:  db 84H
+        dc 'SIZE'
+        dw L202C
+SIZE:   dw RUNFORTH
+        dw VMFCB,PEEK16,FCB,POKE16,FCB
+        dw PEEK16,LIT,24H,PLUS
+        dw ENDFORTH
+;
+L207A:  db 88H
+        dc 'OPENFLAG'
+        dw L205D
+OPENFLAG:dw RUNFORTH
+        dw VMFCB,PEEK16,FCB,POKE16,FCB
+        dw PEEK16,LIT,26H,PLUS
+        dw ENDFORTH
+;
+L209B:  db 8BH
+        dc 'RECORD-READ'
+        dw L207A
+RECORDREAD:dw RUNFORTH
+        dw RANREC,POKE16,ZERO,RANOVF,POKE8
+        dw FCB,PEEK16,XDOSPARAM,POKE16,READRAN
+        dw XDOSFUNC,POKE16,XDOSCALL,XDOSPARAM,PEEK8
+        dw DISKERR,POKE16
+        dw ENDFORTH
+;
+L20CF:  db 8CH
+        dc 'RECORD-WRITE'
+        dw L209B
+RECORDWRITE:dw RUNFORTH
+        dw RANREC,POKE16,ZERO,RANOVF,POKE8
+        dw FCB,PEEK16,XDOSPARAM,POKE16,WRITERAN
+        dw XDOSFUNC,POKE16,XDOSCALL,XDOSPARAM,PEEK8
+        dw DISKERR,POKE16
+        dw ENDFORTH
+;
+L2104:  db 86H
+        dc '(OPEN)'
+        dw L20CF
+OPEN1:  dw RUNFORTH
+        dw VMFCB,PEEK16,FCB,POKE16,CR
+        dw PRINT
+        db 1FH,'Name of file for block storage '
+        dw QUERY,SETFCB,FILENAME,PEEK8,BL
+        dw EQUAL,BRANCH0,6,POKESP,QUIT
+        dw VMF1,PLUSONE,LIT,0BH,VMF2
+        dw PLUSONE,LIT,0BH,MATCH,DROP
+        dw BRANCH0,1EH,CR,PRINT
+        db 13H,'Duplicate filename '
+        dw POKESP,QUIT,OPENF,XDOSPARAM,PEEK8
+        dw LIT,0FFH,EQUAL,BRANCH0,55H
+        dw CR,PRINT
+        db 09H,'New file '
+        dw MAKEF,XDOSPARAM,PEEK8,LIT,0FFH
+        dw EQUAL,BRANCH0,27H,CR,PRINT
+        db 18H,'No more directory space '
+        dw POKESP,QUIT,BRCH,0EH,ZERO
+        dw SIZE,POKE16,ONE,OPENFLAG,POKE16
+        dw BRCH,40H,FILESIZE,XDOSFUNC,POKE16
+        dw FCB,PEEK16,XDOSPARAM,POKE16,XDOSCALL
+        dw RANREC,PEEK16,SECBLK,DIVIDE,SIZE
+        dw POKE16,ONE,OPENFLAG,POKE16,BASE
+        dw PEEK16,DECIMAL,CR,SIZE,PEEK16
+        dw IMPNUM,PRINT
+        db 07H,'Blocks '
+        dw BASE,POKE16
+        dw ENDFORTH
+;
+L2226:  db 84H
+        dc 'OPEN'
+        dw L2104
+        dw RUNFORTH
+        dw VMF1,VMFCB,POKE16,VMFCB,PEEK16
+        dw FCB,POKE16,OPENFLAG,PEEK16,EQUAL0
+        dw BRANCH0,8,OPEN1,BRCH,22H
+        dw PRINT
+        db 0DH,'Current file '
+        dw FILENAME,LIT,8,TYPE1,SPACE
+        dw FILETYPE,THREE,TYPE1
+        dw ENDFORTH
+;
+L226F:  db 87H
+        dc '(CLOSE)'
+        dw L2226
+CLOSE:  dw RUNFORTH
+        dw VMFCB,PEEK16,FCB,POKE16,OPENFLAG
+        dw PEEK16,BRANCH0,32H,CLOSEF,XDOSPARAM
+        dw PEEK8,LIT,0FFH,EQUAL,BRANCH0
+        dw 18H,PRINT
+        db 0FH,'File not found '
+        dw BRCH,0CH,FCB,PEEK16,LIT
+        dw 28H,ERASE
+        dw ENDFORTH
+;
+L22BD:  db 85H
+        dc 'CLOSE'
+        dw L226F
+        dw RUNFORTH
+        dw VMF1,VMFCB,POKE16,CLOSE,VMF2
+        dw VMFCB,POKE16,CLOSE,VMF1,VMFCB
+        dw POKE16,EPMPTYBUF
+        dw ENDFORTH
+;
+L22E1:  db 88H
+        dc 'ALLOCATE'
+        dw L22BD
+ALLOCATE:dw RUNFORTH
+        dw LIT,80H,LIT,80H,BLANKS
+        dw LIT,80H,SENDDMA,SWAP,SECBLK
+        dw TIMES,SWAP,ONE,SUBTR,SECBLK
+        dw TIMES,DOINILOOP,VAR_I,RECORDWRITE,SOSTEPONE
+        dw 0FFFAH,CLOSEF,XDOSPARAM,PEEK8,LIT
+        dw 0FFH,EQUAL,POPRP,OPENF,XDOSPARAM
+        dw PEEK8,LIT,0FFH,EQUAL,PUSHRP
+        dw OR,BRANCH0,21H,CR,PRINT
+        db 1AH,'Cannot increase file size '
+        dw ENDFORTH
+;
+L235B:  db 89H
+        dc 'SIZECHECK'
+        dw L22E1
+SIZECHECK:dw RUNFORTH
+        dw DUP,SIZE,PEEK16,MAIOR,BRANCH0
+        dw 14H,DUP,SIZE,PEEK16,PLUSONE
+        dw ALLOCATE,SIZE,POKE16,BRCH,4
+        dw DROP
+        dw ENDFORTH
+;
+L238B:  db 84H
+        dc 'FR/W'
+        dw L235B
+FRW:    dw RUNFORTH
+        dw VMFCB,PEEK16,FCB,POKE16,OPENFLAG
+        dw PEEK16,BRANCH0,56H,USE,PEEK16
+        dw POPRP,SWAP,DUP,SIZECHECK,ONE
+        dw SUBTR,SECBLK,TIMES,ROT,USE
+        dw POKE16,SECBLK,ZERO,DOINILOOP,USE
+        dw PEEK16,SENDDMA,OVER,BRANCH0,0AH
+        dw DUP,RECORDREAD,BRCH,6,DUP
+        dw RECORDWRITE,PLUSONE,LIT,80H,USE
+        dw ADDMEM,SOSTEPONE,0FFDCH,DROP,DROP
+        dw PUSHRP,USE,POKE16,BRCH,1EH
+        dw CR,PRINT
+        db 13H,'No block file open '
+        dw POKESP,QUIT
+        dw ENDFORTH
+;
+L2416:  db 84H
+        dc 'DR/W'
+        dw L238B
+        dw RUNFORTH
+        dw RW1
+        dw ENDFORTH
+;
+L2423:  db 83H
+        dc 'R/W'
+        dw L2416
+RW2:    dw RUNFORTH
+        dw FRW
+        dw ENDFORTH
+;
+L242F:  db 0C4H
+        dc 'CASE'
+        dw L2423
+        dw RUNFORTH
+        dw LIT,5
+        dw ENDFORTH
+;
+L243E:  db 0C2H
+        dc 'OF'
+        dw L242F
+        dw RUNFORTH
+        dw COMPILE,BRANCH0,HERE,ZERO,POKED16
+        dw LIT,6
+        dw ENDFORTH
+;
+L2455:  db 0C5H
+        dc 'BREAK'
+        dw L243E
+        dw RUNFORTH
+        dw LIT,6,ISPAIRS,COMPILE,BRCH
+        dw HERE,ZERO,POKED16,SWAP,TWO
+        dw ENDIF_,LIT,6
+        dw ENDFORTH
+;
+L247B:  db 0C7H
+        dc 'ENDCASE'
+        dw L2455
+        dw RUNFORTH
+        dw ISCOMP,DUP,LIT,6,EQUAL
+        dw BRANCH0,0CH,DROP,TWO,ENDIF_
+        dw BRCH,0FFECH,LIT,5,ISPAIRS
+        dw ENDFORTH
+;
+L24A7:  db 87H
+        dc 'SBUFFER'
+        dw L247B
+SBUFFER:dw RUNFORTH
+        dw USE,PEEK16,DUP,POPRP,PLBUF
+        dw BRANCH0,0FFFCH,USE,POKE16,GETR
+        dw PEEK16,LESS0,BRANCH0,14H,GETR
+        dw PLUSTWO,GETR,PEEK16,LIT,7FFFH
+        dw AND,ZERO,RW2,GETR,PEEK16
+        dw LIT,7FFFH,AND,GETR,POKE16
+        dw GETR,PREV,POKE16,PUSHRP,DROP
+        dw ENDFORTH
+;
+L24FB:  db 86H
+        dc 'SFLUSH'
+        dw L24A7
+        dw RUNFORTH
+        dw NUMBUFF,PLUSONE,ZERO,DOINILOOP,SBUFFER
+        dw SOSTEPONE,0FFFCH
+        dw ENDFORTH
+;
+L2516:  db 84H
+        dc 'LINE'
+        dw L24FB
+LINE2:  dw RUNFORTH
+        dw DUP,LIT,0FFF0H,AND,LIT
+        dw 17H,ISERROR,SCR,PEEK16,LINE1
+        dw DROP
+        dw ENDFORTH
+;
+L2537:  db 0C6H
+        dc 'EDITOR'
+        dw L2516
+EDITOR: dw ATIVATE
+        dw VOCAB
+        dw 0A081H
+        dw L63BF
+L2548:  dw PEDITOR
+;
+L254A:  db 85H
+        dc 'WHERE'
+        dw L2537
+        dw RUNFORTH
+        dw DUP,BSCR,DIVIDE,DUP,SCR
+        dw POKE16,PRINT
+        db 06H,'SCR # '
+        dw DECIMAL,IMPNUM,SWAP,CL,DIVMOD
+        dw CL,TIMES,ROT,BLOCK,PLUS
+        dw CR,CL,TYPE1,CR,HERE
+        dw PEEK8,SUBTR,SPACES,LIT,5EH
+        dw EMIT,EDITOR,QUIT
+        dw ENDFORTH
+;
+L2599:  db 87H
+        dc '#LOCATE'
+        dw EXITDIC
+NLOCATE:dw RUNFORTH
+        dw RNUM,PEEK16,CL,DIVMOD
+        dw ENDFORTH
+;
+L25AF:  db 85H
+        dc '#LEAD'
+        dw L2599
+NLEAD:  dw RUNFORTH
+        dw NLOCATE,LINE2,SWAP
+        dw ENDFORTH
+;
+L25C1:  db 84H
+        dc '#LAG'
+        dw L25AF
+NLAG:   dw RUNFORTH
+        dw NLEAD,DUP,POPRP,PLUS,CL
+        dw PUSHRP,SUBTR
+        dw ENDFORTH
+;
+L25DA:  db 85H
+        dc '-MOVE'
+        dw L25C1
+MMOVE:  dw RUNFORTH
+        dw LINE2,CL,CMOVE,UPDATE
+        dw ENDFORTH
+;
+L25EE:  db 81H
+        dc 'H'
+        dw L25DA
+HH1:    dw RUNFORTH
+        dw LINE2,PAD,PLUSONE,CL,DUP
+        dw PAD,POKE8,CMOVE
+        dw ENDFORTH
+;
+L2606:  db 81H
+        dc 'E'
+        dw L25EE
+EE1:    dw RUNFORTH
+        dw LINE2,CL,BLANKS,UPDATE
+        dw ENDFORTH
+;
+L2616:  db 81H
+        dc 'S'
+        dw L2606
+SS1:    dw RUNFORTH
+        dw DUP,ONE,SUBTR,LIT,0EH
+        dw DOINILOOP,VAR_I,LINE2,VAR_I,PLUSONE
+        dw MMOVE,LIT,-1,DOSTEP,0FFF0H
+        dw EE1
+        dw ENDFORTH
+;
+L263E:  db 81H
+        dc 'D'
+        dw L2616
+DD1:    dw RUNFORTH
+        dw DUP,HH1,LIT,0FH,DUP
+        dw ROT,DOINILOOP,VAR_I,PLUSONE,LIT
+        dw 0FH,MIN,LINE2,VAR_I,MMOVE
+        dw SOSTEPONE,0FFEEH,EE1
+        dw ENDFORTH
+;
+L266A:  db 81H
+        dc 'M'
+        dw L263E
+MM1:    dw RUNFORTH
+        dw RNUM,ADDMEM,CR,SPACE,NLEAD
+        dw TYPE1,LIT,5EH,EMIT,NLAG
+        dw TYPE1,NLOCATE,IMPNUM,DROP
+        dw ENDFORTH
+;
+L268E:  db 81H
+        dc 'T'
+        dw L266A
+        dw RUNFORTH
+        dw DUP,CL,TIMES,RNUM,POKE16
+        dw HH1,ZERO,MM1
+        dw ENDFORTH
+;
+L26A6:  db 81H
+        dc 'L'
+        dw L268E
+        dw RUNFORTH
+        dw SCR,PEEK16,LIST2,ZERO,MM1
+        dw ENDFORTH
+;
+CEDITOR_R:  db 81H
+        dc 'R'
+        dw L26A6
+EDITOR_R:    dw RUNFORTH
+        dw PAD,PLUSONE,SWAP,MMOVE
+        dw ENDFORTH
+;
+L26C8:  db 81H
+        dc 'P'
+        dw CEDITOR_R
+        dw RUNFORTH
+        dw ONE,TEXT,PAD,PLUSONE,PEEK8
+        dw BRANCH0,4,EDITOR_R
+        dw ENDFORTH
+;
+L26E0:  db 81H
+        dc 'I'
+        dw L26C8
+        dw RUNFORTH
+        dw DUP,SS1,EDITOR_R
+        dw ENDFORTH
+;
+L26EE:  db 83H
+        dc 'TOP'
+        dw L26E0
+TOP:    dw RUNFORTH
+        dw ZERO,RNUM,POKE16
+        dw ENDFORTH
+;
+L26FE:  db 85H
+        dc 'CLEAR'
+        dw L26EE
+CLEAR:  dw RUNFORTH
+        dw SCR,POKE16,LIT,10H,ZERO
+        dw DOINILOOP,VAR_I,EE1,SOSTEPONE,0FFFAH
+        dw ENDFORTH
+;
+L271E:  db 84H
+        dc 'COPY'
+        dw L26FE
+        dw RUNFORTH
+        dw BSCR,TIMES,OFFSET,PEEK16,PLUS
+        dw SWAP,BSCR,TIMES,BSCR,OVER
+        dw PLUS,SWAP,DOINILOOP,DUP,VAR_I
+        dw BLOCK,TWO,SUBTR,POKE16,PLUSONE
+        dw UPDATE,SOSTEPONE,0FFEEH,DROP,FLUSH
+        dw ENDFORTH
+;
+L275B:  db 85H
+        dc '1LINE'
+        dw L271E
+ONELINE:dw RUNFORTH
+        dw NLAG,PAD,COUNT,MATCH,RNUM
+        dw ADDMEM
+        dw ENDFORTH
+;
+CEDITORFIND:  db 84H
+        dc 'FIND'
+        dw L275B
+EDITORFIND:  dw RUNFORTH
+        dw LIT,3FFH,RNUM,PEEK16,LESSER
+        dw BRANCH0,12H,TOP,PAD,HERE
+        dw CL,PLUSONE,CMOVE,ZERO,ERROR
+        dw ONELINE,BRANCH0,0FFDEH
+        dw ENDFORTH
+;
+L27A2:  db 86H
+        dc 'DELETE'
+        dw CEDITORFIND
+DELETE: dw RUNFORTH
+        dw POPRP,NLAG,PLUS,GETR,SUBTR
+        dw NLAG,GETR,MINUS,RNUM,ADDMEM
+        dw NLEAD,PLUS,SWAP,CMOVE,PUSHRP
+        dw BLANKS,UPDATE
+        dw ENDFORTH
+;
+CEDITOR_N:  db 81H
+        dc 'N'
+        dw L27A2
+EDITOR_N:     dw RUNFORTH
+        dw EDITORFIND,ZERO,MM1
+        dw ENDFORTH
+;
+L27DF:  db 81H
+        dc 'F'
+        dw CEDITOR_N
+        dw RUNFORTH
+        dw ONE,TEXT,EDITOR_N
+        dw ENDFORTH
+;
+L27ED:  db 81H
+        dc 'B'
+        dw L27DF
+        dw RUNFORTH
+        dw PAD,PEEK8,MINUS,MM1
+        dw ENDFORTH
+;
+L27FD:  db 81H
+        dc 'X'
+        dw L27ED
+        dw RUNFORTH
+        dw ONE,TEXT,EDITORFIND,PAD,PEEK8
+        dw DELETE,ZERO,MM1
+        dw ENDFORTH
+;
+L2815:  db 84H
+        dc 'TILL'
+        dw L27FD
+        dw RUNFORTH
+        dw NLEAD,PLUS,ONE,TEXT,ONELINE
+        dw EQUAL0,ZERO,ISERROR,NLEAD,PLUS
+        dw SWAP,SUBTR,DELETE,ZERO,MM1
+        dw ENDFORTH
+;
+L283E:  db 81H
+        dc 'C'
+        dw L2815
+        dw RUNFORTH
+        dw ONE,TEXT,PAD,PLUSONE,PEEK8
+        dw BRANCH0,34H,PAD,COUNT,NLAG
+        dw ROT,OVER,MIN,POPRP,GETR
+        dw RNUM,ADDMEM,GETR,SUBTR,POPRP
+        dw DUP,HERE,GETR,CMOVE,HERE
+        dw NLEAD,PLUS,PUSHRP,CMOVE,PUSHRP
+        dw CMOVE,UPDATE,ZERO,MM1
+        dw ENDFORTH
+;
+L288A:  db 85H
+        dc 'KLEFT'
+        dw L283E
+KLEFT:  dw VAR
+        dw 001DH
+;
+L2896:  db 86H
+        dc 'KRIGHT'
+        dw L288A
+KRIGHT: dw VAR
+        dw 001CH
+;
+L28A3:  db 83H
+        dc 'KUP'
+        dw L2896
+KUP:    dw VAR
+        dw 001EH
+;
+L28AD:  db 85H
+        dc 'KDOWN'
+        dw L28A3
+KDOWN:  dw VAR
+        dw 001FH
+;
+L28B9:  db 84H
+        dc 'KTAB'
+        dw L28AD
+KTAB:   dw VAR
+        dw 0009H
+;
+L28C4:  db 85H
+        dc 'KQUIT'
+        dw L28B9
+KQUIT:  dw VAR
+        dw 0011H
+;
+L28D0:  db 83H
+        dc 'KBS'
+        dw L28C4
+KBS:    dw VAR
+        dw 0008H
+;
+L28DA:  db 84H
+        dc 'KCLS'
+        dw L28D0
+KCLS:   dw VAR
+        dw 000BH
+;
+L28E5:  db 84H
+        dc 'KINS'
+        dw L28DA
+KINS:   dw VAR
+        dw 0012H
+;
+L28F0:  db 84H
+        dc 'KDEL'
+        dw L28E5
+KDEL:   dw VAR
+        dw 007FH
+;
+L28FB:  db 85H
+        dc 'KINSL'
+        dw L28F0
+KINSL:  dw VAR
+        dw 0017H
+;
+L2907:  db 85H
+        dc 'KDELL'
+        dw L28FB
+KDELL:  dw VAR
+        dw 0013H
+;
+L2913:  db 85H
+        dc 'KNSCR'
+        dw L2907
+KNSCR:  dw VAR
+        dw 000EH
+;
+L291F:  db 85H
+        dc 'KLSCR'
+        dw L2913
+KLSCR:  dw VAR
+        dw 000CH
+;
+L292B:  db 88H
+        dc 'TABVALUE'
+        dw L291F
+TABVALUE:dw VAR
+        dw 0008H
+;
+L293A:  db 89H
+        dc '2VARIABLE'
+        dw L292B
+        dw RUNFORTH
+        dw VARIABLE,POKED16
+        dw ENDFORTH
+;
+L294E:  db 85H
+        dc 'SLEFT'
+        dw L293A
+        dw VAR
+        dw 001BH,0044H
+;
+L295C:  db 84H
+        dc 'SCLS'
+        dw L294E
+SCLS:   dw VAR
+        dw 001BH,0045H
+;
+L2969:  db 84H
+        dc 'SINS'
+        dw L295C
+SINS:   dw VAR
+        dw 0000H,0000H
+;
+L2976:  db 84H
+        dc 'SDEL'
+        dw L2969
+SDEL:   dw VAR
+        dw 0000H,0000H
+;
+L2983:  db 83H
+        dc 'STC'
+        dw L2976
+STC1:   dw RUNFORTH
+        dw DUP,SCRHALF,PEEK16,BRANCH0,0CH
+        dw LIT,5,LESSER,BRCH,8
+        dw LIT,0AH,MAIOR,BRANCH0,0CH
+        dw SCRHALF,ONE,TOGGLE,HOME,SHOW1
+        dw SCRHALF,PEEK16,BRANCH0,8,LIT
+        dw 5,SUBTR,STC2
+        dw ENDFORTH
+;
+        dw 2020H
+;
+L29C7:  db 83H
+        dc 'CLS'
+        dw L2983
+CLS:    dw RUNFORTH
+        dw SCLS,PEEK32,EMIT,EMIT
+        dw ENDFORTH
+;
+L29D9:  db 84H
+        dc 'HOME'
+        dw L29C7
+HOME:   dw RUNFORTH
+        dw LIT,0EH,EMIT,ENDFORTH,NOOP
+        dw NOOP
+;
+L29EE:  db 84H
+        dc 'SHOW'
+        dw L29D9
+SHOW1:  dw RUNFORTH
+        dw SHOW2
+        dw ENDFORTH
+;
+L29FB:  db 87H
+        dc 'SCRHALF'
+        dw L29EE
+SCRHALF:dw VAR
+        dw 0000H
+;
+L2A09:  db 82H
+        dc 'IH'
+        dw L29FB
+IH:     dw RUNFORTH
+        dw ZERO,SCRHALF,POKE16,HOME
+        dw ENDFORTH
+;
+        dw 0000H,0000H,0000H,0000H
+        dw 0000H,0000H,0000H,0000H
+;
+L2A2A:  db 84H
+        dc 'INIT'
+        dw L2A09
+INIT:   dw RUNFORTH
+        dw ZERO,RNUM,POKE16,CLS,IH
+        dw SHOW1,VMFCB,PEEK16,FCB,POKE16
+        dw LIT,0EH,LIT,-1,STC1
+        dw NOOP,NOOP,NOOP,NOOP,NOOP
+        dw NOOP,NOOP,NOOP,FILENAME,LIT
+        dw 8,TYPE1,SPACE,FILETYPE,THREE
+        dw TYPE1,SPACE,SIZE,PEEK16,IMPNUM
+        dw PRINT
+        db 07H,'Blocks '
+        dw ENDFORTH
+;
+L2A85:  db 85H
+        dc 'INCR#'
+        dw L2A2A
+INCRNUM:dw RUNFORTH
+        dw RNUM,PEEK16,PLUS,LIT,3FFH
+        dw MIN,ZERO,MAX,RNUM,POKE16
+        dw ENDFORTH
+;
+L2AA5:  db 84H
+        dc 'CHAR'
+        dw L2A85
+CHAR:   dw RUNFORTH
+        dw DUP,NLAG,DROP,POKE8,ONE
+        dw INCRNUM,UPDATE
+        dw ENDFORTH
+;
+L2ABE:  db 84H
+        dc 'ECHO'
+        dw L2AA5
+ECHO:   dw RUNFORTH
+        dw DUP,EMIT
+        dw ENDFORTH
+;
+L2ACD:  db 85H
+        dc 'CHDEL'
+        dw L2ABE
+CHDEL:  dw RUNFORTH
+        dw NLAG,DUP,ONE,SUBTR,BRANCH0
+        dw 12H,POPRP,DUP,PLUSONE,SWAP
+        dw PUSHRP,CMOVE,BRCH,6,DROP
+        dw DROP,BL,NLEAD,DROP,CL
+        dw PLUS,ONE,SUBTR,POKE8,SDEL
+        dw PEEK32,DUP2,OR,BRANCH0,0AH
+        dw EMIT,EMIT,BRCH,0AH,DROP
+        dw DROP,NLAG,TYPE2,UPDATE
+        dw ENDFORTH
+;
+L2B27:  db 85H
+        dc 'CHINS'
+        dw L2ACD
+CHINS:  dw RUNFORTH
+        dw NLEAD,DROP,CL,ONE,SUBTR
+        dw PLUS,PEEK8,BL,EQUAL,BRANCH0
+        dw 50H,NLAG,DUP,ONE,SUBTR
+        dw BRANCH0,1CH,HERE,SWAP,CMOVE
+        dw HERE,NLAG,POPRP,PLUSONE,PUSHRP
+        dw ONE,SUBTR,CMOVE,BRCH,6
+        dw DROP,DROP,BL,NLAG,DROP
+        dw POKE8,SINS,PEEK32,DUP2,OR
+        dw BRANCH0,0AH,EMIT,EMIT,BRCH
+        dw 0AH,DROP,DROP,NLAG,TYPE2
+        dw UPDATE
+        dw ENDFORTH
+;
+L2B99:  db 83H
+        dc 'TAB'
+        dw L2B27
+TAB:    dw RUNFORTH
+        dw RNUM,PEEK16,LIT,40H,MOD
+        dw TABVALUE,PEEK16,POPRP,GETR,MOD
+        dw GETR,SWAP,SUBTR,INCRNUM,RNUM
+        dw PEEK16,LIT,40H,MOD,PUSHRP
+        dw LESSER,BRANCH0,10H,RNUM,PEEK16
+        dw LIT,3C0H,AND,RNUM,POKE16
+        dw ENDFORTH
+;
+L2BDF:  db 87H
+        dc 'NEXTSCR'
+        dw L2B99
+NEXTSCR:dw RUNFORTH
+        dw SCR,PEEK16,PLUSONE,SCR,POKE16
+        dw INIT
+        dw ENDFORTH
+;
+L2BF9:  db 87H
+        dc 'LASTSCR'
+        dw L2BDF
+LASTSCR:dw RUNFORTH
+        dw SCR,PEEK16,ONE,SUBTR,ONE
+        dw MAX,SCR,POKE16,INIT
+        dw ENDFORTH
+;
+L2C19:  db 82H
+        dc 'BS'
+        dw L2BF9
+BS:     dw RUNFORTH
+        dw LIT,-1,INCRNUM,NLOCATE,STC1
+        dw BL,CHAR,EMIT,LIT,-1
+        dw INCRNUM
+        dw ENDFORTH
+;
+L2C38:  db 87H
+        dc 'CONTROL'
+        dw L2C19
+CONTROL:dw RUNFORTH
+        dw POPRP,GETR,LIT,0DH,EQUAL
+        dw BRANCH0,18H,RNUM,PEEK16,CL
+        dw PLUS,LIT,3C0H,AND,RNUM
+        dw POKE16,BRCH,110H,GETR,KUP
+        dw PEEK16,EQUAL,BRANCH0,0CH,LIT
+        dw 0FFE0H,INCRNUM,BRCH,0FAH,GETR
+        dw KDOWN,PEEK16,EQUAL,BRANCH0,0CH
+        dw LIT,20H,INCRNUM,BRCH,0E4H
+        dw GETR,KRIGHT,PEEK16,EQUAL,BRANCH0
+        dw 0AH,ONE,INCRNUM,BRCH,0D0H
+        dw GETR,KLEFT,PEEK16,EQUAL,BRANCH0
+        dw 0CH,LIT,-1,INCRNUM,BRCH
+        dw 0BAH,GETR,KTAB,PEEK16,EQUAL
+        dw BRANCH0,8,TAB,BRCH,0A8H
+        dw GETR,KNSCR,PEEK16,EQUAL,BRANCH0
+        dw 8,NEXTSCR,BRCH,96H,GETR
+        dw KLSCR,PEEK16,EQUAL,BRANCH0,8
+        dw LASTSCR,BRCH,84H,GETR,KDELL
+        dw PEEK16,EQUAL,BRANCH0,10H,NLOCATE
+        dw DD1,DROP,HOME,SHOW1,BRCH
+        dw 6AH,GETR,KINSL,PEEK16,EQUAL
+        dw BRANCH0,10H,NLOCATE,SS1,DROP
+        dw HOME,SHOW1,BRCH,50H,GETR
+        dw KCLS,PEEK16,EQUAL,BRANCH0,0EH
+        dw SCR,PEEK16,CLEAR,INIT,BRCH
+        dw 38H,GETR,KBS,PEEK16,EQUAL
+        dw BRANCH0,8,BS,BRCH,26H
+        dw GETR,KDEL,PEEK16,EQUAL,BRANCH0
+        dw 8,CHDEL,BRCH,14H,GETR
+        dw KINS,PEEK16,EQUAL,BRANCH0,8
+        dw CHINS,BRCH,2,PUSHRP
+        dw ENDFORTH
+;
+L2D7A:  db 84H
+        dc 'EDIT'
+        dw L2C38
+EDIT1:  dw RUNFORTH
+        dw INDECIMAL,SCR,POKE16,VMF1,DUP
+        dw VMFCB,POKE16,FCB,POKE16,OPENFLAG
+        dw PEEK16,EQUAL0,BRANCH0,10H,OPEN1
+        dw LIT,5000H,ZERO,DOINILOOP,SOSTEPONE
+        dw 0FFFEH,INIT,NLOCATE,STC1,KEY
+        dw DUP,LIT,1BH,EQUAL,BRANCH0
+        dw 0CH,DROP,KEY,CONTROL,BRCH
+        dw 22H,DUP,LIT,1FH,MAIOR
+        dw OVER,LIT,7FH,LESSER,AND
+        dw BRANCH0,0AH,CHAR,ECHO,BRCH
+        dw 4,CONTROL,KQUIT,PEEK16,EQUAL
+        dw BRANCH0,0FFBCH,NOOP,NOOP,NOOP
+        dw CLS,PRINT
+        db 05H,'QUIT '
+        dw QUIT
+        dw ENDFORTH
+;
+L2E09:  db 84H
+        dc 'EDIT'
+        dw L254A
+        dw RUNFORTH
+        dw EDITOR,EDIT1
+        dw ENDFORTH
+;
+L2E18:  db 85H
+        dc 'FCOPY'
+        dw L2E09
+        dw RUNFORTH
+        dw VMF1,VMFCB,POKE16,VMFCB,PEEK16
+        dw FCB,POKE16,OPENFLAG,PEEK16,EQUAL0
+        dw BRANCH0,1CH,PRINT
+        db 13H,'No block file open '
+        dw POKESP,QUIT,VMF2,DUP,VMFCB
+        dw POKE16,FCB,POKE16,OPENFLAG,PEEK16
+        dw EQUAL0,BRANCH0,20H,PRINT
+        db 19H,'Specify destination file '
+        dw OPEN1,VMF1,VMFCB,POKE16,SWAP
+        dw BLOCK,TWO,SUBTR,POKE16,UPDATE
+        dw VMF2,VMFCB,POKE16,FLUSH,VMF1
+        dw VMFCB,POKE16
+        dw ENDFORTH
+;
+L2EAA:  db 87H
+        dc '(FILES)'
+        dw L2E18
+FILES:  dw RUNFORTH
+        dw EXTENT,LIT,4,ERASE,SEARCHNEXT
+        dw XDOSFUNC,POKE16,PAD,XDOSPARAM,POKE16
+        dw XDOSCALL,XDOSPARAM,PEEK8,DUP,LIT
+        dw 0FFH,SUBTR,BRANCH0,0046H,LIT
+        dw 20H,TIMES,PAD,PLUS,DUP
+        dw ONE,PLUS,LIT,8,TYPE1
+        dw SPACE,LIT,9,PLUS,THREE
+        dw TYPE1,SPACE,LIT,5,SPACES
+        dw CONOUT,PEEK16,LIT,30H,MAIOR
+        dw BRANCH0,0AH,CR,ZERO,CONOUT
+        dw POKE16,BRCH,0FFA0H,DROP
+        dw ENDFORTH
+;
+L2F24:  db 85H
+        dc 'FILES'
+        dw L2EAA
+        dw RUNFORTH
+        dw VMF3,FCB,POKE16,SETFCB,FILENAME
+        dw PEEK8,BL,EQUAL,BRANCH0,0EH
+        dw FILENAME,LIT,0BH,LIT,3FH
+        dw FILL,PAD,SENDDMA,EXTENT,LIT
+        dw 4,ERASE,SEARCHFIRST,XDOSFUNC,POKE16
+        dw FCB,PEEK16,XDOSPARAM,POKE16,XDOSCALL
+        dw XDOSPARAM,PEEK8,DUP,LIT,0FFH
+        dw EQUAL,BRANCH0,13H,DROP,PRINT
+        db 08H,'No file '
+        dw BRCH,38H,LIT,20H,TIMES
+        dw PAD,PLUS,CR,CR,ZERO
+        dw CONOUT,POKE16,DUP,ONE,PLUS
+        dw LIT,8,TYPE1,SPACE,LIT
+        dw 9,PLUS,THREE,TYPE1,SPACE
+        dw LIT,5,SPACES,FILES,QUIT
+        dw ENDFORTH
+;
+L2FC5:  db 88H
+        dc 'MATCHAFN'
+        dw L2F24
+MATCHAFN:dw RUNFORTH
+        dw PAD,LIT,0CH,CMOVE,PAD
+        dw LIT,10H,PLUS,LIT,0CH
+        dw CMOVE,PAD,PLUSONE,DUP,LIT
+        dw 0CH,PLUS,SWAP,DOINILOOP,VAR_I
+        dw PEEK8,LIT,3FH,EQUAL,VAR_I
+        dw LIT,10H,PLUS,PEEK8,EQUAL0
+        dw EQUAL0,AND,BRANCH0,10H,LIT
+        dw 3FH,VAR_I,LIT,10H,PLUS
+        dw POKE8,SOSTEPONE,0FFD2H,PAD,LIT
+        dw 10H,PLUS,DUP,LIT,0CH
+        dw PLUS,SWAP,DOINILOOP,VAR_I,PEEK8
+        dw LIT,3FH,EQUAL,VAR_I,LIT
+        dw 10H,SUBTR,PEEK8,EQUAL0,EQUAL0
+        dw AND,BRANCH0,10H,LIT,3FH
+        dw VAR_I,LIT,10H,SUBTR,POKE8
+        dw SOSTEPONE,0FFD2H,PAD,PLUSONE,LIT
+        dw 0BH,PAD,LIT,11H,PLUS
+        dw LIT,0BH,MATCH,DROP,EQUAL0
+        dw BRANCH0,8,ZERO,BRCH,0066H
+        dw PAD,PEEK8,PAD,LIT,10H
+        dw PLUS,PEEK8,DUP2,EQUAL,BRANCH0
+        dw 0CH,DROP,DROP,ONE,BRCH
+        dw 0046H,DUP,EQUAL0,BRANCH0,18H
+        dw DROP,CURRENTDISC,XDOSFUNC,POKE16,XDOSCALL
+        dw XDOSPARAM,PEEK8,PLUSONE,EQUAL,BRCH
+        dw 28H,OVER,EQUAL0,BRANCH0,1AH
+        dw SWAP,DROP,CURRENTDISC,XDOSFUNC,POKE16
+        dw XDOSCALL,XDOSPARAM,PEEK8,PLUSONE,EQUAL
+        dw BRCH,8,DROP,DROP,ZERO
+        dw ENDFORTH
+;
+L30F6:  db 84H
+        dc 'KILL'
+        dw L2FC5
+        dw RUNFORTH
+        dw VMF3,FCB,POKE16,SETFCB,FILENAME
+        dw PEEK8,BL,EQUAL,BRANCH0,6
+        dw POKESP,QUIT,VMF3,VMF1,MATCHAFN
+        dw VMF3,VMF2,MATCHAFN,OR,BRANCH0
+        dw 2EH,PRINT
+        db 21H,'Cannot erase current block files '
+        dw POKESP,QUIT,BRCH,24H,DELETEF
+        dw XDOSPARAM,PEEK8,LIT,0FFH,EQUAL
+        dw BRANCH0,14H,PRINT
+        db 0FH,'File not found '
+        dw ENDFORTH
+;
+L3179:  db 83H
+        dc 'REN'
+        dw L30F6
+        dw RUNFORTH
+        dw VMF3,FCB,POKE16,SETFCB,FILENAME
+        dw PEEK8,BL,EQUAL,BRANCH0,6
+        dw POKESP,QUIT,OPENF,XDOSPARAM,PEEK8
+        dw LIT,0FFH,SUBTR,BRANCH0,1CH
+        dw PRINT
+        db 13H,'Duplicate filename '
+        dw POKESP,QUIT,DRIVECODE,FCB,PEEK16
+        dw LIT,10H,PLUS,LIT,0CH
+        dw CMOVE,SETFCB,FILENAME,PEEK8,BL
+        dw EQUAL,BRANCH0,6,POKESP,QUIT
+        dw FCB,PEEK16,LIT,10H,PLUS
+        dw PEEK8,DRIVECODE,POKE8,VMF3,VMF1
+        dw MATCHAFN,VMF3,VMF2,MATCHAFN,OR
+        dw BRANCH0,002FH,PRINT
+        db 22H,'Cannot rename current block files '
+        dw POKESP,QUIT,BRCH,32H,RENAMEFILE
+        dw XDOSFUNC,POKE16,FCB,PEEK16,XDOSPARAM
+        dw POKE16,XDOSCALL,XDOSPARAM,PEEK8,LIT
+        dw 0FFH,EQUAL,BRANCH0,14H,PRINT
+        db 0FH,'File not found '
+        dw ENDFORTH
+;
+L3268:  db 85H
+        dc 'ZEROS'
+        dw L3179
+ZEROS:  dw RUNFORTH
+        dw ZERO,MAX,MDUP,BRANCH0,10H
+        dw ZERO,DOINILOOP,LIT,30H,EMIT
+        dw SOSTEPONE,0FFF8H
+        dw ENDFORTH
+;
+L328C:  db 85H
+        dc 'UD.ZR'
+        dw L3268
+UDZR:   dw RUNFORTH
+        dw POPRP,ININUM,NUM_S,ENDNUM,PUSHRP
+        dw OVER,SUBTR,ZEROS,TYPE1
+        dw ENDFORTH
+;
+L32AA:  db 87H
+        dc 'ASCBYTE'
+        dw L328C
+ASCBYTE:dw RUNFORTH
+        dw DUP,LIT,20H,LESSER,OVER
+        dw LIT,7EH,MAIOR,OR,BRANCH0
+        dw 0EH,DROP,LIT,2EH,EMIT
+        dw BRCH,4,EMIT
+        dw ENDFORTH
+;
+L32DC:  db 85H
+        dc 'ALINE'
+        dw L32AA
+ALINE:  dw RUNFORTH
+        dw DUP,LIT,8,PLUS,SWAP
+        dw DOINILOOP,VAR_I,PEEK8,ASCBYTE,SOSTEPONE
+        dw 0FFF8H
+        dw ENDFORTH
+;
+L32FE:  db 85H
+        dc 'BYTES'
+        dw L32DC
+BYTES:  dw RUNFORTH
+        dw DOINILOOP,VAR_I,PEEK8,ZERO,TWO
+        dw UDZR,SPACE,SOSTEPONE,0FFF2H
+        dw ENDFORTH
+;
+L331C:  db 85H
+        dc 'MLINE'
+        dw L32FE
+MLINE:  dw RUNFORTH
+        dw CR,DUP,ZERO,LIT,4
+        dw UDZR,SPACE,DUP,LIT,8
+        dw PLUS,SWAP,BYTES
+        dw ENDFORTH
+;
+L3342:  db 84H
+        dc 'DUMP'
+        dw L331C
+        dw RUNFORTH
+        dw HEX,DUP,MLINE,DUP,ALINE
+        dw LIT,8,PLUS,INTERMINAL,BRANCH0
+        dw 0FFEEH,KEY,DROP,KEY,LIT
+        dw 0DH,SUBTR,BRANCH0,0FFDEH,DROP
+        dw QUIT
+        dw ENDFORTH
+;
+L3377:  db 0C9H
+        dc 'ASSEMBLER'
+        dw L3342
+ASSEMBLER:dw ATIVATE
+        dw VOCAB
+        dw 0A081H
+        dw CCP
+L338B:  dw L2548
+;
+L338D:  db 0CAH
+        dc 'ASSEMBLERV'
+        dw L3377
+        dw ATIVATE
+        dw VOCAB
+        dw 0A081H
+        dw CZ80ALG
+L33A2:  dw L338B
+;
+L33A4:  db 82H
+        dc 'PC'
+        dw EXITDIC
+PC:     dw VAR
+        dw 5B82H
+;
+L33AD:  db 82H
+        dc 'AP'
+        dw L33A4
+AP:     dw VAR
+        dw 0000H
+;
+L33B6:  db 83H
+        dc 'APP'
+        dw L33AD
+APP:    dw VAR
+        dw 87BAH
+;
+L33C0:  db 82H
+        dc 'PF'
+        dw L33B6
+PF:     dw VAR
+        dw 0000H
+;
+L33C9:  db 84H
+        dc 'PASS'
+        dw L33C0
+PASS:   dw VAR
+        dw 0001H
+;
+L33D4:  db 0C4H
+        dc 'REGS'
+        dw L33C9
+REGS:   dw ATIVATE
+        dw VOCAB
+        dw 0A081H
+        dw L3415
+L33E3:  dw L33A2
+;
+L33E5:  db 81H
+        dc 'B'
+        dw 0000H
+        dw CONST
+        dw 0000H
+;
+L33ED:  db 81H
+        dc 'C'
+        dw L33E5
+        dw CONST
+        dw 0001H
+;
+L33F5:  db 81H
+        dc 'D'
+        dw L33ED
+        dw CONST
+        dw 0002H
+;
+L33FD:  db 81H
+        dc 'E'
+        dw L33F5
+        dw CONST
+        dw 0003H
+;
+L3405:  db 81H
+        dc 'H'
+        dw L33FD
+        dw CONST
+        dw 0004H
+;
+L340D:  db 81H
+        dc 'L'
+        dw L3405
+        dw CONST
+        dw 0005H
+;
+L3415:  db 81H
+        dc 'A'
+        dw L340D
+        dw CONST
+        dw 0007H
+;
+L341D:  db 0C8H
+        dc 'REGPAIRS'
+        dw L33D4
+REGPAIRS:dw ATIVATE
+        dw VOCAB
+        dw 0A081H
+        dw L3456
+L3430:  dw L33E3
+;
+L3432:  db 82H
+        dc 'BC'
+        dw 0000H
+        dw CONST
+        dw 0000H
+;
+L343B:  db 82H
+        dc 'DE'
+        dw L3432
+        dw CONST
+        dw 0010H
+;
+L3444:  db 82H
+        dc 'HL'
+        dw L343B
+        dw CONST
+        dw 0020H
+;
+L344D:  db 82H
+        dc 'AF'
+        dw L3444
+        dw CONST
+        dw 0006H
+;
+L3456:  db 82H
+        dc 'SP'
+        dw L344D
+        dw CONST
+        dw 0030H
+;
+L345F:  db 0C5H
+        dc 'INDEX'
+        dw L341D
+REG_INDEX:dw ATIVATE
+        dw VOCAB
+        dw 0A081H
+        dw L347A
+L346F:  dw L3430
+;
+L3471:  db 82H
+        dc 'IX'
+        dw 0000H
+        dw CONST
+        dw 00DDH
+;
+L347A:  db 82H
+        dc 'IY'
+        dw L3471
+        dw CONST
+        dw 00FDH
+;
+L3483:  db 0C6H
+        dc 'REFINT'
+        dw L345F
+REFINT: dw ATIVATE
+        dw VOCAB
+        dw 0A081H
+        dw L349E
+L3494:  dw L346F
+;
+L3496:  db 81H
+        dc 'R'
+        dw 0000H
+        dw CONST
+        dw 0008H
+;
+L349E:  db 81H
+        dc 'I'
+        dw L3496
+        dw CONST
+        dw 0000H
+;
+L34A6:  db 0CCH
+        dc 'CONDITIONALS'
+        dw L3483
+CONDITIONALS:dw ATIVATE
+        dw VOCAB
+        dw 0A081H
+        dw L34FB
+L34BD:  dw L3494
+;
+L34BF:  db 82H
+        dc 'NZ'
+        dw 0000H
+        dw CONST
+        dw 0000H
+;
+L34C8:  db 81H
+        dc 'Z'
+        dw L34BF
+        dw CONST
+        dw 0008H
+;
+L34D0:  db 82H
+        dc 'NC'
+        dw L34C8
+        dw CONST
+        dw 0010H
+;
+L34D9:  db 81H
+        dc 'C'
+        dw L34D0
+        dw CONST
+        dw 0018H
+;
+L34E1:  db 82H
+        dc 'PO'
+        dw L34D9
+        dw CONST
+        dw 0020H
+;
+L34EA:  db 82H
+        dc 'PE'
+        dw L34E1
+        dw CONST
+        dw 0028H
+;
+L34F3:  db 81H
+        dc 'P'
+        dw L34EA
+        dw CONST
+        dw 0030H
+;
+L34FB:  db 81H
+        dc 'M'
+        dw L34F3
+        dw CONST
+        dw 0038H
+;
+L3503:  db 85H
+        dc 'VFIND'
+        dw L34A6
+VFIND:  dw RUNFORTH
+        dw HERE,CONTEXT,PEEK16,PEEK16,FIND
+        dw DUP,BRANCH0,6,SWAP,DROP
+        dw ENDFORTH
+;
+L3523:  db 87H
+        dc 'GETCHAR'
+        dw L3503
+GETCHAR:dw RUNFORTH
+        dw BLK,PEEK16,BRANCH0,0CH,BLK
+        dw PEEK16,BLOCK,BRCH,6,TIB
+        dw PEEK16,CONIN,PEEK16,PLUS,PEEK8
+        dw ENDFORTH
+;
+L354F:  db 87H
+        dc 'ADVCHAR'
+        dw L3523
+ADVCHAR:dw RUNFORTH
+        dw ONE,CONIN,ADDMEM
+        dw ENDFORTH
+;
+L3563:  db 85H
+        dc 'ALPHA'
+        dw L354F
+ALPHA:  dw RUNFORTH
+        dw DUP,LIT,40H,MAIOR,SWAP
+        dw LIT,5BH,LESSER,AND
+        dw ENDFORTH
+;
+L3581:  db 0C4H
+        dc 'CHR$'
+        dw L3563
+        dw RUNFORTH
+        dw BL,WORD,HERE,PEEK8,ONE
+        dw SUBTR,ZERO,ISERROR,HERE,PLUSONE
+        dw PEEK8,LITERAL
+        dw ENDFORTH
+;
+L35A4:  db 88H
+        dc 'ALPHANUM'
+        dw L3581
+ALPHANUM:dw RUNFORTH
+        dw POPRP,GETR,LIT,40H,MAIOR
+        dw GETR,LIT,5BH,LESSER,AND
+        dw GETR,LIT,2FH,MAIOR,PUSHRP
+        dw LIT,3AH,LESSER,AND,OR
+        dw ENDFORTH
+;
+L35DB:  db 83H
+        dc 'NUM'
+        dw L35A4
+NUM:    dw RUNFORTH
+        dw DUP,LIT,2FH,MAIOR,SWAP
+        dw LIT,3AH,LESSER,AND
+        dw ENDFORTH
+;
+L35F7:  db 84H
+        dc 'OPDC'
+        dw L35DB
+OPDC:   dw VAR
+        dw 0002H
+;
+L3602:  db 84H
+        dc '-REG'
+        dw L35F7
+MREG:   dw CONST
+        dw 0001H
+;
+L360D:  db 83H
+        dc '-RP'
+        dw L3602
+MRP:    dw CONST
+        dw 0002H
+;
+L3617:  db 84H
+        dc '-NUM'
+        dw L360D
+MNUM:   dw CONST
+        dw 0004H
+;
+L3622:  db 84H
+        dc '-SYM'
+        dw L3617
+MSYM:   dw CONST
+        dw 0008H
+;
+L362D:  db 83H
+        dc '-CC'
+        dw L3622
+MCC:    dw CONST
+        dw 0010H
+;
+L3637:  db 83H
+        dc '-RE'
+        dw L362D
+MRE:    dw CONST
+        dw 0020H
+;
+L3641:  db 83H
+        dc '-XY'
+        dw L3637
+MXY:    dw CONST
+        dw 0040H
+;
+L364B:  db 84H
+        dc '-IND'
+        dw L3641
+MIND:   dw CONST
+        dw 8000H
+;
+L3656:  db 85H
+        dc '-REGI'
+        dw L364B
+MREGI:  dw CONST
+        dw 8001H
+;
+L3662:  db 84H
+        dc '-RPI'
+        dw L3656
+MRPI:   dw CONST
+        dw 8002H
+;
+L366D:  db 85H
+        dc '-NUMI'
+        dw L3662
+MNUMI:  dw CONST
+        dw 8004H
+;
+L3679:  db 85H
+        dc '-SYMI'
+        dw L366D
+MSYMI:  dw CONST
+        dw 8008H
+;
+L3685:  db 84H
+        dc '-XYI'
+        dw L3679
+MXYI:   dw CONST
+        dw 8040H
+;
+L3690:  db 88H
+        dc '(NUMBER)'
+        dw L3685
+NUMBER3:dw RUNFORTH
+        dw ZERO,ZERO,GETCHAR,BASE,PEEK16
+        dw DIGIT,BRANCH0,22H,ADVCHAR,SWAP
+        dw BASE,PEEK16,UTIMES,DROP,ROT
+        dw BASE,PEEK16,UTIMES,DPLUS,DUP
+        dw ZERO,ISERROR,BRCH,0FFD6H
+        dw ENDFORTH
+;
+L36CF:  db 86H
+        dc 'NUMBER'
+        dw L3690
+NUMBER4:dw RUNFORTH
+        dw GETCHAR,LIT,2DH,EQUAL,DUP
+        dw POPRP,BRANCH0,4,ADVCHAR,NUMBER3
+        dw DROP,PUSHRP,BRANCH0,4,MINUS
+        dw ENDFORTH
+;
+L36FA:  db 88H
+        dc 'DESTBUFF'
+        dw L36CF
+DESTBUFF:dw VAR
+        dw 5B80H
+;
+L3709:  db 8AH
+        dc 'RDALPHANUM'
+        dw L36FA
+RDALPHANUM:dw RUNFORTH
+        dw HERE,PLUSONE,DESTBUFF,POKE16,ZERO
+        dw HERE,POKE8,GETCHAR,DUP,ALPHANUM
+        dw BRANCH0,1EH,ADVCHAR,DESTBUFF,PEEK16
+        dw POKE8,HERE,PEEK8,PLUSONE,HERE
+        dw POKE8,ONE,DESTBUFF,ADDMEM,BRCH
+        dw 0FFDCH,DROP
+        dw ENDFORTH
+;
+L3750:  db 83H
+        dc 'MUL'
+        dw L3709
+        dw RUNFORTH
+MUL:    dw UTIMES,DROP
+        dw ENDFORTH
+;
+L375E:  db 83H
+        dc 'DIV'
+        dw L3750
+        dw RUNFORTH
+DIV:    dw POPRP,ZERO,PUSHRP,UDIV,SWAP
+        dw DROP
+        dw ENDFORTH
+;
+L3774:  db 85H
+        dc 'INFIX'
+        dw L375E
+INFIX:  dw RUNFORTH
+        dw POPRP,GETR,LIT,2BH,EQUAL
+        dw BRANCH0,0EH,LIT,DOPLUS,CFA
+        dw ONE,BRCH,7CH,GETR,LIT
+        dw 2DH,EQUAL,BRANCH0,0EH,LIT
+        dw SUBT,CFA,ONE,BRCH,0064H
+        dw GETR,LIT,2AH,EQUAL,BRANCH0
+        dw 0EH,LIT,MUL,CFA,ONE
+        dw BRCH,4CH,GETR,LIT,2FH
+        dw EQUAL,BRANCH0,0EH,LIT,DIV
+        dw CFA,ONE,BRCH,34H,GETR
+        dw LIT,26H,EQUAL,BRANCH0,0EH
+        dw LIT,AND_,CFA,ONE,BRCH
+        dw 1CH,GETR,LIT,2EH,EQUAL
+        dw BRANCH0,0EH,LIT,OR_,CFA
+        dw ONE,BRCH,4,ZERO,PUSHRP
+        dw DROP
+        dw ENDFORTH
+;
+L3818:  db 83H
+        dc 'OR!'
+        dw L3774
+ORMEM:  dw RUNFORTH
+        dw DUP,POPRP,PEEK16,OR,PUSHRP
+        dw POKE16
+        dw ENDFORTH
+;
+L382E:  db 89H
+        dc 'REGSEARCH'
+        dw L3818
+REGSEARCH:dw RUNFORTH
+        dw REGS,VFIND,BRANCH0,10H,PEEK16
+        dw MREG,OPDC,ORMEM,ONE,BRCH
+        dw 0046H,REGPAIRS,VFIND,BRANCH0,10H
+        dw PEEK16,MRP,OPDC,ORMEM,ONE
+        dw BRCH,30H,REG_INDEX,VFIND,BRANCH0
+        dw 10H,PEEK16,MXY,OPDC,ORMEM
+        dw ONE,BRCH,1AH,REFINT,VFIND
+        dw BRANCH0,10H,PEEK16,MRE,OPDC
+        dw ORMEM,ONE,BRCH,4,ZERO
+        dw ENDFORTH
+;
+L3898:  db 84H
+        dc 'SYM0'
+        dw L382E
+SYM0:   dw VAR
+        dw 0B508H
+;
+L38A3:  db 84H
+        dc 'SYMP'
+        dw L3898
+SYMP:   dw VAR
+        dw 0B508H
+;
+L38AE:  db 87H
+        dc 'SYMLINK'
+        dw L38A3
+SYMLINK:dw VAR
+        dw L38BC
+L38BC:  dw 0A081H,0000H
+;
+L38C0:  db 8BH
+        dc 'CLEARSYMTAB'
+        dw L38AE
+CLEARSYMTAB:dw RUNFORTH
+        dw SYMLINK,PLUSTWO,SYMLINK,POKE16,SYM0
+        dw PEEK16,SYMP,POKE16
+        dw ENDFORTH
+;
+L38E2:  db 89H
+        dc 'SYMSEARCH'
+        dw L38C0
+SYMSEARCH:dw RUNFORTH
+        dw HERE,SYMLINK,PEEK16,FIND,BRANCH0
+        dw 16H,DROP,TWO,SUBTR,PEEK16
+        dw MSYM,OPDC,ORMEM,ONE,BRCH
+        dw 4,ZERO
+        dw ENDFORTH
+;
+L3914:  db 86H
+        dc 'SYMBOL'
+        dw L38E2
+SYMBOL: dw RUNFORTH
+        dw BL,WORD,SYMP,PEEK16,HERE
+        dw LIT,100H,PLUS,UMENOR,BRANCH0
+        dw 21H,CR,PRINT
+        db 12H,'Symbol table full '
+        dw POKESP,QUIT,BRCH,008BH,SYMSEARCH
+        dw BRANCH0,19H,CR,PRINT
+        db 0EH,'Double symbol '
+        dw POKESP,QUIT,HERE,PLUSONE,PEEK8
+        dw ALPHA,EQUAL0,LIT,9,ISERROR
+        dw SYMP,PEEK16,DUP,POPRP,HERE
+        dw PEEK8,LIT,5,PLUS,SUBTR
+        dw SYMP,POKE16,HERE,SYMP,PEEK16
+        dw HERE,PEEK8,PLUSONE,CMOVE,SYMP
+        dw PEEK16,LIT,80H,TOGGLE,PUSHRP
+        dw DUP,LIT,5,SUBTR,LIT
+        dw 80H,TOGGLE,SYMLINK,PEEK16,OVER
+        dw LIT,4,SUBTR,POKE16,SYMP
+        dw PEEK16,SYMLINK,POKE16,TWO,SUBTR
+        dw POKE16
+        dw ENDFORTH
+;
+L39DF:  db 85H
+        dc 'LABEL'
+        dw EXITDIC
+LABEL:  dw RUNFORTH
+        dw PC,PEEK16,SYMBOL
+        dw ENDFORTH
+;
+L39F1:  db 86H
+        dc 'SYMBOL'
+        dw L39DF
+        dw RUNFORTH
+        dw SYMBOL
+        dw ENDFORTH
+;
+L3A00:  db 8BH
+        dc 'CLEARSYMTAB'
+        dw L39F1
+        dw RUNFORTH
+        dw CLEARSYMTAB
+        dw ENDFORTH
+;
+L3A14:  db 8AH
+        dc 'CONDSEARCH'
+        dw L3914
+CONDSEARCH:dw RUNFORTH
+        dw CONDITIONALS,VFIND,BRANCH0,10H,PEEK16
+        dw MCC,OPDC,ORMEM,ONE,BRCH
+        dw 4,ZERO,ASSEMBLER
+        dw ENDFORTH
+;
+L3A3F:  db 87H
+        dc 'CHARLIT'
+        dw L3A14
+CHARLIT:dw RUNFORTH
+        dw ADVCHAR,GETCHAR,DUP,LIT,20H
+        dw LESSER,OVER,LIT,7EH,MAIOR
+        dw OR,LIT,9,ISERROR,ADVCHAR
+        dw GETCHAR,LIT,27H,EQUAL,BRANCH0
+        dw 10H,ADVCHAR,MNUM,OPDC,ORMEM
+        dw ONE,BRCH,0EH,DROP,ZERO
+        dw LIT,0FFFEH,CONIN,ADDMEM
+        dw ENDFORTH
+;
+L3A91:  db 8BH
+        dc 'ALPHASEARCH'
+        dw L3A3F
+ALPHASEARCH:dw RUNFORTH
+        dw REGSEARCH,BRANCH0,8,ONE,BRCH
+        dw 38H,SYMSEARCH,BRANCH0,8,ONE
+        dw BRCH,2CH,PASS,PEEK16,EQUAL0
+        dw BRANCH0,20H,CONDSEARCH,BRANCH0,0AH
+        dw DROP,ZERO,BRCH,0EH,MSYM
+        dw OPDC,ORMEM,PC,PEEK16,ONE
+        dw BRCH,4,ZERO,ASSEMBLER
+        dw ENDFORTH
+;
+L3AE7:  db 84H
+        dc 'ITEM'
+        dw L3A91
+ITEM:   dw RUNFORTH
+        dw ZERO,OPDC,POKE16,GETCHAR,LIT
+        dw 28H,EQUAL,BRANCH0,0AH,ADVCHAR
+        dw MIND,OPDC,ORMEM,GETCHAR,POPRP
+        dw GETR,ALPHA,BRANCH0,0AH,RDALPHANUM
+        dw ALPHASEARCH,BRCH,0054H,GETR,NUM
+        dw GETR,LIT,2DH,EQUAL,OR
+        dw BRANCH0,10H,MNUM,OPDC,ORMEM
+        dw NUMBER4,ONE,BRCH,34H,GETR
+        dw LIT,24H,EQUAL,BRANCH0,14H
+        dw ADVCHAR,PC,PEEK16,ONE,MSYM
+        dw OPDC,ORMEM,BRCH,16H,GETR
+        dw LIT,27H,EQUAL,BRANCH0,8
+        dw CHARLIT,BRCH,4,ZERO,PUSHRP
+        dw DROP
+        dw ENDFORTH
+;
+L3B76:  db 85H
+        dc 'CLIND'
+        dw L3AE7
+CLIND:  dw RUNFORTH
+        dw GETCHAR,LIT,29H,SUBTR,LIT
+        dw 9,ISERROR,ADVCHAR
+        dw ENDFORTH
+;
+L3B92:  db 85H
+        dc 'CLCOM'
+        dw L3B76
+CLCOM:  dw RUNFORTH
+        dw GETCHAR,LIT,2CH,SUBTR,LIT
+        dw 9,ISERROR,ADVCHAR
+        dw ENDFORTH
+;
+L3BAE:  db 86H
+        dc 'CLPLUS'
+        dw L3B92
+CLPLUS: dw RUNFORTH
+        dw GETCHAR,LIT,2BH,SUBTR,LIT
+        dw 9,ISERROR,ADVCHAR
+        dw ENDFORTH
+;
+L3BCB:  db 86H
+        dc 'SYMNUM'
+        dw L3BAE
+SYMNUM: dw RUNFORTH
+        dw BRANCH0,34H,OPDC,PEEK16,POPRP
+        dw GETR,MSYM,AND,BRANCH0,8
+        dw ONE,BRCH,16H,GETR,MNUM
+        dw AND,BRANCH0,8,ONE,BRCH
+        dw 6,DROP,ZERO,PUSHRP,DROP
+        dw BRCH,4,ZERO
+        dw ENDFORTH
+;
+L3C10:  db 85H
+        dc 'EXPRN'
+        dw L3BCB
+EXPRN:  dw RUNFORTH
+        dw GETCHAR,INFIX,BRANCH0,26H,POPRP
+        dw ADVCHAR,ZERO,OPDC,POKE16,ITEM
+        dw SYMNUM,PUSHRP,SWAP,BRANCH0,8
+        dw EXECUTE,BRCH,6,ZERO,ERROR
+        dw BRCH,0FFD6H
+        dw ENDFORTH
+;
+L3C48:  db 87H
+        dc 'SYMNUMS'
+        dw L3C10
+SYMNUMS:dw RUNFORTH
+        dw ITEM,SYMNUM,BRANCH0,0AH,EXPRN
+        dw ONE,BRCH,4,ZERO
+        dw ENDFORTH
+;
+L3C68:  db 84H
+        dc 'CPUT'
+        dw L3C48
+CPUT:   dw RUNFORTH
+        dw PASS,PEEK16,BRANCH0,1AH,DUP
+        dw LIT,0FF80H,LESSER,OVER,LIT
+        dw 0FFH,MAIOR,OR,LIT,9
+        dw ISERROR,LIT,0FFH,AND,PF
+        dw PEEK16,BRANCH0,16H,APP,PEEK16
+        dw PEEK16,POKE8,ONE,APP,PEEK16
+        dw ADDMEM,BRCH,4,DROP,ONE
+        dw PC,ADDMEM
+        dw ENDFORTH
+;
+L3CBD:  db 83H
+        dc 'PUT'
+        dw L3C68
+PUT:    dw RUNFORTH
+        dw PF,PEEK16,BRANCH0,16H,APP
+        dw PEEK16,PEEK16,POKE16,TWO,APP
+        dw PEEK16,ADDMEM,BRCH,4,DROP
+        dw TWO,PC,ADDMEM
+        dw ENDFORTH
+;
+L3CEB:  db 82H
+        dc '8*'
+        dw L3CBD
+TIMES8: dw RUNFORTH
+        dw DUP,PLUS,DUP,PLUS,DUP
+        dw PLUS
+        dw ENDFORTH
+;
+L3D00:  db 83H
+        dc 'LD1'
+        dw L3CEB
+LD1:    dw RUNFORTH
+        dw ITEM,EQUAL0,LIT,9,ISERROR
+        dw OPDC,PEEK16,POPRP,GETR,MREG
+        dw EQUAL,BRANCH0,14H,SWAP,TIMES8
+        dw OR,LIT,40H,OR,CPUT
+        dw BRCH,013EH,GETR,MNUM,EQUAL
+        dw GETR,MSYM,EQUAL,OR,BRANCH0
+        dw 16H,SWAP,TIMES8,LIT,6
+        dw OR,CPUT,EXPRN,CPUT,BRCH
+        dw 0118H,GETR,MRPI,EQUAL,BRANCH0
+        dw 0076H,POPRP,GETR,LIT,20H
+        dw EQUAL,BRANCH0,12H,CLIND,TIMES8
+        dw LIT,46H,OR,CPUT,BRCH
+        dw 50H,GETR,LIT,0,EQUAL
+        dw BRANCH0,1AH,LIT,7,SUBTR
+        dw LIT,9,ISERROR,CLIND,LIT
+        dw 0AH,CPUT,BRCH,2CH,GETR
+        dw LIT,10H,EQUAL,BRANCH0,1AH
+        dw LIT,7,SUBTR,LIT,9
+        dw ISERROR,CLIND,LIT,1AH,CPUT
+        dw BRCH,8,LIT,9,ERROR
+        dw PUSHRP,DROP,BRCH,009AH,GETR
+        dw MXYI,EQUAL,BRANCH0,30H,GETCHAR
+        dw LIT,2BH,SUBTR,LIT,9
+        dw ISERROR,ADVCHAR,CPUT,TIMES8,LIT
+        dw 46H,OR,CPUT,SYMNUMS,EQUAL0
+        dw LIT,9,ISERROR,CPUT,CLIND
+        dw BRCH,0062H,GETR,MNUMI,EQUAL
+        dw GETR,MSYMI,EQUAL,OR,BRANCH0
+        dw 20H,SWAP,LIT,7,SUBTR
+        dw LIT,9,ISERROR,EXPRN,CLIND
+        dw LIT,3AH,CPUT,PUT,BRCH
+        dw 32H,GETR,MRE,EQUAL,BRANCH0
+        dw 22H,SWAP,LIT,7,SUBTR
+        dw LIT,9,ISERROR,LIT,0EDH
+        dw PUT,LIT,57H,OR,PUT
+        dw BRCH,8,LIT,9,ERROR
+        dw PUSHRP,DROP
+        dw ENDFORTH
+;
+L3E76:  db 83H
+        dc 'LD2'
+        dw L3D00
+LD2:    dw RUNFORTH
+        dw ITEM,EQUAL0,LIT,9,ISERROR
+        dw OPDC,PEEK16,POPRP,GETR,MREG
+        dw EQUAL,BRANCH0,56H,OVER,LIT
+        dw 20H,EQUAL,BRANCH0,10H,LIT
+        dw 70H,OR,CPUT,DROP,BRCH
+        dw 38H,LIT,7,EQUAL,BRANCH0
+        dw 28H,DUP,LIT,10H,EQUAL
+        dw BRANCH0,0EH,DROP,LIT,12H
+        dw CPUT,BRCH,0CH,LIT,9
+        dw ISERROR,TWO,CPUT,BRCH,8
+        dw LIT,9,ERROR,BRCH,36H
+        dw GETR,MNUM,EQUAL,GETR,MSYM
+        dw EQUAL,OR,BRANCH0,1EH,SWAP
+        dw LIT,20H,SUBTR,LIT,9
+        dw ISERROR,LIT,36H,CPUT,EXPRN
+        dw CPUT,BRCH,8,LIT,9
+        dw ERROR,PUSHRP,DROP
+        dw ENDFORTH
+;
+L3F26:  db 83H
+        dc 'LD3'
+        dw L3E76
+LD3:    dw RUNFORTH
+        dw ITEM,EQUAL0,LIT,9,ISERROR
+        dw OPDC,PEEK16,POPRP,GETR,MREG
+        dw EQUAL,BRANCH0,14H,ROT,CPUT
+        dw LIT,70H,OR,CPUT,CPUT
+        dw BRCH,30H,GETR,MNUM,EQUAL
+        dw GETR,MSYM,EQUAL,OR,BRANCH0
+        dw 18H,EXPRN,ROT,CPUT,LIT
+        dw 36H,CPUT,SWAP,CPUT,CPUT
+        dw BRCH,8,LIT,9,ERROR
+        dw PUSHRP,DROP
+        dw ENDFORTH
+;
+L3F8E:  db 83H
+        dc 'LD4'
+        dw L3F26
+LD4:    dw RUNFORTH
+        dw ITEM,EQUAL0,LIT,9,ISERROR
+        dw OPDC,PEEK16,POPRP,GETR,MNUM
+        dw EQUAL,GETR,MSYM,EQUAL,OR
+        dw BRANCH0,12H,EXPRN,SWAP,ONE
+        dw OR,CPUT,PUT,BRCH,009EH
+        dw GETR,MNUMI,EQUAL,GETR,MSYMI
+        dw EQUAL,OR,BRANCH0,36H,EXPRN
+        dw CLIND,OVER,LIT,20H,EQUAL
+        dw BRANCH0,10H,LIT,2AH,CPUT
+        dw PUT,DROP,BRCH,14H,LIT
+        dw 0EDH,CPUT,SWAP,LIT,4BH
+        dw OR,CPUT,PUT,BRCH,58H
+        dw GETR,MRP,EQUAL,BRANCH0,24H
+        dw LIT,20H,SUBTR,LIT,9
+        dw ISERROR,LIT,30H,SUBTR,LIT
+        dw 9,ISERROR,LIT,0F9H,CPUT
+        dw BRCH,2CH,GETR,MXY,EQUAL
+        dw BRANCH0,1CH,SWAP,LIT,30H
+        dw SUBTR,LIT,9,ISERROR,CPUT
+        dw LIT,0F9H,CPUT,BRCH,8
+        dw LIT,9,ERROR,PUSHRP,DROP
+        dw ENDFORTH
+;
+L406A:  db 83H
+        dc 'LD5'
+        dw L3F8E
+LD5:    dw RUNFORTH
+        dw ITEM,EQUAL0,LIT,9,ISERROR
+        dw OPDC,PEEK16,POPRP,GETR,MNUM
+        dw EQUAL,GETR,MSYM,EQUAL,OR
+        dw BRANCH0,14H,EXPRN,SWAP,CPUT
+        dw LIT,21H,CPUT,PUT,BRCH
+        dw 2EH,GETR,MNUMI,EQUAL,GETR
+        dw MSYMI,EQUAL,OR,BRANCH0,16H
+        dw EXPRN,CLIND,SWAP,CPUT,LIT
+        dw 2AH,CPUT,PUT,BRCH,8
+        dw LIT,9,ERROR,PUSHRP,DROP
+        dw ENDFORTH
+;
+L40D8:  db 83H
+        dc 'LD6'
+        dw L406A
+LD6:    dw RUNFORTH
+        dw ITEM,EQUAL0,LIT,9,ISERROR
+        dw OPDC,PEEK16,POPRP,GETR,MRP
+        dw EQUAL,BRANCH0,3EH,DUP,LIT
+        dw 6,EQUAL,LIT,9,ISERROR
+        dw DUP,LIT,20H,EQUAL,BRANCH0
+        dw 10H,DROP,LIT,22H,CPUT
+        dw PUT,BRCH,12H,LIT,0EDH
+        dw CPUT,LIT,43H,OR,CPUT
+        dw PUT,BRCH,42H,GETR,MXY
+        dw EQUAL,BRANCH0,10H,CPUT,LIT
+        dw 22H,CPUT,PUT,BRCH,2AH
+        dw GETR,MREG,EQUAL,BRANCH0,1AH
+        dw LIT,7,SUBTR,LIT,9
+        dw ISERROR,LIT,32H,CPUT,PUT
+        dw BRCH,8,LIT,9,ERROR
+        dw PUSHRP,DROP
+        dw ENDFORTH
+;
+L417C:  db 82H
+        dc 'LD'
+        dw L3A00
+        dw RUNFORTH
+        dw ITEM,EQUAL0,LIT,9,ISERROR
+        dw OPDC,PEEK16,POPRP,GETR,MREG
+        dw EQUAL,BRANCH0,0AH,CLCOM,LD1
+        dw BRCH,008CH,GETR,MRPI,EQUAL
+        dw BRANCH0,0CH,CLIND,CLCOM,LD2
+        dw BRCH,0078H,GETR,MXYI,EQUAL
+        dw BRANCH0,18H,CLPLUS,SYMNUMS,EQUAL0
+        dw LIT,9,ISERROR,CLIND,CLCOM
+        dw LD3,BRCH,58H,GETR,MRP
+        dw EQUAL,BRANCH0,18H,DUP,LIT
+        dw 6,EQUAL,LIT,9,ISERROR
+        dw CLCOM,LD4,BRCH,38H,GETR
+        dw MXY,EQUAL,BRANCH0,0AH,CLCOM
+        dw LD5,BRCH,26H,GETR,MNUMI
+        dw EQUAL,GETR,MSYMI,EQUAL,OR
+        dw BRANCH0,0EH,EXPRN,CLIND,CLCOM
+        dw LD6,BRCH,8,LIT,9
+        dw ERROR,PUSHRP,DROP
+        dw ENDFORTH
+;
+L4235:  db 84H
+        dc 'PUSH'
+        dw L417C
+        dw RUNFORTH
+        dw ITEM,EQUAL0,LIT,9,ISERROR
+        dw OPDC,PEEK16,POPRP,GETR,MRP
+        dw EQUAL,BRANCH0,2EH,DUP,LIT
+        dw 30H,EQUAL,LIT,9,ISERROR
+        dw DUP,LIT,6,EQUAL,BRANCH0
+        dw 8,DROP,LIT,30H,LIT
+        dw 0C5H,OR,CPUT,BRCH,1EH
+        dw GETR,MXY,EQUAL,BRANCH0,0EH
+        dw CPUT,LIT,0E5H,CPUT,BRCH
+        dw 8,LIT,9,ERROR,PUSHRP
+        dw DROP
+        dw ENDFORTH
+;
+L42A6:  db 83H
+        dc 'POP'
+        dw L4235
+        dw RUNFORTH
+        dw ITEM,EQUAL0,LIT,9,ISERROR
+        dw OPDC,PEEK16,POPRP,GETR,MRP
+        dw EQUAL,BRANCH0,2EH,DUP,LIT
+        dw 30H,EQUAL,LIT,9,ISERROR
+        dw DUP,LIT,6,EQUAL,BRANCH0
+        dw 8,DROP,LIT,30H,LIT
+        dw 0C1H,OR,CPUT,BRCH,1EH
+        dw GETR,MXY,EQUAL,BRANCH0,0EH
+        dw CPUT,LIT,0E1H,CPUT,BRCH
+        dw 8,LIT,9,ERROR,PUSHRP
+        dw DROP
+        dw ENDFORTH
+;
+L4316:  db 83H
+        dc 'EX1'
+        dw L40D8
+EX1:    dw RUNFORTH
+        dw ITEM,EQUAL0,LIT,9,ISERROR
+        dw OPDC,PEEK16,POPRP,GETR,MRP
+        dw EQUAL,BRANCH0,24H,LIT,20H
+        dw SUBTR,LIT,9,ISERROR,LIT
+        dw 30H,SUBTR,LIT,9,ISERROR
+        dw LIT,0E3H,CPUT,BRCH,2CH
+        dw GETR,MXY,EQUAL,BRANCH0,1CH
+        dw SWAP,LIT,30H,SUBTR,LIT
+        dw 9,ISERROR,CPUT,LIT,0E3H
+        dw CPUT,BRCH,8,LIT,9
+        dw ERROR,PUSHRP,DROP
+        dw ENDFORTH
+;
+L438A:  db 82H
+        dc 'EX'
+        dw L42A6
+        dw RUNFORTH
+        dw ITEM,EQUAL0,LIT,9,ISERROR
+        dw OPDC,PEEK16,POPRP,GETR,MRP
+        dw EQUAL,BRANCH0,0062H,CLCOM,ITEM
+        dw EQUAL0,LIT,9,ISERROR,OPDC
+        dw PEEK16,MRP,SUBTR,LIT,9
+        dw ISERROR,DUP2,LIT,20H,EQUAL
+        dw SWAP,LIT,10H,EQUAL,AND
+        dw BRANCH0,10H,DROP,DROP,LIT
+        dw 0EBH,CPUT,BRCH,20H,LIT
+        dw 6,SUBTR,LIT,9,ISERROR
+        dw LIT,6,SUBTR,LIT,9
+        dw ISERROR,LIT,8,CPUT,BRCH
+        dw 1CH,GETR,MRPI,EQUAL,BRANCH0
+        dw 0CH,CLIND,CLCOM,EX1,BRCH
+        dw 8,LIT,9,ERROR,PUSHRP
+        dw DROP
+        dw ENDFORTH
+;
+L442B:  db 84H
+        dc 'Z801'
+        dw L4316
+        dw RUNFORTH
+        dw BUILDS,POKED8,DOES
+Z801:   dw PEEK8,CPUT
+        dw ENDFORTH
+;
+L4440:  db 84H
+        dc 'Z802'
+        dw L442B
+        dw RUNFORTH
+        dw BUILDS,POKED8,DOES
+Z802:   dw LIT,0EDH
+        dw CPUT,PEEK8,CPUT
+        dw ENDFORTH
+;
+L445B:  db 83H
+        dc 'LDI'
+        dw L438A
+        dw ATIVATE
+        dw Z802
+        db 0A0H
+;
+L4466:  db 84H
+        dc 'LDIR'
+        dw L445B
+        dw ATIVATE
+        dw Z802
+        db 0B0H
+;
+L4472:  db 83H
+        dc 'LDD'
+        dw L4466
+        dw ATIVATE
+        dw Z802
+        db 0A8H
+;
+L447D:  db 84H
+        dc 'LDDR'
+        dw L4472
+        dw ATIVATE
+        dw Z802
+        db 0B8H
+;
+L4489:  db 83H
+        dc 'CPI'
+        dw L447D
+        dw ATIVATE
+        dw Z802
+        db 0A1H
+;
+L4494:  db 84H
+        dc 'CPIR'
+        dw L4489
+        dw ATIVATE
+        dw Z802
+        db 0B1H
+;
+L44A0:  db 83H
+        dc 'CPD'
+        dw L4494
+        dw ATIVATE
+        dw Z802
+        db 0A9H
+;
+L44AB:  db 84H
+        dc 'CPDR'
+        dw L44A0
+        dw ATIVATE
+        dw Z802
+        db 0B9H
+;
+L44B7:  db 83H
+        dc 'INI'
+        dw L44AB
+        dw ATIVATE
+        dw Z802
+        db 0A2H
+;
+L44C2:  db 84H
+        dc 'INIR'
+        dw L44B7
+        dw ATIVATE
+        dw Z802
+        db 0B2H
+;
+L44CE:  db 83H
+        dc 'IND'
+        dw L44C2
+        dw ATIVATE
+        dw Z802
+        db 0AAH
+;
+L44D9:  db 84H
+        dc 'INDR'
+        dw L44CE
+        dw ATIVATE
+        dw Z802
+        db 0BAH
+;
+L44E5:  db 84H
+        dc 'OUTI'
+        dw L44D9
+        dw ATIVATE
+        dw Z802
+        db 0A3H
+;
+L44F1:  db 84H
+        dc 'OTIR'
+        dw L44E5
+        dw ATIVATE
+        dw Z802
+        db 0B3H
+;
+L44FD:  db 84H
+        dc 'OUTD'
+        dw L44F1
+        dw ATIVATE
+        dw Z802
+        db 0ABH
+;
+L4509:  db 84H
+        dc 'OTDR'
+        dw L44FD
+        dw ATIVATE
+        dw Z802
+        db 0BBH
+;
+L4515:  db 86H
+        dc 'Z80INC'
+        dw L4440
+        dw RUNFORTH
+        dw BUILDS,POKED8,DOES
+Z80INC: dw PEEK8,ITEM
+        dw EQUAL0,LIT,9,ISERROR,OPDC
+        dw PEEK16,POPRP,GETR,MREG,EQUAL
+        dw BRANCH0,0CH,TIMES8,OR,CPUT
+        dw BRCH,00B4H,GETR,MRPI,EQUAL
+        dw BRANCH0,1CH,CLIND,LIT,20H
+        dw SUBTR,LIT,9,ISERROR,LIT
+        dw 30H,OR,CPUT,BRCH,0090H
+        dw GETR,MXYI,EQUAL,BRANCH0,24H
+        dw CLPLUS,SYMNUMS,EQUAL0,LIT,9
+        dw ISERROR,CLIND,SWAP,CPUT,SWAP
+        dw LIT,30H,OR,CPUT,CPUT
+        dw BRCH,0064H,GETR,MRP,EQUAL
+        dw BRANCH0,2CH,DUP,LIT,6
+        dw EQUAL,LIT,9,ISERROR,THREE
+        dw OR,SWAP,LIT,5,EQUAL
+        dw BRANCH0,8,LIT,8,OR
+        dw CPUT,BRCH,30H,GETR,MXY
+        dw EQUAL,BRANCH0,20H,CPUT,LIT
+        dw 23H,SWAP,LIT,5,EQUAL
+        dw BRANCH0,8,LIT,8,OR
+        dw CPUT,BRCH,8,LIT,9
+        dw ERROR,PUSHRP,DROP
+        dw ENDFORTH
+;
+L4604:  db 83H
+        dc 'INC'
+        dw L4509
+        dw ATIVATE
+        dw Z80INC
+        db 04H
+;
+L460F:  db 83H
+        dc 'DEC'
+        dw L4604
+        dw ATIVATE
+        dw Z80INC
+        db 05H
+;
+L461A:  db 83H
+        dc 'DAA'
+        dw L460F
+        dw ATIVATE
+        dw Z801
+        db 27H
+;
+L4625:  db 83H
+        dc 'CPL'
+        dw L461A
+        dw ATIVATE
+        dw Z801
+        db 2FH
+;
+L4630:  db 83H
+        dc 'CCF'
+        dw L4625
+        dw ATIVATE
+        dw Z801
+        db 3FH
+;
+L463B:  db 83H
+        dc 'SCF'
+        dw L4630
+        dw ATIVATE
+        dw Z801
+        db 37H
+;
+L4646:  db 83H
+        dc 'NOP'
+        dw L463B
+        dw ATIVATE
+        dw Z801
+        db 00H
+;
+L4651:  db 84H
+        dc 'HALT'
+        dw L4646
+        dw ATIVATE
+        dw Z801
+        db 76H
+;
+L465D:  db 82H
+        dc 'DI'
+        dw L4651
+        dw ATIVATE
+        dw Z801
+        db 0F3H
+;
+L4667:  db 82H
+        dc 'EI'
+        dw L465D
+        dw ATIVATE
+        dw Z801
+        db 0FBH
+;
+L4671:  db 83H
+        dc 'EXX'
+        dw L4667
+        dw ATIVATE
+        dw Z801
+        db 0D9H
+;
+L467C:  db 84H
+        dc 'RLCA'
+        dw L4671
+        dw ATIVATE
+        dw Z801
+        db 07H
+;
+L4688:  db 83H
+        dc 'RLA'
+        dw L467C
+        dw ATIVATE
+        dw Z801
+        db 17H
+;
+L4693:  db 84H
+        dc 'RRCA'
+        dw L4688
+        dw ATIVATE
+        dw Z801
+        db 0FH
+;
+L469F:  db 83H
+        dc 'RRA'
+        dw L4693
+        dw ATIVATE
+        dw Z801
+        db 1FH
+;
+L46AA:  db 83H
+        dc 'NEG'
+        dw L469F
+        dw ATIVATE
+        dw Z802
+        db 44H
+;
+L46B5:  db 83H
+        dc 'IM0'
+        dw L46AA
+        dw ATIVATE
+        dw Z802
+        db 46H
+;
+L46C0:  db 83H
+        dc 'IM1'
+        dw L46B5
+        dw ATIVATE
+        dw Z802
+        db 56H
+;
+L46CB:  db 83H
+        dc 'IM2'
+        dw L46C0
+        dw ATIVATE
+        dw Z802
+        db 5EH
+;
+L46D6:  db 83H
+        dc 'RLD'
+        dw L46CB
+        dw ATIVATE
+        dw Z802
+        db 6FH
+;
+L46E1:  db 83H
+        dc 'RRD'
+        dw L46D6
+        dw ATIVATE
+        dw Z802
+        db 67H
+;
+L46EC:  db 84H
+        dc 'RETI'
+        dw L46E1
+        dw ATIVATE
+        dw Z802
+        db 4DH
+;
+L46F8:  db 84H
+        dc 'RETN'
+        dw L46EC
+        dw ATIVATE
+        dw Z802
+        db 45H
+;
+L4704:  db 86H
+        dc 'Z80ROT'
+        dw L4515
+        dw RUNFORTH
+        dw BUILDS,POKED8,DOES
+Z80ROT: dw PEEK8,ITEM
+        dw EQUAL0,LIT,9,ISERROR,OPDC
+        dw PEEK16,POPRP,GETR,MREG,EQUAL
+        dw BRANCH0,10H,LIT,0CBH,CPUT
+        dw OR,CPUT,BRCH,0062H,GETR
+        dw MRPI,EQUAL,BRANCH0,22H,CLIND
+        dw LIT,20H,SUBTR,LIT,9
+        dw ISERROR,LIT,0CBH,CPUT,LIT
+        dw 6,OR,CPUT,BRCH,38H
+        dw GETR,MXYI,EQUAL,BRANCH0,28H
+        dw CLPLUS,SYMNUMS,EQUAL0,LIT,9
+        dw ISERROR,CLIND,SWAP,CPUT,LIT
+        dw 0CBH,CPUT,CPUT,LIT,6
+        dw OR,CPUT,BRCH,8,LIT
+        dw 9,ERROR,PUSHRP,DROP
+        dw ENDFORTH
+;
+L47A5:  db 83H
+        dc 'RLC'
+        dw L46F8
+        dw ATIVATE
+        dw Z80ROT
+        db 00H
+;
+L47B0:  db 82H
+        dc 'RL'
+        dw L47A5
+        dw ATIVATE
+        dw Z80ROT
+        db 10H
+;
+L47BA:  db 83H
+        dc 'RRC'
+        dw L47B0
+        dw ATIVATE
+        dw Z80ROT
+        db 08H
+;
+L47C5:  db 82H
+        dc 'RR'
+        dw L47BA
+        dw ATIVATE
+        dw Z80ROT
+        db 18H
+;
+L47CF:  db 83H
+        dc 'SLA'
+        dw L47C5
+        dw ATIVATE
+        dw Z80ROT
+        db 20H
+;
+L47DA:  db 83H
+        dc 'SRA'
+        dw L47CF
+        dw ATIVATE
+        dw Z80ROT
+        db 28H
+;
+L47E5:  db 83H
+        dc 'SRL'
+        dw L47DA
+        dw ATIVATE
+        dw Z80ROT
+        db 38H
+;
+L47F0:  db 86H
+        dc 'Z80BIT'
+        dw L4704
+        dw RUNFORTH
+        dw BUILDS,POKED8,DOES
+Z80BIT: dw PEEK8,ITEM
+        dw EQUAL0,LIT,9,ISERROR,OPDC
+        dw PEEK16,DUP,MNUM,EQUAL,SWAP
+        dw MSYM,EQUAL,OR,EQUAL0,LIT
+        dw 9,ISERROR,EXPRN,DUP,LESS0
+        dw LIT,9,ISERROR,DUP,LIT
+        dw 7,MAIOR,LIT,9,ISERROR
+        dw CLCOM,ITEM,EQUAL0,LIT,9
+        dw ISERROR,OPDC,PEEK16,POPRP,GETR
+        dw MREG,EQUAL,BRANCH0,16H,SWAP
+        dw TIMES8,OR,OR,LIT,0CBH
+        dw CPUT,CPUT,BRCH,6AH,GETR
+        dw MRPI,EQUAL,BRANCH0,26H,CLIND
+        dw LIT,20H,SUBTR,LIT,9
+        dw ISERROR,TIMES8,LIT,6,OR
+        dw OR,LIT,0CBH,CPUT,CPUT
+        dw BRCH,3CH,GETR,MXYI,EQUAL
+        dw BRANCH0,2CH,CLPLUS,SYMNUMS,EQUAL0
+        dw LIT,9,ISERROR,CLIND,SWAP
+        dw CPUT,LIT,0CBH,CPUT,CPUT
+        dw TIMES8,LIT,6,OR,OR
+        dw CPUT,BRCH,8,LIT,9
+        dw ERROR,PUSHRP,DROP
+        dw ENDFORTH
+;
+L48DF:  db 83H
+        dc 'BIT'
+        dw L47E5
+        dw ATIVATE
+        dw Z80BIT
+        db 40H
+;
+L48EA:  db 83H
+        dc 'SET'
+        dw L48DF
+        dw ATIVATE
+        dw Z80BIT
+        db 0C0H
+;
+L48F5:  db 83H
+        dc 'RES'
+        dw L48EA
+        dw ATIVATE
+        dw Z80BIT
+        db 80H
+;
+L4900:  db 82H
+        dc 'JP'
+        dw L48F5
+        dw RUNFORTH
+        dw ITEM,OPDC,PEEK16,MREG,EQUAL
+        dw BRANCH0,0AH,DROP,ZERO,BRCH
+        dw 4,ONE,AND,BRANCH0,70H
+        dw OPDC,PEEK16,POPRP,GETR,MNUM
+        dw EQUAL,GETR,MSYM,EQUAL,OR
+        dw BRANCH0,10H,EXPRN,LIT,0C3H
+        dw CPUT,PUT,BRCH,42H,GETR
+        dw MRPI,EQUAL,BRANCH0,1AH,CLIND
+        dw LIT,20H,SUBTR,LIT,9
+        dw ISERROR,LIT,0E9H,CPUT,BRCH
+        dw 20H,GETR,MXYI,EQUAL,BRANCH0
+        dw 10H,CLIND,CPUT,LIT,0E9H
+        dw CPUT,BRCH,8,LIT,9
+        dw ERROR,PUSHRP,DROP,BRCH,40H
+        dw CONDSEARCH,EQUAL0,LIT,9,ISERROR
+        dw CLCOM,ITEM,EQUAL0,LIT,9
+        dw ISERROR,OPDC,PEEK16,DUP,MNUM
+        dw EQUAL,SWAP,MSYM,EQUAL,OR
+        dw EQUAL0,LIT,9,ISERROR,EXPRN
+        dw SWAP,LIT,0C2H,OR,CPUT
+        dw PUT
+        dw ENDFORTH
+;
+L49D3:  db 82H
+        dc 'JR'
+        dw L4900
+        dw RUNFORTH
+        dw ITEM,OPDC,PEEK16,MREG,EQUAL
+        dw BRANCH0,0AH,DROP,ZERO,BRCH
+        dw 4,ONE,AND,BRANCH0,0AH
+        dw ZERO,SWAP,BRCH,1CH,CONDSEARCH
+        dw EQUAL0,LIT,9,ISERROR,CLCOM
+        dw ITEM,EQUAL0,LIT,9,ISERROR
+        dw ONE,SWAP,OPDC,PEEK16,POPRP
+        dw GETR,MNUM,EQUAL,BRANCH0,0CH
+        dw EXPRN,TWO,SUBTR,BRCH,22H
+        dw GETR,MSYM,EQUAL,BRANCH0,12H
+        dw EXPRN,PC,PEEK16,SUBTR,TWO
+        dw SUBTR,BRCH,8,LIT,9
+        dw ERROR,PUSHRP,DROP,POPRP,BRANCH0
+        dw 2EH,DUP,LIT,20H,AND
+        dw LIT,9,ISERROR,LIT,20H
+        dw OR,CPUT,PUSHRP,DUP,LIT
+        dw 7FH,MAIOR,LIT,9,ISERROR
+        dw CPUT,BRCH,1AH,LIT,18H
+        dw CPUT,PUSHRP,DUP,LIT,7FH
+        dw MAIOR,LIT,9,ISERROR,CPUT
+        dw ENDFORTH
+;
+L4AA4:  db 84H
+        dc 'CALL'
+        dw L49D3
+        dw RUNFORTH
+        dw ITEM,OPDC,PEEK16,MREG,EQUAL
+        dw BRANCH0,0AH,DROP,ZERO,BRCH
+        dw 4,ONE,AND,BRANCH0,0AH
+        dw ZERO,SWAP,BRCH,1CH,CONDSEARCH
+        dw EQUAL0,LIT,9,ISERROR,CLCOM
+        dw ITEM,EQUAL0,LIT,9,ISERROR
+        dw ONE,SWAP,OPDC,PEEK16,POPRP
+        dw GETR,MNUM,EQUAL,BRANCH0,8
+        dw EXPRN,BRCH,18H,GETR,MSYM
+        dw EQUAL,BRANCH0,8,EXPRN,BRCH
+        dw 8,LIT,9,ERROR,PUSHRP
+        dw DROP,POPRP,BRANCH0,12H,LIT
+        dw 0C4H,OR,CPUT,PUSHRP,PUT
+        dw BRCH,0CH,LIT,0CDH,CPUT
+        dw PUSHRP,PUT
+        dw ENDFORTH
+;
+L4B3F:  db 83H
+        dc 'RET'
+        dw L4AA4
+        dw RUNFORTH
+        dw GETCHAR,ALPHA,BRANCH0,20H,ITEM
+        dw BRANCH0,4,DROP,CONDSEARCH,EQUAL0
+        dw LIT,9,ISERROR,LIT,0C0H
+        dw OR,CPUT,BRCH,8,LIT
+        dw 0C9H,CPUT
+        dw ENDFORTH
+;
+L4B75:  db 84H
+        dc 'DJNZ'
+        dw L4B3F
+        dw RUNFORTH
+        dw ITEM,EQUAL0,LIT,9,ISERROR
+        dw OPDC,PEEK16,POPRP,GETR,MNUM
+        dw EQUAL,BRANCH0,0CH,EXPRN,TWO
+        dw SUBTR,BRCH,22H,GETR,MSYM
+        dw EQUAL,BRANCH0,12H,EXPRN,PC
+        dw PEEK16,SUBTR,TWO,SUBTR,BRCH
+        dw 8,LIT,9,ERROR,PUSHRP
+        dw DROP,LIT,10H,CPUT,CPUT
+        dw ENDFORTH
+;
+L4BD0:  db 83H
+        dc 'ORG'
+        dw L4B75
+        dw RUNFORTH
+        dw ITEM,EQUAL0,LIT,9,ISERROR
+        dw OPDC,PEEK16,DUP,MNUM,EQUAL
+        dw SWAP,MSYM,EQUAL,OR,BRANCH0
+        dw 12H,EXPRN,PC,POKE16,ZERO
+        dw PF,POKE16,BRCH,8,LIT
+        dw 9,ERROR
+        dw ENDFORTH
+;
+L4C10:  db 85H
+        dc 'STORE'
+        dw L4BD0
+        dw RUNFORTH
+        dw AP,APP,POKE16,ITEM,EQUAL0
+        dw LIT,9,ISERROR,OPDC,PEEK16
+        dw DUP,MNUM,EQUAL,SWAP,MSYM
+        dw EQUAL,OR,BRANCH0,12H,EXPRN
+        dw AP,POKE16,ONE,PF,POKE16
+        dw BRCH,8,LIT,9,ERROR
+        dw ENDFORTH
+;
+L4C58:  db 87H
+        dc 'ORGHERE'
+        dw L4C10
+ORGHERE:dw RUNFORTH
+        dw HERE,PC,POKE16,ZERO,PF
+        dw POKE16
+        dw ENDFORTH
+;
+L4C72:  db 89H
+        dc 'STOREHERE'
+        dw L4C58
+STOREHERE:dw RUNFORTH
+        dw DP,APP,POKE16,ONE,PF
+        dw POKE16
+        dw ENDFORTH
+;
+L4C8E:  db 82H
+        dc 'DW'
+        dw L4C72
+        dw RUNFORTH
+        dw ITEM,EQUAL0,LIT,9,ISERROR
+        dw OPDC,PEEK16,DUP,MNUM,EQUAL
+        dw SWAP,MSYM,EQUAL,OR,BRANCH0
+        dw 0AH,EXPRN,PUT,BRCH,8
+        dw LIT,9,ERROR
+        dw ENDFORTH
+;
+L4CC5:  db 82H
+        dc 'DS'
+        dw L4C8E
+        dw RUNFORTH
+        dw ITEM,EQUAL0,LIT,9,ISERROR
+        dw OPDC,PEEK16,DUP,MNUM,EQUAL
+        dw SWAP,MSYM,EQUAL,OR,BRANCH0
+        dw 1CH,EXPRN,PF,PEEK16,BRANCH0
+        dw 0AH,DUP,APP,PEEK16,ADDMEM
+        dw PC,ADDMEM,BRCH,8,LIT
+        dw 9,ERROR
+        dw ENDFORTH
+;
+L4D0E:  db 82H
+        dc 'DB'
+        dw L4CC5
+DB_:    dw RUNFORTH
+        dw ITEM,BRANCH0,2AH,OPDC,PEEK16
+        dw DUP,MNUM,EQUAL,SWAP,MSYM
+        dw EQUAL,OR,BRANCH0,0AH,EXPRN
+        dw CPUT,BRCH,8,LIT,9
+        dw ERROR,BRCH,4CH,GETCHAR,LIT
+        dw 27H,EQUAL,BRANCH0,3AH,ADVCHAR
+        dw GETCHAR,DUP,LIT,27H,SUBTR
+        dw BRANCH0,22H,DUP,LIT,20H
+        dw LESSER,OVER,LIT,7EH,MAIOR
+        dw OR,LIT,9,ISERROR,CPUT
+        dw ADVCHAR,BRCH,0FFD4H,DROP,ADVCHAR
+        dw BRCH,8,LIT,9,ERROR
+        dw ENDFORTH
+;
+L4D8F:  db 83H
+        dc 'EQU'
+        dw L4D0E
+        dw RUNFORTH
+        dw SYM0,PEEK16,SYMP,PEEK16,EQUAL
+        dw LIT,9,ISERROR,ITEM,EQUAL0
+        dw LIT,9,ISERROR,OPDC,PEEK16
+        dw DUP,MNUM,EQUAL,SWAP,MSYM
+        dw EQUAL,OR,EQUAL0,LIT,9
+        dw ISERROR,EXPRN,PASS,PEEK16,BRANCH0
+        dw 8,DROP,BRCH,0CH,SYMP
+        dw PEEK16,PFA,CFA,POKE16
+        dw ENDFORTH
+;
+L4DE7:  db 83H
+        dc 'END'
+        dw L4D8F
+ASMEND: dw RUNFORTH
+        dw ZERO,PF,POKE16
+        dw ENDFORTH
+;
+L4DF7:  db 85H
+        dc 'PASS1'
+        dw L47F0
+PASS1:  dw RUNFORTH
+        dw CLEARSYMTAB,ZERO,PASS,POKE16,ZERO
+        dw PF,POKE16,ASSEMBLER,MFIND,BRANCH0
+        dw 1EH,STATE,PEEK16,LESSER,BRANCH0
+        dw 0CH,LIT,12H,ERROR,BRCH
+        dw 6,CFA,EXECUTE,BRCH,20H
+        dw SYMSEARCH,BRANCH0,0CH,LIT,9
+        dw ERROR,BRCH,10H,HERE,PEEK8
+        dw PLUSONE,MINUS,CONIN,ADDMEM,LABEL
+        dw BRCH,0FFB6H
+        dw ENDFORTH
+;
+L4E57:  db 85H
+        dc 'PASS2'
+        dw L4DF7
+PASS2:  dw RUNFORTH
+        dw ONE,PASS,POKE16,ASSEMBLER,MFIND
+        dw BRANCH0,1EH,STATE,PEEK16,LESSER
+        dw BRANCH0,0CH,LIT,12H,ERROR
+        dw BRCH,6,CFA,EXECUTE,BRCH
+        dw 12H,SYMSEARCH,BRANCH0,8,DROP
+        dw BRCH,6,ZERO,ERROR,BRCH
+        dw 0FFCAH
+        dw ENDFORTH
+;
+L4EA1:  db 85H
+        dc 'ASSEM'
+        dw L338D
+        dw RUNFORTH
+        dw INDECIMAL,BLK,PEEK16,POPRP,CONIN
+        dw PEEK16,POPRP,BSCR,TIMES,DUP
+        dw POPRP,BLK,POKE16,ZERO,CONIN
+        dw POKE16,PC,PEEK16,POPRP,PASS1
+        dw PUSHRP,PC,POKE16,PUSHRP,BLK
+        dw POKE16,ZERO,CONIN,POKE16,PASS2
+        dw PUSHRP,CONIN,POKE16,PUSHRP,BLK
+        dw POKE16
+        dw ENDFORTH
+;
+L4EF5:  db 0C4H
+        dc 'CODE'
+        dw L4EA1
+        dw RUNFORTH
+        dw ISEXEC,CREATE,ASSEMBLER,ORGHERE,STOREHERE
+        dw POKECSP
+        dw ENDFORTH
+;
+L4F0C:  db 0C2H
+        dc ';C'
+        dw L4EF5
+        dw RUNFORTH
+        dw ASMEND,CURRENT,PEEK16,CONTEXT,POKE16
+        dw ISEXEC,ISCSP,SMUDGE
+        dw ENDFORTH
+;
+L4F25:  db 84H
+        dc 'NEXT'
+        dw L4DE7
+        dw RUNFORTH
+        dw LIT,0C3H,CPUT,LIT,BC2PC
+        dw PUT
+        dw ENDFORTH
+;
+L4F3C:  db 85H
+        dc '?PAIR'
+        dw L4E57
+ISPAIR: dw RUNFORTH
+        dw SUBTR,LIT,9,ISERROR
+        dw ENDFORTH
+;
+L4F50:  db 85H
+        dc 'BEGIN'
+        dw L4F25
+        dw RUNFORTH
+        dw PC,PEEK16,LIT,7
+        dw ENDFORTH
+;
+L4F64:  db 85H
+        dc 'UNTIL'
+        dw L4F50
+        dw RUNFORTH
+        dw LIT,7,ISPAIR,ITEM,OPDC
+        dw PEEK16,MREG,EQUAL,BRANCH0,0AH
+        dw DROP,ZERO,BRCH,4,ONE
+        dw AND,BRANCH0,0CH,LIT,9
+        dw ERROR,BRCH,0CH,CONDSEARCH,EQUAL0
+        dw LIT,9,ISERROR,LIT,8
+        dw XOR,DUP2,LIT,20H,AND
+        dw POPRP,PC,PEEK16,SUBTR,TWO
+        dw SUBTR,DUP,LIT,7FH,MAIOR
+        dw SWAP,LIT,0FF80H,LESSER,OR
+        dw PUSHRP,OR,BRANCH0,10H,LIT
+        dw 0C2H,OR,CPUT,PUT,BRCH
+        dw 36H,POPRP,PC,PEEK16,SUBTR
+        dw TWO,SUBTR,PUSHRP,DUP,LIT
+        dw 20H,AND,LIT,9,ISERROR
+        dw LIT,20H,OR,CPUT,DUP
+        dw LIT,7FH,MAIOR,LIT,9
+        dw ISERROR,CPUT
+        dw ENDFORTH
+;
+L501E:  db 85H
+        dc 'AGAIN'
+        dw L4F64
+ASMAGAIN:dw RUNFORTH
+        dw LIT,7,ISPAIR,DUP,PC
+        dw PEEK16,SUBTR,TWO,SUBTR,DUP
+        dw LIT,7FH,MAIOR,SWAP,LIT
+        dw 0FF80H,LESSER,OR,BRANCH0,0EH
+        dw LIT,0C3H,CPUT,PUT,BRCH
+        dw 22H,PC,PEEK16,SUBTR,TWO
+        dw SUBTR,LIT,18H,CPUT,DUP
+        dw LIT,7FH,MAIOR,LIT,9
+        dw ISERROR,CPUT
+        dw ENDFORTH
+;
+L507E:  db 82H
+        dc 'IF'
+        dw L501E
+ASMIF:  dw RUNFORTH
+        dw PC,PEEK16,ITEM,OPDC,PEEK16
+        dw MREG,EQUAL,BRANCH0,0AH,DROP
+        dw ZERO,BRCH,4,ONE,AND
+        dw BRANCH0,0CH,LIT,9,ERROR
+        dw BRCH,0CH,CONDSEARCH,EQUAL0,LIT
+        dw 9,ISERROR,LIT,8,XOR
+        dw DUP,LIT,20H,AND,BRANCH0
+        dw 1AH,LIT,0C2H,OR,CPUT
+        dw APP,PEEK16,PEEK16,ZERO,PUT
+        dw ONE,BRCH,16H,LIT,20H
+        dw OR,CPUT,APP,PEEK16,PEEK16
+        dw ZERO,CPUT,ZERO,LIT,8
+        dw ENDFORTH
+;
+L50FF:  db 85H
+        dc 'ENDIF'
+        dw L507E
+ASMENDIF:dw RUNFORTH
+        dw LIT,8,ISPAIR,SWAP,POPRP
+        dw BRANCH0,20H,DROP,PC,PEEK16
+        dw PUSHRP,PF,PEEK16,BRANCH0,8
+        dw POKE16,BRCH,6,DROP,DROP
+        dw BRCH,3AH,PC,PEEK16,SWAP
+        dw SUBTR,TWO,SUBTR,DUP,LIT
+        dw 7FH,MAIOR,OVER,LIT,0FF80H
+        dw LESSER,OR,LIT,9,ISERROR
+        dw PUSHRP,PF,PEEK16,BRANCH0,8
+        dw POKE8,BRCH,6,DROP,DROP
+        dw ENDFORTH
+;
+L516F:  db 84H
+        dc 'ELSE'
+        dw L50FF
+        dw RUNFORTH
+        dw LIT,8,ISPAIR,PC,PEEK16
+        dw LIT,18H,CPUT,APP,PEEK16
+        dw PEEK16,ZERO,CPUT,ZERO,POPRP
+        dw POPRP,POPRP,LIT,8,ASMENDIF
+        dw PUSHRP,PUSHRP,PUSHRP,LIT,8
+        dw ENDFORTH
+;
+L51AC:  db 85H
+        dc 'WHILE'
+        dw L516F
+        dw RUNFORTH
+        dw ASMIF,TWO,PLUS
+        dw ENDFORTH
+;
+L51BE:  db 86H
+        dc 'REPEAT'
+        dw L51AC
+        dw RUNFORTH
+        dw POPRP,POPRP,POPRP,POPRP,ASMAGAIN
+        dw PUSHRP,PUSHRP,PUSHRP,PUSHRP,TWO
+        dw SUBTR,ASMENDIF
+        dw ENDFORTH
+;
+L51E3:  db 83H
+        dc 'RST'
+        dw L51BE
+        dw RUNFORTH
+        dw GETCHAR,DUP,NUM,EQUAL0,LIT
+        dw 9,ISERROR,LIT,30H,SUBTR
+        dw ADVCHAR,GETCHAR,DUP,NUM,EQUAL0
+        dw LIT,9,ISERROR,LIT,30H
+        dw SUBTR,ADVCHAR,SWAP,LIT,10H
+        dw TIMES,PLUS,GETCHAR,LIT,48H
+        dw SUBTR,LIT,9,ISERROR,ADVCHAR
+        dw DUP,LIT,0FFC7H,AND,LIT
+        dw 9,ISERROR,LIT,0C7H,OR
+        dw CPUT
+        dw ENDFORTH
+;
+L5249:  db 82H
+        dc 'IN'
+        dw L51E3
+        dw RUNFORTH
+        dw ITEM,EQUAL0,LIT,9,ISERROR
+        dw OPDC,PEEK16,MREG,SUBTR,LIT
+        dw 9,ISERROR,DUP,LIT,7
+        dw EQUAL,BRANCH0,72H,DROP,CLCOM
+        dw ITEM,EQUAL0,LIT,9,ISERROR
+        dw OPDC,PEEK16,POPRP,GETR,MNUMI
+        dw EQUAL,GETR,MSYMI,EQUAL,OR
+        dw BRANCH0,10H,EXPRN,CLIND,DB_
+        dw CPUT,CPUT,BRCH,36H,GETR
+        dw MREGI,EQUAL,BRANCH0,26H,CLIND
+        dw ONE,SUBTR,LIT,9,ISERROR
+        dw LIT,0EDH,CPUT,LIT,7
+        dw TIMES8,LIT,40H,OR,CPUT
+        dw BRCH,8,LIT,9,ERROR
+        dw PUSHRP,DROP,BRCH,38H,CLCOM
+        dw ITEM,EQUAL0,LIT,9,ISERROR
+        dw OPDC,PEEK16,MREGI,SUBTR,LIT
+        dw 9,ISERROR,CLIND,ONE,SUBTR
+        dw LIT,9,ISERROR,LIT,0EDH
+        dw CPUT,TIMES8,LIT,40H,OR
+        dw CPUT
+        dw ENDFORTH
+;
+L531C:  db 83H
+        dc 'OUT'
+        dw L5249
+        dw RUNFORTH
+        dw ITEM,EQUAL0,LIT,9,ISERROR
+        dw OPDC,PEEK16,POPRP,GETR,MNUMI
+        dw EQUAL,GETR,MSYMI,EQUAL,OR
+        dw BRANCH0,38H,EXPRN,CLIND,CLCOM
+        dw ITEM,EQUAL0,LIT,9,ISERROR
+        dw OPDC,PEEK16,MREG,SUBTR,LIT
+        dw 9,ISERROR,LIT,7,SUBTR
+        dw LIT,9,ISERROR,LIT,0D3H
+        dw CPUT,CPUT,BRCH,4CH,GETR
+        dw MREGI,EQUAL,BRANCH0,3CH,CLIND
+        dw ONE,SUBTR,LIT,9,ISERROR
+        dw CLCOM,ITEM,EQUAL0,LIT,9
+        dw ISERROR,OPDC,PEEK16,MREG,SUBTR
+        dw LIT,9,ISERROR,LIT,0EDH
+        dw CPUT,TIMES8,LIT,41H,OR
+        dw CPUT,BRCH,8,LIT,9
+        dw ERROR,PUSHRP,DROP
+        dw ENDFORTH
+;
+L53CC:  db 86H
+        dc 'Z80ADD'
+        dw L4F3C
+        dw RUNFORTH
+        dw BUILDS,POKED8,DOES
+Z80ADD: dw PEEK8,ITEM
+        dw EQUAL0,LIT,9,ISERROR,OPDC
+        dw PEEK16,MREG,EQUAL,BRANCH0,0BAH
+        dw LIT,7,SUBTR,LIT,9
+        dw ISERROR,CLCOM,ITEM,EQUAL0,LIT
+        dw 9,ISERROR,OPDC,PEEK16,POPRP
+        dw GETR,MREG,EQUAL,BRANCH0,10H
+        dw LIT,80H,OR,OR,CPUT
+        dw BRCH,7CH,GETR,MNUM,EQUAL
+        dw GETR,MSYM,EQUAL,OR,BRANCH0
+        dw 14H,EXPRN,SWAP,LIT,0C6H
+        dw OR,CPUT,CPUT,BRCH,58H
+        dw GETR,MRPI,EQUAL,BRANCH0,1CH
+        dw CLIND,LIT,20H,SUBTR,LIT
+        dw 9,ISERROR,LIT,86H,OR
+        dw CPUT,BRCH,34H,GETR,MXYI
+        dw EQUAL,BRANCH0,24H,CLPLUS,SYMNUMS
+        dw EQUAL0,LIT,9,ISERROR,CLIND
+        dw SWAP,CPUT,SWAP,LIT,86H
+        dw OR,CPUT,CPUT,BRCH,8
+        dw LIT,9,ERROR,PUSHRP,DROP
+        dw BRCH,136H,OPDC,PEEK16,MRP
+        dw EQUAL,BRANCH0,0A2H,LIT,20H
+        dw SUBTR,LIT,9,ISERROR,CLCOM
+        dw ITEM,EQUAL0,LIT,9,ISERROR
+        dw OPDC,PEEK16,POPRP,GETR,MRP
+        dw EQUAL,BRANCH0,6CH,DUP,LIT
+        dw 6,EQUAL,LIT,9,ISERROR
+        dw SWAP,POPRP,GETR,EQUAL0,BRANCH0
+        dw 0EH,LIT,9,OR,CPUT
+        dw BRCH,3EH,GETR,LIT,8
+        dw EQUAL,BRANCH0,14H,LIT,0EDH
+        dw CPUT,LIT,4AH,OR,CPUT
+        dw BRCH,20H,GETR,LIT,18H
+        dw EQUAL,BRANCH0,14H,LIT,0EDH
+        dw CPUT,LIT,42H,OR,CPUT
+        dw BRCH,2,PUSHRP,DROP,BRCH
+        dw 8,LIT,9,ERROR,PUSHRP
+        dw DROP,BRCH,8AH,OPDC,PEEK16
+        dw MXY,SUBTR,LIT,9,ISERROR
+        dw SWAP,LIT,9,ISERROR,CLCOM
+        dw ITEM,EQUAL0,LIT,9,ISERROR
+        dw OPDC,PEEK16,POPRP,GETR,MRP
+        dw EQUAL,BRANCH0,2EH,DUP,LIT
+        dw 6,EQUAL,LIT,9,ISERROR
+        dw DUP,LIT,20H,EQUAL,LIT
+        dw 9,ISERROR,SWAP,CPUT,LIT
+        dw 9,OR,CPUT,BRCH,28H
+        dw GETR,MXY,EQUAL,BRANCH0,18H
+        dw OVER,SUBTR,LIT,9,ISERROR
+        dw CPUT,LIT,29H,CPUT,BRCH
+        dw 8,LIT,9,ERROR,PUSHRP
+        dw DROP
+        dw ENDFORTH
+;
+L55E3:  db 83H
+        dc 'ADD'
+        dw L531C
+        dw ATIVATE
+        dw Z80ADD
+        db 00H
+;
+L55EE:  db 83H
+        dc 'ADC'
+        dw L55E3
+        dw ATIVATE
+        dw Z80ADD
+        db 08H
+;
+L55F9:  db 83H
+        dc 'SBC'
+        dw L55EE
+        dw ATIVATE
+        dw Z80ADD
+        db 18H
+;
+CZ80ALG:db 86H
+        dc 'Z80ALG'
+        dw L53CC
+        dw RUNFORTH
+        dw BUILDS,POKED8,DOES
+Z80ALG: dw PEEK8,ITEM
+        dw EQUAL0,LIT,9,ISERROR,OPDC
+        dw PEEK16,POPRP,GETR,MREG,EQUAL
+        dw BRANCH0,10H,LIT,80H,OR
+        dw OR,CPUT,BRCH,7CH,GETR
+        dw MNUM,EQUAL,GETR,MSYM,EQUAL
+        dw OR,BRANCH0,14H,EXPRN,SWAP
+        dw LIT,0C6H,OR,CPUT,CPUT
+        dw BRCH,58H,GETR,MRPI,EQUAL
+        dw BRANCH0,1CH,CLIND,LIT,20H
+        dw SUBTR,LIT,9,ISERROR,LIT
+        dw 86H,OR,CPUT,BRCH,34H
+        dw GETR,MXYI,EQUAL,BRANCH0,24H
+        dw CLPLUS,SYMNUMS,EQUAL0,LIT,9
+        dw ISERROR,CLIND,SWAP,CPUT,SWAP
+        dw LIT,86H,OR,CPUT,CPUT
+        dw BRCH,8,LIT,9,ERROR
+        dw PUSHRP,DROP
+        dw ENDFORTH
+;
+L56BF:  db 83H
+        dc 'SUB'
+        dw L55F9
+        dw ATIVATE
+        dw Z80ALG
+        db 10H
+;
+L56CA:  db 83H
+        dc 'AND'
+        dw L56BF
+        dw ATIVATE
+        dw Z80ALG
+        db 20H
+;
+L56D5:  db 82H
+        dc 'OR'
+        dw L56CA
+        dw ATIVATE
+        dw Z80ALG
+        db 30H
+;
+L56DF:  db 83H
+        dc 'XOR'
+        dw L56D5
+        dw ATIVATE
+        dw Z80ALG
+        db 28H
+;
+CCP:   db 82H
+        dc 'CP'
+        dw L56DF
+        dw ATIVATE
+        dw Z80ALG
+        db 38H
+;
+L56F4:  db 0C8H
+        dc 'FLOATING'
+        dw L4F0C
+        dw ATIVATE
+        dw VOCAB
+        dw 0A081H
+        dw L5F83
+L5707:  dw L34BD
+;
+L5709:  EX DE,HL
+        PUSH HL
+        LD HL,0000H
+        AND A
+        SBC HL,DE
+        POP DE
+        EXX
+        EX DE,HL
+        PUSH HL
+        LD HL,0000H
+        SBC HL,DE
+        POP DE
+        EXX
+        RET
+L571D:  PUSH AF
+        EXX
+        LD A,H
+        OR L
+        EXX
+        OR H
+        OR L
+        JR Z,L575C
+        LD A,H
+        OR L
+        EXX
+        OR L
+        EXX
+        JR NZ,L573B
+        EXX
+        LD A,H
+        EXX
+        CP 80H
+        JR NZ,L573B
+        EXX
+        SRA H
+        EXX
+        INC B
+        POP AF
+        RET
+L573B:  EXX
+        LD A,H
+        EXX
+        AND A
+        PUSH AF
+        CALL M,L5709
+L5743:  EXX
+        BIT 6,H
+        EXX
+        JR NZ,L5756
+        SLA L
+        RL H
+        EXX
+        RL L
+        RL H
+        EXX
+        DEC B
+        JR L5743
+L5756:  POP AF
+        CALL M,L5709
+        POP AF
+        RET
+L575C:  LD B,00H
+        POP AF
+        RET
+L5760:  PUSH AF
+        LD A,0C0H
+        EXX
+        OR H
+        AND L
+        EXX
+        AND H
+        AND L
+        INC A
+        JR Z,L5774
+        INC HL
+        LD A,H
+        OR L
+        JR NZ,L5774
+        EXX
+        INC HL
+        EXX
+L5774:  POP AF
+        RET
+L5776:  DEC A
+        JR Z,L5785
+        EXX
+        SRA H
+        RR L
+        EXX
+        RR H
+        RR L
+        JR L5776
+L5785:  EXX
+        SRA H
+        RR L
+        EXX
+        RR H
+        RR L
+        CALL C,L5760
+        RET
+L5793:  EXX
+        LD A,D
+        OR E
+        EXX
+        OR D
+        OR E
+        RET Z
+        EXX
+        LD A,H
+        OR L
+        EXX
+        OR H
+        OR L
+        JR NZ,L57A8
+        EXX
+        EX DE,HL
+        EXX
+        EX DE,HL
+        LD B,C
+        RET
+L57A8:  LD A,B
+        CP C
+        JR Z,L57E4
+        NEG
+        ADD A,C
+        JP P,L57B4
+        NEG
+L57B4:  CP 1FH
+        JR C,L57CA
+        LD A,B
+        XOR C
+        JP M,L57C1
+        LD A,B
+        SUB C
+        JR L57C2
+L57C1:  LD A,B
+L57C2:  AND A
+        RET P
+        EXX
+        EX DE,HL
+        EXX
+        EX DE,HL
+        LD B,C
+        RET
+L57CA:  PUSH AF
+        LD A,B
+        XOR C
+        JP M,L57D4
+        LD A,B
+        SUB C
+        JR L57D5
+L57D4:  LD A,B
+L57D5:  AND A
+        JP M,L57DF
+        EXX
+        EX DE,HL
+        EXX
+        EX DE,HL
+        JR L57E0
+L57DF:  LD B,C
+L57E0:  POP AF
+        CALL L5776
+L57E4:  CALL L57E8
+        RET
+L57E8:  ADD HL,DE
+        EXX
+        ADC HL,DE
+        EXX
+        JP PO,L57FE
+        EXX
+        RR H
+        RR L
+        EXX
+        RR H
+        RR L
+        INC B
+        CALL C,L5760
+L57FE:  CALL L571D
+        RET
+L5802:  LD E,B
+        LD D,00H
+        BIT 7,E
+        JR Z,L580A
+        DEC D
+L580A:  POP BC
+        PUSH HL
+        EXX
+        PUSH HL
+        EXX
+        PUSH DE
+        JP BC2PC
+L5813:  PUSH AF
+        LD A,B
+        LD B,C
+        LD C,A
+        POP AF
+        EXX
+        EX DE,HL
+        EXX
+        EX DE,HL
+        RET
+L581D:  EXX
+        LD A,H
+        EXX
+        AND A
+        CALL M,L5709
+        RET
+L5825:  EXX
+        LD A,D
+        EXX
+        AND A
+        RET P
+        CALL L5813
+        CALL L581D
+        CALL L5813
+        RET
+L5834:  EXX
+        LD A,D
+        XOR H
+        EXX
+        PUSH AF
+        CALL L581D
+        CALL L5825
+        CALL L5847
+        POP AF
+        CALL M,L5709
+        RET
+L5847:  LD A,B
+        ADD A,C
+        PUSH AF
+        EXX
+        LD B,H
+        LD C,L
+        LD HL,0000H
+        EXX
+        LD B,H
+        LD C,L
+        LD HL,0000H
+        LD A,20H
+L5858:  ADD HL,HL
+        EXX
+        ADC HL,HL
+        EXX
+        EX DE,HL
+        ADC HL,HL
+        EX DE,HL
+        EXX
+        EX DE,HL
+        ADC HL,HL
+        EX DE,HL
+        EXX
+        JR NC,L587A
+        ADD HL,BC
+        EXX
+        ADC HL,BC
+        EXX
+        JR NC,L587A
+        INC DE
+        PUSH AF
+        LD A,D
+        OR E
+        JR NZ,L5879
+        EXX
+        INC DE
+        EXX
+L5879:  POP AF
+L587A:  DEC A
+        JR NZ,L5858
+        POP AF
+        LD B,A
+        EXX
+        RL H
+        EXX
+        RL E
+        RL D
+        EXX
+        RL E
+        RL D
+        BIT 7,H
+        EX DE,HL
+        EXX
+        EX DE,HL
+        CALL NZ,L5760
+        CALL L571D
+        RET
+L5898:  PUSH AF
+        EXX
+        LD A,H
+        EXX
+        AND A
+        PUSH AF
+        CALL M,L5709
+L58A1:  LD A,B
+        CP 1FH
+        JR Z,L58C2
+        JR C,L58B5
+        DEC B
+        SLA L
+        RL H
+        EXX
+        RL L
+        RL H
+        EXX
+        JR L58A1
+L58B5:  INC B
+        EXX
+        SRA H
+        RR L
+        EXX
+        RR H
+        RR L
+        JR L58A1
+L58C2:  POP AF
+        CALL M,L5709
+        POP AF
+        RET
+L58C8:  POP DE
+        EXX
+        POP HL
+        EXX
+        POP HL
+        PUSH BC
+        LD A,E
+        LD B,1FH
+        CALL L571D
+        AND A
+        JR Z,L5902
+        JP M,L58EE
+L58DA:  LD DE,0000H
+        EXX
+        LD DE,5000H
+        EXX
+        LD C,04H
+        PUSH AF
+        CALL L5834
+        POP AF
+        DEC A
+        JR NZ,L58DA
+        JR L5902
+L58EE:  NEG
+L58F0:  LD DE,0000H
+        EXX
+        LD DE,5000H
+        EXX
+        LD C,04H
+        PUSH AF
+        CALL L5977
+        POP AF
+        DEC A
+        JR NZ,L58F0
+L5902:  JP L5802
+L5905:  EXX
+        LD A,H
+        OR L
+        EXX
+        OR H
+        OR L
+        JR NZ,L5918
+        LD B,00H
+        EXX
+        LD HL,0000H
+        EXX
+        LD HL,0000H
+        RET
+L5918:  EXX
+        LD A,D
+        OR E
+        EXX
+        OR D
+        OR E
+        JR NZ,L592B
+        LD B,07FH
+        EXX
+        LD HL,7FFFH
+        EXX
+        LD HL,0FFFFH
+        RET
+L592B:  LD A,B
+        SUB C
+        INC A
+        PUSH AF
+        XOR A
+        LD C,A
+        LD A,1FH
+L5933:  AND A
+        SBC HL,DE
+        EXX
+        SBC HL,DE
+        EXX
+        JR NC,L5942
+        ADD HL,DE
+        EXX
+        ADC HL,DE
+        EXX
+        SCF
+L5942:  CCF
+        RL C
+        RL B
+        EXX
+        RL C
+        RL B
+        EXX
+        SLA L
+        RL H
+        EXX
+        RL L
+        RL H
+        EXX
+        DEC A
+        JR NZ,L5933
+        AND A
+        SBC HL,DE
+        EXX
+        SBC HL,DE
+        EXX
+        RLA
+        LD H,B
+        LD L,C
+        EXX
+        LD H,B
+        LD L,C
+        EXX
+        LD C,A
+        POP AF
+        LD B,A
+        RR C
+        CALL NC,L5760
+        CALL L571D
+        RET
+L5974:  CALL L5813
+L5977:  EXX
+        LD A,D
+        XOR H
+        EXX
+        PUSH AF
+        CALL L581D
+        CALL L5825
+        CALL L5905
+        POP AF
+        CALL M,L5709
+        RET
+L598A:  LD C,04H
+        EXX
+        LD DE,5000H
+        EXX
+        LD DE,0000H
+        RET
+L5995:  PUSH AF
+L5996:  LD A,B
+        AND A
+        JP P,L59AE
+        LD C,0AH
+        EXX
+        LD DE,7D00H
+        EXX
+        LD DE,0000H
+        CALL L5847
+        POP AF
+        ADD A,0FDH
+        PUSH AF
+        JR L5996
+L59AE:  LD A,B
+        CP 1BH
+        JR NC,L59BE
+        CALL L598A
+        CALL L5847
+        POP AF
+        DEC A
+        PUSH AF
+        JR L59AE
+L59BE:  LD C,1BH
+        EXX
+        LD DE,0A0A1H
+        EXX
+        LD DE,0F000H
+        PUSH HL
+        EXX
+        PUSH HL
+        EXX
+        PUSH BC
+        CALL L5793
+        EXX
+        LD A,H
+        EXX
+        AND A
+        POP BC
+        EXX
+        POP HL
+        EXX
+        POP HL
+        JP P,L59E7
+        CALL L598A
+        CALL L5847
+        POP AF
+        DEC A
+        PUSH AF
+        JR L59BE
+L59E7:  POP AF
+        RET
+L59E9:  PUSH AF
+L59EA:  LD A,B
+        CP '1'
+        JR C,L5A02
+        LD C,0AH
+        EXX
+        LD DE,7D00H
+        EXX
+        LD DE,0000H
+        CALL L5905
+        POP AF
+        ADD A,03H
+        PUSH AF
+        JR L59EA
+L5A02:  LD A,B
+        CP 1FH
+        JR C,L5A12
+        CALL L598A
+        CALL L5905
+        POP AF
+        INC A
+        PUSH AF
+        JR L5A02
+L5A12:  LD C,1EH
+        EXX
+        LD DE,88CAH
+        EXX
+        LD DE,6C00H
+        PUSH HL
+        EXX
+        PUSH HL
+        EXX
+        PUSH BC
+        CALL L5793
+        EXX
+        LD A,H
+        EXX
+        AND A
+        POP BC
+        EXX
+        POP HL
+        EXX
+        POP HL
+        JP M,L5A3B
+        CALL L598A
+        CALL L5905
+        POP AF
+        INC A
+        PUSH AF
+        JR L5A12
+L5A3B:  POP AF
+        RET
+L5A3D:  EXX
+        LD A,H
+        OR L
+        EXX
+        OR H
+        OR L
+        JR Z,L5A72
+        EXX
+        LD A,H
+        EXX
+        AND A
+        PUSH AF
+        CALL L581D
+        LD A,08H
+        CALL L5995
+        CALL L59E9
+        PUSH AF
+        LD C,03H
+        EXX
+        LD DE,5000H
+        EXX
+        LD DE,0000H
+        CALL L5793
+        POP AF
+        CALL L59E9
+        CALL L5898
+        LD B,A
+        POP AF
+        CALL M,L5709
+        JP L5802
+L5A72:  LD B,00H
+        JP L5802
+;
+L5A77:  db 82H
+        dc 'F+'
+        dw EXITDIC
+        dw $+2
+        EXX
+        POP BC
+        LD A,C
+        POP HL
+        EXX
+        POP HL
+        EXX
+        POP BC
+        LD B,A
+        POP DE
+        EXX
+        POP DE
+        PUSH BC
+        EXX
+        PUSH BC
+        EXX
+        POP BC
+        CALL L5793
+        JP L5802
+;
+L5A95:  db 82H
+        dc 'F*'
+        dw L5A77
+        dw $+2
+        EXX
+        POP BC
+        LD A,C
+        POP HL
+        EXX
+        POP HL
+        EXX
+        POP BC
+        LD B,A
+        POP DE
+        EXX
+        POP DE
+        PUSH BC
+        EXX
+        PUSH BC
+        EXX
+        POP BC
+        CALL L5834
+        JP L5802
+;
+L5AB3:  db 87H
+        dc 'INTEGER'
+        dw L5A95
+        dw $+2
+        POP DE
+        EXX
+        POP HL
+        EXX
+        POP HL
+        PUSH BC
+        LD B,E
+        CALL L5898
+        POP BC
+        PUSH HL
+        EXX
+        PUSH HL
+        EXX
+        JP BC2PC
+;
+L5AD1:  db 85H
+        dc 'FLOAT'
+        dw L5AB3
+FLOAT:  dw $+2
+        JP L58C8
+;
+L5ADE:  db 82H
+        dc 'F/'
+        dw L5AD1
+        dw $+2
+        EXX
+        POP BC
+        LD A,C
+        POP HL
+        EXX
+        POP HL
+        EXX
+        POP BC
+        LD B,A
+        POP DE
+        EXX
+        POP DE
+        PUSH BC
+        EXX
+        PUSH BC
+        EXX
+        POP BC
+        CALL L5974
+        JP L5802
+;
+L5AFC:  db 84H
+        dc '(F.)'
+        dw L5ADE
+FIMP:   dw $+2
+        POP DE
+        EXX
+        POP HL
+        EXX
+        POP HL
+        PUSH BC
+        LD B,E
+        JP L5A3D
+;
+L5B0F:  db 82H
+        dc 'F-'
+        dw L5AFC
+FSUB:   dw $+2
+        EXX
+        POP BC
+        LD A,C
+        POP HL
+        EXX
+        POP HL
+        EXX
+        POP BC
+        LD B,A
+        POP DE
+        EXX
+        POP DE
+        PUSH BC
+        EXX
+        PUSH BC
+        EXX
+        POP BC
+        CALL L5709
+        CALL L5793
+        JP L5802
+;
+L5B30:  db 82H
+        dc 'F!'
+        dw L5B0F
+        dw $+2
+        POP HL
+        POP DE
+        LD (HL),E
+        INC HL
+        LD (HL),D
+        INC HL
+        POP DE
+        LD (HL),E
+        INC HL
+        LD (HL),D
+        INC HL
+        POP DE
+        LD (HL),E
+        INC HL
+        LD (HL),D
+        JP BC2PC
+;
+L5B49:  db 82H
+        dc 'F@'
+        dw L5B30
+FPEEK:  dw $+2
+        POP HL
+        LD DE,0005H
+        ADD HL,DE
+        LD D,(HL)
+        DEC HL
+        LD E,(HL)
+        DEC HL
+        PUSH DE
+        LD D,(HL)
+        DEC HL
+        LD E,(HL)
+        DEC HL
+        PUSH DE
+        LD D,(HL)
+        DEC HL
+        LD E,(HL)
+        PUSH DE
+        JP BC2PC
+;
+L5B66:  db 85H
+        dc 'FSWAP'
+        dw L5B49
+FSWAP:  dw $+2
+        POP DE
+        POP HL
+        EXX
+        POP HL
+        POP DE
+        POP BC
+        EX (SP),HL
+        EXX
+        PUSH HL
+        PUSH DE
+        EXX
+        PUSH HL
+        PUSH BC
+        PUSH DE
+        EXX
+        JP BC2PC
+;
+L5B82:  db 83H
+        dc 'FPL'
+        dw L5B66
+FPL:    dw VAR
+        dw 0FFFFH
+;
+L5B8C:  db 88H
+        dc '(NUMBER)'
+        dw L5B82
+FNUMBER1:dw RUNFORTH
+        dw PLUSONE,DUP,POPRP,PEEK8,BASE
+        dw PEEK16,DIGIT,BRANCH0,3CH,SWAP
+        dw BASE,PEEK16,UTIMES,DROP,ROT
+        dw BASE,PEEK16,UTIMES,DPLUS,DPL
+        dw PEEK16,PLUSONE,BRANCH0,8,ONE
+        dw DPL,ADDMEM,FPL,PEEK16,PLUSONE
+        dw BRANCH0,8,ONE,FPL,ADDMEM
+        dw PUSHRP,BRCH,0FFB6H,PUSHRP
+        dw ENDFORTH
+;
+L5BE9:  db 85H
+        dc 'PUNCT'
+        dw L5B8C
+PUNCT:  dw RUNFORTH
+        dw DUP,PEEK8,DUP,LIT,2EH
+        dw EQUAL,BRANCH0,16H,DROP,ZERO
+        dw DPL,POKE16,LIT,-1,FPL
+        dw POKE16,BRCH,2EH,LIT,2CH
+        dw EQUAL,BASE,PEEK16,LIT,0AH
+        dw EQUAL,AND,BRANCH0,14H,LIT
+        dw -1,DPL,POKE16,ZERO,FPL
+        dw POKE16,BRCH,6,ZERO,ERROR
+        dw ENDFORTH
+;
+L5C45:  db 85H
+        dc 'EXPON'
+        dw L5BE9
+EXPON:  dw RUNFORTH
+        dw FPL,PEEK16,LIT,-1,SUBTR
+        dw BRANCH0,60H,LIT,40H,FPL
+        dw ADDMEM,ZERO,ZERO,ROT,DUP
+        dw PLUSONE,PEEK8,LIT,2DH,EQUAL
+        dw DUP,POPRP,PLUS,DPL,PEEK16
+        dw POPRP,FPL,PEEK16,POPRP,FNUMBER1
+        dw PUSHRP,FPL,POKE16,PUSHRP,DPL
+        dw POKE16,PEEK8,BL,SUBTR,ZERO
+        dw ISERROR,DROP,PUSHRP,BRANCH0,4
+        dw MINUS,FPL,PEEK16,LIT,40H
+        dw SUBTR,SUBTR,BRCH,6,DROP
+        dw ZERO
+        dw ENDFORTH
+;
+L5CC1:  db 86H
+        dc 'NUMBER'
+        dw L5C45
+FNUMBER2:dw RUNFORTH
+        dw ZERO,ZERO,ROT,DUP,PLUSONE
+        dw PEEK8,LIT,2DH,EQUAL,DUP
+        dw POPRP,PLUS,LIT,-1,DPL
+        dw POKE16,LIT,-1,FPL,POKE16
+        dw FNUMBER1,DUP,PEEK8,LIT,45H
+        dw EQUAL,BASE,PEEK16,LIT,0AH
+        dw EQUAL,AND,DUP,POPRP,BRANCH0
+        dw 16H,FPL,PEEK16,LIT,-1
+        dw EQUAL,BRANCH0,8,ZERO,FPL
+        dw POKE16,DUP,PEEK8,BL,EQUAL
+        dw PUSHRP,OR,EQUAL0,BRANCH0,8
+        dw PUNCT,BRCH,0FFB6H,PUSHRP,SWAP
+        dw POPRP,BRANCH0,4,DMINUS,PUSHRP
+        dw EXPON
+        dw ENDFORTH
+;
+L5D52:  db 0C8H
+        dc 'FLITERAL'
+        dw L5CC1
+FLITERAL:dw RUNFORTH
+        dw STATE,PEEK16,BRANCH0,0CH,SWAP
+        dw ROT,LITERAL,LITERAL,LITERAL
+        dw ENDFORTH
+;
+L5D73:  db 89H
+        dc 'INTERPRET'
+        dw L5D52
+FINTERPRET:dw RUNFORTH
+        dw MFIND,BRANCH0,1EH,STATE,PEEK16
+        dw LESSER,BRANCH0,0AH,CFA,POKED16
+        dw BRCH,6,CFA,EXECUTE,INSTACK
+        dw BRCH,32H,HERE,FNUMBER2,FPL
+        dw PEEK16,PLUSONE,BRANCH0,0AH,FLOAT
+        dw FLITERAL,BRCH,1AH,DPL,PEEK16
+        dw PLUSONE,BRANCH0,0AH,DROP,DLITERAL
+        dw BRCH,8,DROP,DROP,LITERAL
+        dw INSTACK,BRCH,0FFACH
+        dw ENDFORTH
+;
+L5DD9:  db 86H
+        dc '-ZEROS'
+        dw L5D73
+MZEROS: dw RUNFORTH
+        dw DUP2,PLUS,ONE,SUBTR,PEEK8
+        dw LIT,30H,EQUAL,BRANCH0,2CH
+        dw DUP,ZERO,DOINILOOP,DUP2,PLUS
+        dw ONE,SUBTR,PEEK8,LIT,30H
+        dw SUBTR,BRANCH0,0AH,LEAVE,PLUSONE
+        dw BRCH,6,ONE,SUBTR,SOSTEPONE
+        dw 0FFDEH
+        dw ENDFORTH
+;
+L5E24:  db 86H
+        dc 'OUTPUT'
+        dw L5DD9
+OUTPUT: dw RUNFORTH
+        dw SWAP,OVER,DABS,ININUM,BASE
+        dw PEEK16,MEMDIVMOD,ROT,DROP,LIT
+        dw 7,ZERO,DOINILOOP,GENNUM,SOSTEPONE
+        dw 0FFFCH,LIT,2CH,HOLD,NUM_S
+        dw SIGN,ENDNUM,MZEROS,TYPE1
+        dw ENDFORTH
+;
+L5E61:  db 82H
+        dc 'F.'
+        dw L5E24
+        dw RUNFORTH
+        dw FIMP,POPRP,OUTPUT,PUSHRP,PRINT
+        db 01H,'E'
+        dw IMPNUM
+        dw ENDFORTH
+;
+L5E78:  db 84H
+        dc 'FABS'
+        dw L5E61
+        dw RUNFORTH
+        dw POPRP,DABS,PUSHRP
+        dw ENDFORTH
+;
+L5E89:  db 83H
+        dc 'F0='
+        dw L5E78
+        dw RUNFORTH
+        dw DROP,OR,EQUAL0
+        dw ENDFORTH
+;
+L5E99:  db 83H
+        dc 'F0<'
+        dw L5E89
+FLESS0: dw RUNFORTH
+        dw DROP,SWAP,DROP,LESS0
+        dw ENDFORTH
+;
+L5EAB:  db 84H
+        dc 'PICK'
+        dw L5E99
+PICK:   dw RUNFORTH
+        dw TWO,TIMES,PEEKSP,PLUS,PEEK16
+        dw ENDFORTH
+;
+L5EC0:  db 84H
+        dc 'FDUP'
+        dw L5EAB
+        dw RUNFORTH
+        dw THREE,PICK,THREE,PICK,THREE
+        dw PICK
+        dw ENDFORTH
+;
+L5ED7:  db 85H
+        dc 'FDROP'
+        dw L5EC0
+FDROP:  dw RUNFORTH
+        dw DROP,DROP,DROP
+        dw ENDFORTH
+;
+L5EE9:  db 85H
+        dc 'FOVER'
+        dw L5ED7
+FOVER:  dw RUNFORTH
+        dw LIT,6,PICK,LIT,6
+        dw PICK,LIT,6,PICK
+        dw ENDFORTH
+;
+L5F07:  db 85H
+        dc 'F2DUP'
+        dw L5EE9
+        dw RUNFORTH
+        dw FOVER,FOVER
+        dw ENDFORTH
+;
+L5F17:  db 82H
+        dc 'F<'
+        dw L5F07
+FLESSER:dw RUNFORTH
+        dw TWO,PICK,LIT,6,PICK
+        dw XOR,LESS0,BRANCH0,0AH,FDROP
+        dw FLESS0,BRCH,6,FSUB,FLESS0
+        dw ENDFORTH
+;
+L5F3E:  db 82H
+        dc 'F>'
+        dw L5F17
+FGREATER:dw RUNFORTH
+        dw FSWAP,FLESSER
+        dw ENDFORTH
+;
+L5F4B:  db 83H
+        dc 'F>='
+        dw L5F3E
+        dw RUNFORTH
+        dw FLESSER,EQUAL0
+        dw ENDFORTH
+;
+L5F59:  db 83H
+        dc 'F<='
+        dw L5F4B
+        dw RUNFORTH
+        dw FGREATER,EQUAL0
+        dw ENDFORTH
+;
+L5F67:  db 89H
+        dc 'FCONSTANT'
+        dw L5F59
+        dw RUNFORTH
+        dw BUILDS,POKED16,POKED16,POKED16,DOES
+        dw FPEEK
+        dw ENDFORTH
+;
+L5F83:  db 89H
+        dc 'FVARIABLE'
+        dw L5F67
+        dw RUNFORTH
+        dw BUILDS,POKED16,POKED16,POKED16,DOES
+        dw ENDFORTH
+;
+L5F9D:  db 84H
+        dc 'DFCB'
+        dw L56F4
+DFCB:   dw CONST
+        dw 005CH
+;
+L5FA8:  db 85H
+        dc 'DBUFF'
+        dw L5F9D
+        dw CONST
+        dw 0080H
+;
+L5FB4:  db 83H
+        dc 'DMA'
+        dw L5FA8
+DMA:    dw VAR
+        dw 5F80H
+;
+L5FBE:  db 87H
+        dc 'RECNUMB'
+        dw L5FB4
+RECNUMB:dw VAR
+        dw 00BDH
+;
+L5FCC:  db 85H
+        dc 'READS'
+        dw L5FBE
+        dw RUNFORTH
+        dw DMA,PEEK16,SENDDMA,FCB,PEEK16
+        dw XDOSPARAM,POKE16,READSEQ,XDOSFUNC,POKE16
+        dw XDOSCALL,LIT,80H,DMA,ADDMEM
+        dw ENDFORTH
+;
+L5FF6:  db 85H
+        dc 'READR'
+        dw L5FCC
+        dw RUNFORTH
+        dw RECNUMB,PEEK16,RANREC,POKE16,ZERO
+        dw RANOVF,POKE8,DMA,PEEK16,SENDDMA
+        dw FCB,PEEK16,XDOSPARAM,POKE16,READRAN
+        dw XDOSFUNC,POKE16,XDOSCALL,LIT,80H
+        dw DMA,ADDMEM,ONE,RECNUMB,ADDMEM
+        dw ENDFORTH
+;
+L6034:  db 86H
+        dc 'WRITES'
+        dw L5FF6
+        dw RUNFORTH
+        dw DMA,PEEK16,SENDDMA,FCB,PEEK16
+        dw XDOSPARAM,POKE16,WRITESEQ,XDOSFUNC,POKE16
+        dw XDOSCALL,LIT,80H,DMA,ADDMEM
+        dw ENDFORTH
+;
+L605F:  db 86H
+        dc 'WRITER'
+        dw L6034
+WRITER: dw RUNFORTH
+        dw RECNUMB,PEEK16,RANREC,POKE16,ZERO
+        dw RANOVF,POKE8,DMA,PEEK16,SENDDMA
+        dw FCB,PEEK16,XDOSPARAM,POKE16,WRITERAN
+        dw XDOSFUNC,POKE16,XDOSCALL,LIT,80H
+        dw DMA,ADDMEM,ONE,RECNUMB,ADDMEM
+        dw ENDFORTH
+;
+L609E:  db 86H
+        dc 'RANERR'
+        dw L605F
+RANERR: dw RUNFORTH
+        dw XDOSPARAM,PEEK8,POPRP,GETR,ONE
+        dw EQUAL,BRANCH0,20H,PRINT
+        db 17H,'Reading unwritten data '
+        dw POKESP,QUIT,GETR,THREE,EQUAL
+        dw BRANCH0,25H,PRINT
+        db 1CH,'Cannot close current extent '
+        dw POKESP,QUIT,GETR,LIT,4
+        dw EQUAL,BRANCH0,22H,PRINT
+        db 19H,'Seeking unwritten extent '
+        dw POKESP,QUIT,GETR,LIT,5
+        dw EQUAL,BRANCH0,18H,PRINT
+        db 0FH,'Directory full '
+        dw POKESP,QUIT,GETR,LIT,6
+        dw EQUAL,BRANCH0,1FH,PRINT
+        db 16H,'Seek past end of disc '
+        dw POKESP,QUIT,PUSHRP,DROP
+        dw ENDFORTH
+;
+L6181:  db 87H
+        dc 'SETCOLD'
+        dw L609E
+SETCOLD:dw RUNFORTH
+        dw FORTH,DEFINITIONS,LATEST,LIT,0CH
+        dw ADDORIGIN,POKE16,HERE,LIT,1CH
+        dw ADDORIGIN,POKE16,HERE,LIT,1EH
+        dw ADDORIGIN,POKE16,VOCLINK,PEEK16,LIT
+        dw 20H,ADDORIGIN,POKE16,HERE,FENCE
+        dw POKE16
+        dw ENDFORTH
+;
+L61C3:  db 87H
+        dc 'COMFILE'
+        dw L6181
+COMFILE:dw RUNFORTH
+        dw LIT,START,DMA,POKE16,ZERO
+        dw RECNUMB,POKE16,WRITER,RANERR,HERE
+        dw DMA,PEEK16,UMENOR,BRANCH0,0FFF2H
+        dw ENDFORTH
+;
+L61EF:  db 8AH
+        dc 'CREATEFILE'
+        dw L61C3
+CREATEFILE:dw RUNFORTH
+        dw DFCB,FCB,POKE16,CR,PRINT
+        db 0FH,'Enter filename '
+        dw QUERY,SETFCB,FILENAME,PEEK8,BL
+        dw EQUAL,BRANCH0,6,POKESP,QUIT
+        dw OPENF,XDOSPARAM,PEEK8,LIT,0FFH
+        dw SUBTR,BRANCH0,1BH,CR,PRINT
+        db 0CH,'File exists '
+        dw POKESP,QUIT,BRCH,31H,MAKEF
+        dw XDOSPARAM,PEEK8,LIT,0FFH,EQUAL
+        dw BRANCH0,21H,PRINT
+        db 18H,'No more directory space '
+        dw POKESP,QUIT
+        dw ENDFORTH
+;
+L6286:  db 87H
+        dc 'SAVESYS'
+        dw L61EF
+        dw RUNFORTH
+        dw VMF1,FCB,POKE16,OPENFLAG,PEEK16
+        dw BRANCH0,2BH,PRINT
+        db 22H,'Cannot save while block file open '
+        dw POKESP,QUIT,SETCOLD,CREATEFILE,COMFILE
+        dw CLOSEF,XDOSPARAM,PEEK8,LIT,0FFH
+        dw EQUAL,BRANCH0,1CH,CR,PRINT
+        db 15H,'Unable to close file '
+        dw ENDFORTH
+;
+L62FB:  db 85H
+        dc '(STC)'
+        dw L2D7A
+STC2:   dw RUNFORTH
+        dw DUP,PLUS,OVER,LIT,1FH
+        dw MAIOR,BRANCH0,0EH,LIT,4
+        dw LIT,23H,BRCH,0AH,LIT
+        dw 24H,LIT,22H,DPLUS,LIT
+        dw 1BH,EMIT,LIT,59H,EMIT
+        dw EMIT,EMIT
+        dw ENDFORTH
+;
+L633D:  db 86H
+        dc '(SHOW)'
+        dw L62FB
+SHOW2:  dw RUNFORTH
+        dw CLS,DECIMAL,PRINT
+        db 06H,'SCR # '
+        dw SCR,PEEK16,IMPNUM,SCRHALF,PEEK16
+        dw BRANCH0,16H,PRINT
+        db 05H,'UPPER'
+        dw LIT,10H,LIT,5,BRCH
+        dw 10H,PRINT
+        db 05H,'LOWER'
+        dw LIT,0BH,ZERO,CR,DOINILOOP
+        dw CR,VAR_I,THREE,IMPR,SPACE
+        dw VAR_I,SCR,PEEK16,LINE1,DROP
+        dw DUP,LIT,20H,TYPE1,CR
+        dw LIT,4,SPACES,LIT,20H
+        dw PLUS,LIT,20H,TYPE1,SOSTEPONE
+        dw 0FFCEH
+        dw ENDFORTH
+;
+L63BF:  db 86H
+        dc '(TYPE)'
+        dw L633D
+TYPE2:  dw RUNFORTH
+        dw DUP,LIT,20H,MAIOR,BRANCH0
+        dw 1AH,LIT,20H,SUBTR,DUP2
+        dw TYPE1,CR,LIT,4,SPACES
+        dw PLUS,LIT,20H,TYPE1
+        dw ENDFORTH
+;
+L63F2:  db 88H
+        dc '+PRINTER'
+        dw L6286
+        dw RUNFORTH
+        dw ONE,LIT,L1671,POKE8
+        dw ENDFORTH
+;
+L6409:  db 88H
+        dc '-PRINTER'
+        dw L63F2
+        dw RUNFORTH
+        dw ZERO,LIT,L1671,POKE8
+        dw ENDFORTH
+;
+L6420:  db 87H
+        dc '+SCREEN'
+        dw L6409
+        dw RUNFORTH
+        dw ZERO,LIT,L1672,POKE8
+        dw ENDFORTH
+;
+L6436:  db 87H
+        dc '-SCREEN'
+        dw L6420
+        dw RUNFORTH
+        dw ONE,LIT,L1672,POKE8
+        dw ENDFORTH
+;
+CPAGE:  db 84H
+        dc 'PAGE'
+        dw L6436
+        dw RUNFORTH
+        dw LIT,000CH,EMIT
+        dw ENDFORTH
+
+;
+KBO:    db 06,'KFORTH'
+;
+        .DEPHASE
+;
+               END
+;

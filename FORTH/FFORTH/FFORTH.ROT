@@ -1,0 +1,4019 @@
+;
+;       L1681 (Antiga Rotina de Leitura de Tecla)
+;
+;
+; Registrador BC --> Program Counter da Linguagem
+;
+;
+BDOS    equ     0005H
+;
+L0100:  NOP
+	JP   L10C1
+	NOP
+	JP   L10AC
+;
+L0108:  dw L0100+1	; ENDERECO INICIAL DO PROGRAMA
+L010A:  dw 0E00H
+L010C:  dw ULTPAL       ; ULTIMA PALAVRA DO DICIONARIO
+L010E:  dw 0008H
+L0110:  dw 0B7A8H
+;
+; ESTA TABELA E TODA TRANSFERIDA PARA O ENDERECO INDICADO EM L0126
+;
+L0112:  dw 0B708H       ; PONTEIRO POSICAO INICIAL DO STACK
+L0114:  dw 0B7A8H
+L0116:  dw 0B708H
+L0118:  dw 001FH
+L011A:  dw 0000H
+L011C:  dw KBO
+L011E:  dw KBO
+L0120:  dw L5707
+L0122:  dw 0000H
+L0124:  dw 0B250H
+L0126:  dw 0B7A8H       ; PONTEIRO TRANSFERENCIA PILHA DE PARAMETROS
+L0128:  dw 0B7A0H       ; PONTEIRO PILHA DE CONTAGEM
+;
+; PONTO DE RETORNO DE TODA FUNCAO FORTH EM L.M.; SALVA NA PILHA OS CONTEUDOS DE
+; DE E HL, OBTEM O ENDERECO DO PROXIMO COMANDO A SER EXECUTADO, LOCALIZA O
+; COMANDO E O EXECUTA, VOLTANDO A EXECUTAR ESTA ROTINA
+;
+L012A:  PUSH DE
+L012B:  PUSH HL
+L012C:  LD A,(BC)
+	INC BC
+        LD L,A
+        LD A,(BC)
+	INC BC
+        LD H,A
+L0132:  LD E,(HL)
+	INC HL
+        LD D,(HL)
+        EX DE,HL
+	JP (HL)
+;
+L0137:  db 83H
+        CREATE LIT
+        LD A,(BC)
+	INC BC
+        LD L,A
+        LD A,(BC)
+	INC BC
+        LD H,A
+        JP L012B
+;
+L0148:  db 87H
+        CREATE EXECUTE
+L0154:  POP HL
+        JP L0132
+;
+L0158:  db 86H
+        CREATE BRANCH
+L0163:  LD H,B
+        LD L,C
+        LD E,(HL)
+	INC HL
+        LD D,(HL)
+	DEC HL
+        ADD HL,DE
+        LD C,L
+        LD B,H
+        JP L012C
+;
+L016F:  db 87H
+        CREATE 0BRANCH
+	POP HL
+        LD A,L
+	OR H
+        JP Z,L0163
+	INC BC
+	INC BC
+        JP L012C
+;
+L0186:  db 86H
+        CREATE (LOOP)
+        LD DE,0001H
+L0194:  LD HL,(L0128)
+        LD A,(HL)
+        ADD A,E
+        LD (HL),A
+        LD E,A
+	INC HL
+        LD A,(HL)
+        ADC A D
+        LD (HL),A
+	INC HL
+	INC D
+	DEC D
+        LD D,A
+        JP M,L01AE
+        LD A,E
+	SUB (HL)
+        LD A,D
+	INC HL
+        SBC A,(HL)
+	JP L01B3
+L01AE:  LD A,(HL)
+	SUB E
+	INC HL
+        LD A,(HL)
+        SBC A,D
+L01B3:  JP M,L0163
+	INC HL
+        LD (L0128),HL
+	INC BC
+	INC BC
+        JP L012C
+;
+L01BF:  db 87H
+        CREATE (+LOOP)
+	POP DE
+	JP L0194
+;
+L01CF:  db 84H
+        CREATE (DO)
+        LD HL,(L0128)
+	DEC HL
+	DEC HL
+	DEC HL
+	DEC HL
+        LD (L0128),HL
+	POP DE
+        LD (HL),E
+	INC HL
+        LD (HL),D
+	POP DE
+	INC HL
+        LD (HL),E
+	INC HL
+        LD (HL),D
+        JP L012C
+;
+L01EE:  db 81H
+        CREATE I
+L01F4:  LD HL,(L0128)
+        LD E,(HL)
+	INC HL
+        LD D,(HL)
+	PUSH DE
+        JP L012C
+;
+L01FE:  db 85H
+        CREATE DIGIT
+	POP HL
+	POP DE
+        LD A,E
+	SUB '0'
+        JP M,L0227
+	CP 0AH
+        JP M,L021C
+	SUB 07H
+	CP 0AH
+        JP M,L0227
+L021C:  CP L
+        JP P,L0227
+        LD E,A
+        LD HL,0001H
+        JP L012A
+L0227:  LD L,H
+        JP L012B
+;
+L022B:  db 86H
+        CREATE (FIND)
+	POP DE
+L0237:  POP HL
+	PUSH HL
+        LD A,(DE)
+	XOR (HL)
+	AND '?'
+        JP NZ,L0262
+L0240:  INC HL
+	INC DE
+        LD A,(DE)
+	XOR (HL)
+        ADD A,A
+        JP NZ,L025F
+        JP NC,L0240
+        LD HL,0005H
+        ADD HL,DE
+        EX (SP),HL
+L0250:  DEC DE
+        LD A,(DE)
+	OR A
+        JP P,L0250
+        LD E,A
+        LD D,00H
+        LD HL,0001H
+        JP L012A
+L025F:  JP C,L0268
+L0262:  INC DE
+        LD A,(DE)
+	OR A
+        JP P,L0262
+L0268:  INC DE
+        EX DE,HL
+        LD E,(HL)
+	INC HL
+        LD D,(HL)
+        LD A,D
+	OR E
+        JP NZ,L0237
+	POP HL
+        LD HL,0000H
+        JP L012B
+;
+L0279:  db 87H
+        CREATE ENCLOSE
+	EXX
+	POP DE
+	POP HL
+	PUSH HL
+        LD A,E
+        LD D,A
+        LD BC,0FFFFH
+	DEC HL
+L028F:  INC HL
+	INC BC
+	CP (HL)
+        JP Z,L028F
+	PUSH BC
+        LD D,A
+        LD A,(HL)
+	AND A
+        JP NZ,L02A3
+	INC BC
+	PUSH BC
+	DEC BC
+	PUSH BC
+	JP L02B7
+L02A3:  LD A,D
+	INC HL
+	INC BC
+	CP (HL)
+        JP Z,L02B4
+        LD A,(HL)
+	AND A
+        JP NZ,L02A3
+	PUSH BC
+	PUSH BC
+	JP L02B7
+L02B4:  PUSH BC
+	INC BC
+	PUSH BC
+L02B7:  EXX
+        JP L012C
+;
+L02BB:  db 84H
+        : EMIT PUTCH 1 OUT +! ;
+;
+L02CE:  db 83H
+        CREATE KEY
+	JP GETCH
+;
+L02D9:  db 89H
+        CREATE ?TERMINAL
+        LD HL,0000H
+	JP L1692
+;
+L02ED:  db 82H
+        CREATE CR
+	JP L16D8
+;
+L02F7:  db 85H
+        CREATE CMOVE
+        LD L,C
+        LD H,B
+	POP BC
+	POP DE
+        EX (SP),HL
+	JP L030E
+L0309:  LD A,(HL)
+	INC HL
+        LD (DE),A
+	INC DE
+	DEC BC
+L030E:  LD A,B
+	OR C
+        JP NZ,L0309
+	POP BC
+        JP L012C
+;
+L0317:  db 82H
+        CREATE U*
+	POP DE
+	POP HL
+L0320:  PUSH BC
+        LD B,H
+        LD A,L
+	CALL L033A
+	PUSH HL
+        LD H,A
+        LD A,B
+        LD B,H
+	CALL L033A
+	POP DE
+        LD C,D
+        ADD HL,BC
+        ADC A,00H
+        LD D,L
+        LD L,H
+        LD H,A
+	POP BC
+	PUSH DE
+        JP L012B
+L033A:  LD HL,0000H
+        LD C,08H
+L033F:  ADD HL,HL
+	RLA
+        JP NC,L0347
+        ADD HL,DE
+        ADC A,00H
+L0347:  DEC C
+        JP NZ,L033F
+	RET
+;
+L034C:  db 82H
+        CREATE U/
+        LD HL,0004H
+        ADD HL,SP
+        LD E,(HL)
+        LD (HL),C
+	INC HL
+        LD D,(HL)
+        LD (HL),B
+	POP BC
+	POP HL
+        LD A,L
+	SUB C
+        LD A,H
+        SBC A,B
+        JP C,L036E
+        LD HL,0FFFFH
+        LD DE,0FFFFH
+	JP L0399
+L036E:  LD A,10H
+L0370:  ADD HL,HL
+	RLA
+        EX DE,HL
+        ADD HL,HL
+        JP NC,L0379
+	INC DE
+	AND A
+L0379:  EX DE,HL
+	RRA
+	PUSH AF
+        JP NC,L0388
+        LD A,L
+	SUB C
+        LD L,A
+        LD A,H
+        SBC A,B
+        LD H,A
+	JP L0393
+L0388:  LD A,L
+	SUB C
+        LD L,A
+        LD A,H
+        SBC A,B
+        LD H,A
+        JP NC,L0393
+        ADD HL,BC
+	DEC DE
+L0393:  INC DE
+	POP AF
+	DEC A
+        JP NZ,L0370
+L0399:  POP BC
+	PUSH HL
+	PUSH DE
+        JP L012C
+;
+L039F:  db 83H
+        CREATE AND
+	POP DE
+	POP HL
+        LD A,E
+	AND L
+        LD L,A
+        LD A,D
+	AND H
+        LD H,A
+        JP L012B
+;
+L03B2:  db 82H
+        CREATE OR
+	POP DE
+	POP HL
+        LD A,E
+	OR L
+        LD L,A
+        LD A,D
+	OR H
+        LD H,A
+        JP L012B
+;
+L03C4:  db 83H
+        CREATE XOR
+	POP DE
+	POP HL
+        LD A,E
+	XOR L
+        LD L,A
+        LD A,D
+	XOR H
+        LD H,A
+        JP L012B
+;
+L03D7:  db 83H
+        CREATE SP@
+        LD HL,0000H
+        ADD HL,SP
+        JP L012B
+;
+L03E6:  db 83H
+        CREATE SP!
+        LD HL,(L0126)
+        LD DE,0006H
+        ADD HL,DE
+        LD E,(HL)
+	INC HL
+        LD D,(HL)
+        EX DE,HL
+        LD SP HL
+        JP L012C
+;
+L03FD:  db 83H
+        CRAETE RP@
+        LD HL,(L0128)
+        JP L012B
+;
+L040B:  db 83H
+        CREATE RP!
+        LD HL,(L0126)
+        LD DE,0008H
+        ADD HL,DE
+        LD E,(HL)
+	INC HL
+        LD D,(HL)
+        EX DE,HL
+        LD (L0128),HL
+        JP L012C
+;
+L0424:  db 82H
+        CREATE ;S
+        LD HL,(L0128)
+        LD C,(HL)
+	INC HL
+        LD B,(HL)
+	INC HL
+        LD (L0128),HL
+        JP L012C
+;
+L0438:  db 85H
+        CREATE LEAVE
+        LD HL,(L0128)
+        LD E,(HL)
+	INC HL
+        LD D,(HL)
+	INC HL
+        LD (HL),E
+	INC HL
+        LD (HL),D
+        JP L012C
+;
+L044F:  db 82H
+        CREATE >R
+	POP DE
+        LD HL,(L0128)
+	DEC HL
+	DEC HL
+        LD (L0128),HL
+        LD (HL),E
+	INC HL
+        LD (HL),D
+        JP L012C
+;
+L0465:  db 82H
+        CREATE R>
+        LD HL,(L0128)
+        LD E,(HL)
+	INC HL
+        LD D,(HL)
+	INC HL
+        LD (L0128),HL
+	PUSH DE
+        JP L012C
+;
+L047A:  db 81H
+        CREATE R ' I ,
+;
+L0480:  db 82H
+        CREATE 0=
+	POP HL
+        LD A,L
+	OR H
+        LD HL,0000H
+        JP NZ,L0491
+	INC HL
+L0491:  JP L012B
+;
+L0494:  db 82H
+        CREATE 0<
+	POP HL
+        ADD HL,HL
+        LD HL,0000H
+        JP NC,L04A4
+	INC HL
+L04A4:  JP L012B
+;
+L04A7:  db 81H
+        CREATE +
+	POP DE
+	POP HL
+        ADD HL,DE
+        JP L012B
+;
+L04B3:  db 82H
+        CREATE D+
+        LD HL,0006H
+        ADD HL,SP
+        LD E,(HL)
+        LD (HL),C
+	INC HL
+        LD D,(HL)
+        LD (HL),B
+	POP BC
+	POP HL
+        ADD HL,DE
+        EX DE,HL
+	POP HL
+        LD A,L
+        ADC A C
+        LD L,A
+        LD A,H
+        ADC A,B
+        LD H,A
+	POP BC
+	PUSH DE
+        JP L012B
+;
+L04D3:  db 85H
+        CREATE MINUS
+	POP HL
+        LD A,L
+	CPL
+        LD L,A
+        LD A,H
+	CPL
+        LD H,A
+	INC HL
+        JP L012B
+;
+L04E8:  db 86H
+        CREATE DMINUS
+	POP HL
+	POP DE
+	SUB A
+	SUB E
+        LD E,A
+        LD A,00H
+        SBC A,D
+        LD D,A
+        LD A,00H
+        SBC A,L
+        LD L,A
+        LD A,00H
+        SBC A,H
+        LD H,A
+	PUSH DE
+        JP L012B
+;
+L0508:  db 84H
+        CREATE OVER
+	POP DE
+	POP HL
+	PUSH HL
+        JP L012A
+;
+L0517:  db 84H
+        CREATE DROP
+	POP HL
+        JP L012C
+;
+L0524:  db 84H
+        CREATE SWAP
+	POP HL
+        EX (SP),HL
+        JP L012B
+;
+L0532:  db 83H
+        CREATE DUP
+	POP HL
+	PUSH HL
+        JP L012B
+;
+L053F:  db 84H
+        CREATE 2DUP
+	POP HL
+	POP DE
+	PUSH DE
+	PUSH HL
+        JP L012A
+;
+L054F:  db 82H
+        CREATE +!
+	POP HL
+	POP DE
+        LD A,(HL)
+        ADD A,E
+        LD (HL),A
+	INC HL
+        LD A,(HL)
+        ADC A,D
+        LD (HL),A
+        JP L012C
+;
+L0562:  db 86H
+        CREATE TOGGLE
+	POP DE
+	POP HL
+        LD A,(HL)
+	XOR E
+        LD (HL),A
+        JP L012C
+;
+L0575:  db 81H
+        CREATE @
+	POP HL
+        LD E,(HL)
+	INC HL
+        LD D,(HL)
+	PUSH DE
+        JP L012C
+;
+L0583:  db 82H
+        CREATE C@
+	POP HL
+        LD L,(HL)
+        LD H,00H
+        JP L012B
+;
+L0591:  db 82H
+        CREATE 2@
+	POP HL
+        LD DE,0002H
+        ADD HL,DE
+        LD E,(HL)
+	INC HL
+        LD D,(HL)
+	PUSH DE
+        LD DE,0FFFDH
+        ADD HL,DE
+        LD E,(HL)
+	INC HL
+        LD D,(HL)
+	PUSH DE
+        JP L012C
+;
+L05AC:  db 81H
+        CREATE !
+	POP HL
+	POP DE
+        LD (HL),E
+	INC HL
+        LD (HL),D
+        JP L012C
+;
+L05BA:  db 82H
+        CREATE C!
+	POP HL
+	POP DE
+        LD (HL),E
+        JP L012C
+;
+L05C7:  db 82H
+        CREATE 2!
+	POP HL
+	POP DE
+        LD (HL),E
+	INC HL
+        LD (HL),D
+	INC HL
+	POP DE
+        LD (HL),E
+	INC HL
+        LD (HL),D
+        JP L012C
+;
+L05DB:  db 0C1H
+        : : ?EXEC !CSP CURRENT @ CONTEXT ! CREATE ] ;CODE
+L05F3:  LD HL,(L0128)            ;; (RUN)
+	DEC HL
+        LD (HL),B
+	DEC HL
+        LD (HL),C
+        LD (L0128),HL
+	INC DE
+        LD C,E
+        LD B,D
+        JP L012C
+;
+L0603:  db 0C1H
+        : ; ?CSP COMPILE ;S SMUDGE [ ;
+;
+L0615:  db 84H
+        : NOOP ;S
+;
+L0620:  db 88H
+        : CONSTANT CREATE SMUDGE , ;CODE
+        INC DE
+        EX DE,HL
+        LD E,(HL)
+	INC HL
+        LD D,(HL)
+	PUSH DE
+        JP L012C
+;
+L063E:  db 88H
+        : VARIABLE CONSTANT ;CODE
+        INC DE
+	PUSH DE
+        JP L012C
+;
+L0654:  db 84H
+        : USER CONSTANT ;CODE
+        INC DE
+        EX DE,HL
+        LD E,(HL)
+        LD D,00H
+        LD HL,(L0126)
+        ADD HL,DE
+        JP L012B
+;
+L066D:  db 81H
+        0000H CONSTANT 0
+;
+L0675:  db 81H
+        0001H CONSTANT 1
+;
+L067D:  db 81H
+        0002H CONSTANT 2
+;
+L0685:  db 81H
+        0003H CONSTANT 3
+;
+L068D:  db 82H
+        0020H CONSTANT BL
+;
+L0696:  db 83H
+        0040H CONSTANT C/L
+;
+L06A0:  db 85H
+        0B7E8H CONSTANT FIRST
+;
+L06AC:  db 85H
+        0D000H CONSTANT LIMIT
+;
+L06B8:  db 85H
+        0400H CONSTANT B/BUF
+;
+L06C4:  db 85H
+        0001H CONSTANT B/SCR
+;
+L06D0:  db 87H
+        : +ORIGIN <L0100> + ;
+;
+L06E4:  db 82H
+        0006H USER S0
+;
+L06ED:  db 82H
+        0008H USER R0
+;
+L06F6:  db 83H
+        000AH USER TIB
+;
+L0700:  db 85H
+        000CH USER WIDTH
+;
+L070C:  db 87H
+        000EH USER WARNING
+;
+L071A:  db 85H
+        0010H USER FENCE
+;
+L0726:  db 82H
+        0012H USER DP
+;
+L072F:  db 88H
+        0014H USER VOC-LINK
+;
+L073E:  db 83H
+        0016H USER BLK
+;
+L0748:  db 82H
+        0018H USER IN
+;
+L0751:  db 83H
+        001AH USER OUT
+;
+L075B:  db 83H
+        001CH USER SCR
+;
+L0765:  db 86H
+        001EH USER OFFSET
+;
+L0772:  db 87H
+        0020H USER CONTEXT
+;
+L0780:  db 87H
+        0022H USER CURRENT
+;
+L078E:  db 85H
+        0024H USER STATE
+;
+L079A:  db 84H
+        0026H USER BASE
+;
+L07A5:  db 83H
+        0028H USER DPL
+;
+L07AF:  db 83H
+        002AH USER FLD
+;
+L07B9:  db 83H
+        002CH USER CSP
+;
+L07C3:  db 82H
+        002EH USER R#
+;
+L07CC:  db 83H
+        0030H USER HLD
+;
+L07D6:  db 82H
+        : 1+ 1 + ;
+;
+L07E3:  db 82H
+        : 2+ 2 + ;
+;
+L07F0:  db 84H
+        : HERE DP @ ;
+;
+L07FF:  db 85H
+        : ALLOT DP +! ;
+;
+L080F:  db 81H
+        : , HERE ! 2 ALLOT ;
+;
+L081F:  db 82H
+        : C, HERE C! 1 ALLOT ;
+;
+L0830:  LD A,L
+	SUB E
+        LD L,A
+        LD A,H
+        SBC A D
+        LD H,A
+	RET
+;
+L0837:  db 81H
+        CREATE -
+	POP DE
+	POP HL
+	CALL L0830
+        JP L012B
+;
+L0845:  db 81H
+        : = - 0= ;
+;
+L0851:  db 81H
+        CREATE <
+	POP DE
+	POP HL
+        LD A,D
+	XOR H
+        JP M,L0861
+	CALL L0830
+L0861:  INC H
+	DEC H
+        JP M,L086C
+        LD HL,0000H
+        JP L012B
+L086C:  LD HL,0001H
+        JP L012B
+;
+L0872:  db 82H
+        : U< 2DUP XOR 0< IF DROP 0< 0= ELSE - 0< THEN ;
+;
+L0893:  db 81H
+        : > SWAP < ;S
+;
+L089F:  db 83H
+        CREATE ROT
+	POP DE
+	POP HL
+        EX (SP),HL
+        JP L012A
+;
+L08AD:  db 85H
+        : SPACE BL EMIT ;S
+;
+L08BD:  db 84H
+        : -DUP DUP IF DUP THEN ;S
+;
+L08D0:  db 88H
+        : TRAVERSE SWAP OVER + LIT 7FH OVER C@ < 0BRANCH 0FFF0H SWAP DROP ;S
+;
+L08F7:  db 86H
+        : LATEST CURRENT @ @ ;S
+;
+L090A:  db 83H
+        : LFA LIT 4 - ;S
+;
+L091A:  db 83H
+        : CFA 2 - ;S
+;
+L0928:  db 83H
+        : NFA LIT 5 - LIT -1 TRAVERSE ;S
+;
+L093E:  db 83H
+        : PFA 1 TRAVERSE LIT 5 + ;S
+;
+L0952:  db 84H
+        : !CSP SP@ CSP ! ;S
+;
+L0963:  db 86H
+        : ?ERROR SWAP IF ERROR ELSE DROP THEN ;S
+;
+L097E:  db 85H
+        : ?COMP STATE @ 0= LIT 11H ?ERROR ;S
+;
+L0996:  db 85H
+        : ?EXEC STATE @ LIT 12H ?ERROR ;S
+;
+L09AC:  db 86H
+        : ?PAIRS - LIT 13H ?ERROR ;S
+;
+L09C1:  db 84H
+        : ?CSP SP@ CSP @ - LIT 14H ?ERROR ;S
+;
+L09DA:  db 88H
+        : ?LOADING BLK @ 0= LIT 16H ?ERROR ;S
+;
+L09F5:  db 87H
+        : COMPILE ?COMP R> DUP 2+ >RP @ , ;S
+;
+L0A11:  db 0C1H
+        : [ 0 STATE ! ;S
+;
+L0A1F:  db 81H
+        : ] LIT 0C0H STATE ! ;S
+;
+L0A2F:  db 86H
+        : SMUDGE LATEST LIT 20H TOGGLE ;S
+;
+L0A44:  db 83H
+        : HEX LIT 10H BASE ! ;S
+;
+L0A56:  db 87H
+        : DECIMAL LIT 0AH BASE ! ;S
+;
+L0A6C:  db 87H
+        : (;CODE) R> LATEST PFA CFA ! ;S
+;
+L0A84:  db 0C5H
+        : ;CODE ?CSP COMPILE (;CODE) [ NOOP ;S
+;
+L0A9A:  db 87H
+        : <BUILDS 0 CONSTANT ;S
+;
+L0AAC:  db 85H
+        : DOES> R> LATEST PFA ! ;CODE
+_ATIVATE:LD HL,(L0128)
+	DEC HL
+        LD (HL),B
+	DEC HL
+        LD (HL),C
+        LD (L0128),HL
+	INC DE
+        EX DE,HL
+        LD C,(HL)
+	INC HL
+        LD B,(HL)
+	INC HL
+        JP L012B
+;
+L0AD3:  db 85H
+        : COUNT DUP 1+ SWAP C@ ;S
+;
+L0AE7:  db 84H
+        : TYPE -DUP 0BRANCH 18H OVER + SWAP DO I C@ EMIT LOOP ELSE DROP THEN ;S
+;
+L0B10:  db 89H
+        : -TRAILING DUP 0 DO OVER OVER + 1 - C@ BL - IF LEAVE ELSE 1 - THEN LOOP ;S
+;
+L0B48:  db 84H
+        : (.") R COUNT DUP 1+ R> + >RP TYPE ;S
+;
+L0B63:  db 0C2H
+        : ." LIT 22H STATE @ IF COMPILE (.") WORD HERE C@ 1+ ALLOT
+          ELSE WORD HERE COUNT THEN TYPE ;S
+;
+L0B92:  db 86H
+        : EXPECT OVER + OVER DO KEY DUP LIT 0EH +ORIGIN @ = 0BRANCH 34H
+          DROP DUP I = DUP R> 2 - + >RP 0BRANCH 0AH LIT 7 BRANCH 10H
+          LIT 8 EMIT BL EMIT LIT 8 BRANCH 28H DUP LIT 0DH = 0BRANCH
+          0EH LEAVE DROP BL 0 BRANCH 4 DUP I C! 0 I 1+ ! EMIT LOOP DROP ;S
+;
+L0C19:  db 85H
+        : QUERY TIB @ LIT 50H EXPECT 0 IN ! ;S
+;
+L0C35:  db 0C1H
+        : ^@ BLK @ 0BRANCH 2AH 1 BLK +! 0 IN ! BLK @ B/SCR 1 - AND 0=
+          0BRANCH 8 ?EXEC R> DROP BRANCH 6 R> DROP ;S
+;
+L0C71:  db 84H
+        CREATE FILL
+        LD L,C
+        LD H,B
+	POP DE
+	POP BC
+        EX (SP),HL
+        EX DE,HL
+L0C80:  LD A,B
+	OR C
+        JP Z,L0C8C
+        LD A,L
+        LD (DE),A
+	INC DE
+	DEC BC
+	JP L0C80
+L0C8C:  POP BC
+        JP L012C
+;
+L0C90:  db 85H
+        : ERASE 0 FILL ;S
+;
+L0CA0:  db 86H
+        : BLANKS BL FILL ;S
+;
+L0CB1:  db 84H
+        : HOLD LIT -1 HLD +! HLD @ C! ;S
+;
+L0CCA:  db 83H
+        : PAD HERE LIT 44H + ;S
+;
+L0CDC:  db 84H
+        : WORD BLK @ 0BRANCH 0CH BLK @ BLOCK BRANCH 6 TIB @ IN @ +
+          SWAP ENCLOSE HERE LIT 22H BLANKS IN +! OVER - >RP R HERE C!
+          + HERE 1+ R> CMOVE ;S
+;
+L0D29:  db 88H
+        : (NUMBER) 1+ DUP >RP C@ BASE @ DIGIT 0BRANCH 2CH SWAP BASE @ U*
+          DROP ROT BASE @ U* D+ DPL @ 1+ 0BRANCH 8 1 DPL +! R> BRANCH
+          0FFC6H R> ;S
+;
+L0D76:  db 86H
+        : NUMBER 0 0 ROT DUP 1+ C@ LIT 2DH = DUP >RP + LIT -1 DPL ! (NUMBER)
+          DUP C@ BL - 0BRANCH 16H DUP C@ LIT 2EH - 0 ?ERROR 0 BRANCH 0FFDCH
+          DROP R> 0BRANCH 4 DMINUS ;S
+;
+L0DCF:  db 85H
+        : -FIND BL WORD HERE COUNT OVER + SWAP DO I C@ LIT 7FH > 0 ?ERROR
+          LOOP HERE CONTEXT @ @ (FIND) DUP 0= 0BRANCH 0AH DROP HERE LATEST
+          (FIND) ;S
+;
+L0E17:  db 87H
+        : (ABORT) ABORT ;S
+;
+L0E27:  db 85H
+        : ERROR WARNING @ 0< 0BRANCH 4 (ABORT) HERE COUNT TYPE ." ?"
+          MESSAGE SP! BLK @ -DUP 0BRANCH 8 IN @ SWAP QUIT
+;
+L0E5E:  db 83H
+        : ID. PAD LIT 20H LIT 5FH FILL DUP PFA LFA OVER - PAD SWAP CMOVE PAD
+          COUNT LIT 1FH AND 2DUP + 1 - DUP C@ LIT 7FH AND SWAP C! TYPE SPACE ;S
+;
+L0EA8:  db 86H
+        : CREATE -FIND 0BRANCH 10H DROP NFA ID. LIT 4 MESSAGE SPACE HERE DUP C@
+          WIDTH @ MIN 1+ ALLOT DUP LIT 0A0H TOGGLE HERE 1 - LIT 80H TOGGLE
+          LATEST , CURRENT @ ! HERE 2+ , ;S
+;
+L0EFD:  db 0C9H
+        : [COMPILE] -FIND 0= 0 ?ERROR DROP CFA , ;S
+;
+L0F1B:  db 0C7H
+        : LITERAL STATE @ 0BRANCH 8 COMPILE LIT , ;S
+;
+L0F37:  db 0C8H
+        : DLITERAL STATE IF SWAP LITERAL LITERAL THEN ;S
+;
+L0F54:  db 86H
+        : ?STACK SP@ S0 @ SWAP U< 1 ?ERROR SP@ HERE LIT 80H + U< LIT 7
+          ?ERROR ;S
+;
+L0F81:  db 89H
+        : INTERPRET -FIND 0BRANCH 1EH STATE @ < 0BRANCH 0AH CFA , BRANCH 6
+          CFA EXECUTE ?STACK BRANCH 1CH HERE NUMBER DPL @ 1+ 0BRANCH 8 DLITERAL
+          BRANCH 6 DROP LITERAL ?STACK BRANCH 0FFC2H
+;
+L0FCF:  db 89H
+        : IMMEDIATE LATEST LIT 40H TOGGLE ;S
+;
+L0FE7:  db 8AH
+        : VOCABULARY <BUILDS LIT 0A081H , CURRENT @ CFA , HERE VOC-LINK @ ,
+          VOC-LINK ! DOES> 2+ CONTEXT ! ;S
+;
+L101C:  db 0C5H
+        VOCABULARY FORTH
+|        L0FE7
+|FORTH:  _ATIVATE VOCABULARY
+|L1028:  0A081H
+|PPLIV:  ULTPAL
+|L102C:  0000H
+
+;
+L102E:  db 8BH
+        : DEFINITIONS CONTEXT @ CURRENT ! ;S
+;
+L1048:  db 0C1H
+        : ( LIT 29H WORD ;S
+;
+L1056:  db 84H
+        : QUIT 0 BLK ! [ BEGIN RP! CR QUERY FINTERPRET STATE @ 0= IF ." OK"
+          THEN AGAIN
+;
+L1082:  db 85H
+        : ABORT SP! DECIMAL ?STACK CR .CPU ." FIG-FORTH 1.1" FORTH DEFINITIONS
+          QUIT
+;
+L10AC:  LD BC L10B2
+        JP L012C
+;
+L10B2:  WARM
+;
+L10B4:  db 84H
+        : WARM EMPTY-BUFFERS ABORT
+;
+L10C1:  LD BC L10CB
+        LD HL,(L0112)
+        LD SP HL
+        LD A,(0002H)
+        LD (L169E+2) A
+        LD (L16BC+2) A
+        JP L012C
+;
+L10CB:  COLD
+;
+L10CD:  db 84H
+        : COLD EMPTY-BUFFERS 0 DENSITY ! FIRST USE ! FIRST PREV ! DR0 LIT 0
+          LIT PRINTER ! LIT L0112 LIT L0126 @ LIT 6 + LIT 10H CMOVE LIT L010C
+          @ LIT PPLIV ! ABORT
+;
+L111A:  db 84H
+        CREATE S->D
+	POP DE
+        LD HL,0000H
+        LD A,D
+	AND 80H
+        JP Z,L112E
+	DEC HL
+L112E:  JP L012A
+;
+L1131:  db 82H
+        : +- 0< 0BRANCH 4 MINUS ;S
+;
+L1142:  db 83H
+        : D+- 0< 0BRANCH 4 DMINUS ;S
+;
+L1154:  db 83H
+        : ABS DUP +- ;S
+;
+L1162:  db 84H
+        : DABS DUP D+- ;S
+;
+L1171:  db 83H
+        : MIN 2DUP > 0BRANCH 4 SWAP DROP ;S
+;
+L1187:  db 83H
+        : MAX 2DUP < 0BRANCH 4 SWAP DROP ;S
+;
+L119D:  db 82H
+        : M* 2DUP XOR >RP ABS SWAP ABS U* R> D+- ;S
+;
+L11B8:  db 82H
+        : M/ OVER >RP >RP DABS R ABS U/ R> R XOR +- SWAP R> +- SWAP ;S
+;
+L11DF:  db 81H
+        : * M* DROP ;S
+;
+L11EB:  db 84H
+        : /MOD >RP S->D R> M/ ;S
+;
+L11FE:  db 81H
+        : / /MOD SWAP DROP ;S
+;
+L120C:  db 83H
+        : MOD /MOD DROP ;S
+;
+L121A:  db 85H
+        : */MOD >RP M* R> M/ ;S
+;
+L122E:  db 82H
+        : */ */MOD SWAP DROP ;S
+;
+L123D:  db 85H
+        : M/MOD >RP 0 R U/ R> SWAP >RP U/ R> ;S
+;
+L125B:  db 86H
+        : (LINE) >RP LIT 40H B/BUF */MOD R> B/SCR * + BLOCK + LIT 40H ;S
+;
+L1282:  db 85H
+        : .LINE (LINE) -TRAILING TYPE ;S
+;
+L1294:  db 87H
+        : MESSAGE WARNING @ 0BRANCH 1EH -DUP 0BRANCH 14H LIT 4 OFFSET @ B/SCR /
+          - .LINE SPACE BRANCH 0DH ." MSG # " . ;S
+;
+L12D1:  db 82H
+        CREATE P@
+	POP DE
+        LD HL,L12DD+1
+        LD (HL),E
+L12DD:  IN A,(00H)
+        LD L,A
+        LD H,00H
+        JP L012B
+;
+L12E5:  db 82H
+        CREATE P!
+	POP DE
+        LD HL,L12F3+1
+        LD (HL),E
+	POP HL
+        LD A,L
+L12F3:  OUT (00H),A
+        JP L012C
+;
+L12F8:  db 85H
+        0000H VARIABLE DRIVE
+DRIVE:
+L1302:
+;
+L1304:  db 83H
+        000BH VARIABLE SEC
+SEC:
+L130C:
+;
+L130E:  db 85H
+        0027H VARIABLE TRACK
+TRACK:
+L1318:
+;
+L131A:  db 83H
+        0B7E8H VARIABLE USE
+USE:
+L1322:
+;
+L1324:  db 84H
+        0B7E8H VARIABLE PREV
+PREV:
+L132D:
+;
+L132F:  db 87H
+        0008H CONSTANT SEC/BLK
+;
+L133D:  db 85H
+        0006H CONSTANT #BUFF
+#BUFF:
+L1347:
+;
+L1349:  db 87H
+        0000H VARIABLE DENSITY
+;
+L1357:  db 8AH
+        0000H VARIABLE DISK-ERROR
+L1366:
+;
+L1368:  db 84H
+        : +BUF LIT 0404H + DUP LIMIT = 0BRANCH 6 DROP FIRST DUP PREV @ - ;S
+;
+L138F:  db 86H
+        : UPDATE PREV @ @ LIT 8000H OR PREV @ ! ;S
+;
+L13AE:  db 8DH
+        : EMPTY-BUFFERS FIRST LIMIT OVER - ERASE ;S
+;
+L13CC:  db 83H
+        : DR0 0 OFFSET ! ;S
+;
+L13DC:  db 83H
+        : DR1 DENSITY @ 0BRANCH 0AH LIT L0154 BRANCH 6 LIT L0154 OFFSET ! ;S
+;
+L13FE:  db 86H
+        : BUFFER USE @ DUP >RP +BUF 0BRANCH 0FFFCH USE ! R @ 0< 0BRANCH 14H R
+          2+ R @ LIT 7FFFH AND 0 R/W R ! R PREV ! R> 2+ ;S
+;
+L1447:  db 85H
+        : BLOCK OFFSET @ + >RP PREV @ DUP @ R - DUP + 0BRANCH 34H +BUF 0=
+          0BRANCH 14H DROP R BUFFER DUP R 1 R/W 2 - DUP @ R - DUP + 0= 0BRANCH
+          0FFD6H DUP PREV ! R> DROP 2+ ;S
+;
+L14A7:  LD HL,(0001H)
+        ADD HL,DE
+	JP (HL)
+;
+L14AC:  db 86H
+        CREATE SET-IO
+	PUSH BC
+        LD HL,(L1322)
+        LD B,H
+        LD C,L
+        LD DE,0021H
+	CALL L14A7
+        LD HL,(L130C)
+        LD C,L
+        LD DE,001EH
+	CALL L14A7
+        LD HL,(L1318)
+        LD B,H
+        LD C,L
+        LD DE,001BH
+	CALL L14A7
+	POP BC
+        JP L012C
+;
+L14DC:  db 89H
+        CREATE SET-DRIVE
+	PUSH BC
+        LD A,(L1302)
+        LD C,A
+        LD DE,0018H
+	CALL L14A7
+	POP BC
+        JP L012C
+;
+L14F9:  db 87H
+        : T&SCALC DENSITY @ 0BRANCH 36H LIT 0320H /MOD LIT 2 MIN DUP DRIVE @
+          = 0BRANCH 8 DROP BRANCH 8 DRIVE ! SET-DRIVE LIT 14H /MOD TRACK !
+          SEC ! ;S
+          LIT 0320H /MOD LIT 2 MIN DUP DRIVE @ = 0BRANCH 8 DROP BRANCH 8 DRIVE
+          ! SET-DRIVE LIT 14H /MOD TRACK ! SEC ! ;S
+;
+L1575:  db 88H
+        CREATE SEC-READ
+	PUSH BC
+        LD DE,0024H
+	CALL L14A7
+        LD (L1366),A
+	POP BC
+        JP L012C
+;
+L1590:  db 89H
+        CREATE SEC-WRITE
+	PUSH BC
+        LD DE,0027H
+	CALL L14A7
+        LD (L1366),A
+	POP BC
+        JP L012C
+;
+L15AC:  db 83H
+        : R/W USE @ >RP SWAP 1 - SEC/BLK * ROT USE ! SEC/BLK 0 DO OVER
+          OVER T&SCALC SET-IO IF SEC-READ ELSE SEC-WRITE 1+ THEN LIT 80H
+          USE +! LOOP DROP DROP R> USE ! ;S
+;
+L15FE:  db 85H
+        : FLUSH #BUFF 1+ 0 DO 0 BUFFER DROP LOOP ;S
+;
+L161C:  db 84H
+        : LOAD BLK @ >RP IN @ >RP 0 IN ! B/SCR * BLK ! FINTERPRET R> IN !
+          R> BLK ! ;S
+;
+L164F:  db 0C3H
+        : --> ?LOADING 0 IN ! B/SCR BLK @ OVER MOD - BLK +! ;S
+;
+PRINTER:db 00H
+SCREEN: db 00H
+;
+L1673:  LD E,0FFH
+L1675:  LD C,06H
+	CALL BDOS
+	RET
+;
+L167B:  LD C,05H
+	CALL BDOS
+	RET
+;
+L1681:  LD A,(SCREEN)
+	OR A
+	PUSH DE
+        CALL Z L1675
+	POP DE
+        LD A,(PRINTER)
+	OR A
+        CALL NZ L167B
+	RET
+;
+L1692:  PUSH BC
+	CALL L1673
+        LD L,A
+        LD H,00H
+	POP BC
+        JP L012B
+;
+GETCH:  PUSH BC
+;L169E:  LD C,07H
+;L16A0:  CALL BDOS
+;L16A3:  NOP
+L169E:  CALL 0009H
+        LD L,A
+	CP 10H
+        JR NZ L16B2
+        LD DE,PRINTER
+        LD A,(DE)
+	XOR 01H
+        LD (DE) A
+        LD L,20H
+L16B2:  LD H,00H
+	POP BC
+        JP L012B
+;
+PUTCH:  $+2
+	POP DE
+	PUSH BC
+        LD C,E
+;L16BC:  CALL L1681
+L16BC:  CALL 000CH
+	POP BC
+        JP L012C
+;
+L16C3:  XOR 01H
+        LD (HL),A
+        LD L,E
+        LD H,00H
+        JP L012B
+;
+;L16CC:  ADC A,16H
+;L16CE:  POP HL
+;L16CF:  PUSH BC
+;L16D0:  LD C,L
+;L16D1:  CALL L1695
+;L16D4:  POP BC
+;L16D5:  JP L012C
+;
+L16CC:  $+2
+        0C5E1H 0CD4DH 1695H 0C3C1H 012CH
+;
+L16D8:  PUSH BC
+        LD E,0DH
+	NOP
+	CALL L1681
+        LD E,0AH
+	NOP
+	CALL L1681
+	POP BC
+        JP L012C
+;
+L16E9:  db 0C1H
+        : ' -FIND 0= 0 ?ERROR DROP LITERAL ;S
+;
+L16FD:  db 86H
+        : FORGET CURRENT @ CONTEXT @ - LIT 18H ?ERROR ' DUP FENCE @ < LIT 15H
+          ?ERROR DUP NFA DP ! LFA @ CONTEXT @ ! ;S
+;
+L173C:  db 84H
+        : BACK HERE - , ;S
+;
+L174D:  db 0C5H
+        : BEGIN ?COMP HERE 1 ;S
+;
+L175F:  db 0C5H
+        : ENDIF ?COMP 2 ?PAIRS HERE OVER - SWAP ! ;S
+;
+L177B:  db 0C4H
+        : THEN ENDIF ;S
+;
+L1788:  db 0C2H
+        : DO COMPILE (DO) HERE 3 ;S
+;
+L1799:  db 0C4H
+        : LOOP 3 ?PAIRS COMPILE (LOOP) BACK ;S
+;
+L17AE:  db 0C5H
+        : +LOOP 3 ?PAIRS COMPILE (+LOOP) BACK ;S
+;
+L17C4:  db 0C5H
+        : UNTIL 1 ?PAIRS COMPILE 0BRANCH BACK ;S
+;
+L17DA:  db 0C3H
+        : END UNTIL ;S
+;
+L17E6:  db 0C5H
+        : AGAIN 1 ?PAIRS COMPILE BRANCH BACK ;S
+;
+L17FC:  db 0C6H
+        : REPEAT >RP >RP AGAIN R> R> 2 - ENDIF ;S
+;
+L1819:  db 0C2H
+        : IF COMPILE 0BRANCH HERE 0 , 2 ;S
+;
+L182E:  db 0C4H
+        : ELSE 2 ?PAIRS COMPILE BRANCH HERE 0 , SWAP 2 ENDIF 2 ;S
+;
+L184F:  db 0C5H
+        : WHILE IF 2+ ;S
+;
+L185F:  db 86H
+        : SPACES 0 MAX -DUP IF 0 DO SPACE LOOP THEN ;S
+;
+L1880:  db 82H
+        : <# PAD HLD ! ;S
+;
+L188F:  db 82H
+        : #> DROP DROP HLD @ PAD OVER - ;S
+;
+L18A6:  db 84H
+        : SIGN ROT 0< IF LIT 2DH HOLD THEN ;S
+;
+L18BF:  db 81H
+        : # BASE @ M/MOD ROT LIT 9 OVER < IF LIT 7 + THEN LIT 30H + HOLD ;S
+;
+L18E9:  db 82H
+        : #S REPEAT # OVER OVER OR 0= UNTIL ;S
+;
+L1900:  db 83H
+        : D.R >RP SWAP OVER DABS <# #S SIGN #> R> OVER - SPACES TYPE ;S
+;
+L1924:  db 82H
+        : .R >RP S->D R> D.R ;S
+;
+L1935:  db 82H
+        : D. 0 D.R SPACE ;S
+;
+L1944:  db 81H
+        : . S->D D. ;S
+;
+L1950:  db 81H
+        : ? @ . ;S
+;
+L195C:  db 82H
+        : U. 0 D. ;S
+;
+L1969:  db 85H
+        : VLIST LIT 80H OUT ! CONTEXT @ @ OUT @ C/L > IF CR 0 OUT ! THEN DUP ID.
+          SPACE SPACE PFA LFA @ DUP 0= ?TERMINAL OR 0BRANCH 0FFD4H DROP ;S
+;
+L19B3:  db 83H
+        CREATE BYE
+	JP 0000H
+;
+L19BE:  db 84H
+        : LIST 1 MAX DECIMAL CR DUP SCR ! ." SCR # " . LIT 10H 0 DO CR I LIT
+          3 .R SPACE I SCR @ .LINE ?TERMINAL IF LEAVE THEN LOOP CR ;S
+;
+L1A0C:  db 85H
+        : INDEX LIT 1AH EMIT CR 1+ SWAP DO CR I LIT 3 .R SPACE 0 I
+          .LINE ?TERMINAL IF LEAVE THEN LOOP ;S
+;
+L1A44:  db 85H
+        : TRIAD LIT 1AH EMIT 3 MAX LIT 3 / LIT 3 * LIT 3 OVER + SWAP DO
+          CR I LIST ?TERMINAL IF LEAVE THEN LOOP CR LIT 0FH MESSAGE CR ;S
+;
+L1A8E:  db 84H
+        : .CPU BASE @ LIT 24H BASE ! LIT 22H +ORIGIN 2@ D. BASE ! ;S
+;
+L1AB3:  db 85H
+        CREATE MATCH
+	POP DE
+	PUSH DE
+	EXX
+	POP BC
+	POP DE
+	EXX
+	POP HL
+	EXX
+	POP HL
+	PUSH HL
+	EXX
+L1AC8:  PUSH HL
+	AND A
+        SBC HL,DE
+	POP HL
+        JP C,L1AFE
+	EXX
+	PUSH BC
+	PUSH DE
+	PUSH HL
+L1AD4:  LD A,(DE)
+	CP (HL)
+        JP NZ,L1AE4
+	INC DE
+	INC HL
+	DEC BC
+        LD A,B
+	OR C
+        JP NZ,L1AD4
+	JP L1AED
+L1AE4:  POP HL
+	POP DE
+	POP BC
+	INC HL
+	EXX
+	DEC HL
+	JP L1AC8
+L1AED:  POP HL
+	POP DE
+	POP BC
+	POP DE
+	AND A
+        SBC HL,DE
+        ADD HL,BC
+        LD DE,0001H
+	PUSH DE
+	PUSH HL
+	EXX
+        JP L012C
+L1AFE:  PUSH HL
+	EXX
+	POP DE
+        ADD HL,DE
+	POP DE
+	AND A
+        SBC HL,DE
+        LD DE,0000H
+	PUSH DE
+	PUSH HL
+	EXX
+        JP L012C
+;
+L1B0F:  db 88H
+        0022H VARIABLE XDOSFUNC
+L1B1C:
+;
+L1B1E:  db 89H
+        005CH VARIABLE XDOSPARAM
+L1B2C:
+;
+L1B2E:  5800H
+;
+L1B30:  db 88H
+        CREATE XDOSCALL
+	PUSH BC
+        LD HL,(L1B1C)
+        LD C,L
+        LD HL,(L1B2C)
+        LD D,H
+        LD E,L
+	CALL BDOS
+        LD (L1B2E),HL
+        LD H,00H
+        LD L,A
+        LD (L1B2C),HL
+	POP BC
+        JP L012C
+;
+L1B57:  db 84H
+        : TASK ;S
+;
+L1B62:  db 88H
+        : ?DECIMAL BASE @ LIT 0AH - IF CR ." Use decimal base " DECIMAL SP!
+          QUIT THEN ;S
+;
+L1B9B:  db 84H
+        : LIST ?DECIMAL LIST ;S
+;
+L1BAA:  db 84H
+        : LOAD ?DECIMAL LOAD ;S
+;
+L1BB9:  db 89H
+        000DH CONSTANT RESETDISC
+;
+L1BC9:  db 8AH
+        000EH CONSTANT SELECTDISC
+;
+L1BDA:  db 88H
+        000FH CONSTANT OPENFILE
+;
+L1BE9:  db 89H
+        0010H CONSTANT CLOSEFILE
+;
+L1BF9:  db 8BH
+        0011H CONSTANT SEARCHFIRST
+;
+L1C0B:  db 8AH
+        0012H CONSTANT SEARCHNEXT
+;
+L1C1C:  db 8AH
+        0013H CONSTANT DELETEFILE
+;
+L1C2D:  db 87H
+        0014H CONSTANT READSEQ
+;
+L1C3B:  db 88H
+        0015H CONSTANT WRITESEQ
+;
+L1C4A:  db 88H
+        0016H CONSTANT MAKEFILE
+;
+L1C59:  db 8AH
+        0017H CONSTANT RENAMEFILE
+;
+L1C6A:  db 85H
+        0018H CONSTANT LOGIN
+;
+L1C76:  db 8BH
+        0019H CONSTANT CURRENTDISC
+;
+L1C88:  db 86H
+        001AH CONSTANT SETDMA
+;
+L1C95:  db 87H
+        0021H CONSTANT READRAN
+;
+L1CA3:  db 88H
+        0022H CONSTANT WRITERAN
+;
+L1CB2:  db 88H
+        0023H CONSTANT FILESIZE
+;
+L1CC1:  db 83H
+        005CH VARIABLE FCB
+;
+L1CCB:  db 89H
+        : DRIVECODE FCB @ 0 + ;S
+;
+L1CE3:  db 88H
+        : FILENAME FCB @ 1 + ;S
+;
+L1CFA:  db 88H
+        : FILETYPE FCB @ LIT 9 + ;S
+;
+L1D13:  db 86H
+        : EXTENT FCB @ LIT 0CH + ;S
+;
+L1D2A:  db 82H
+        : S1 FCB @ LIT 0DH + ;S
+;
+L1D3D:  db 82H
+        : S2 FCB @ LIT 0EH + ;S
+;
+L1D50:  db 8BH
+        : RECORDCOUNT FCB @ LIT 0FH + ;S
+;
+L1D6C:  db 8AH
+        : CURRENTREC FCB @ LIT 20H + ;S
+;
+L1D87:  db 86H
+        : RANREC FCB @ LIT 21H + ;S
+;
+L1D9E:  db 86H
+        : RANOVF FCB @ LIT 23H + ;S
+;
+L1DB5:  db 84H
+        : LOGA RESETDISC XDOSFUNC ! XDOSCALL ;S
+;
+L1DC8:  db 84H
+        : LOGB LOGA 1 XDOSPARAM ! SELECTDISC XDOSFUNC ! XDOSCALL ;S
+;
+L1DE3:  db 84H
+        : TEXT HERE C/L 1+ BLANKS WORD HERE PAD C/L 1+ CMOVE ;S
+;
+L1E02:  db 86H
+        : SETFCB 0 DRIVECODE C! FILENAME LIT 0BH BLANKS BL TEXT PAD 1+ C@
+          0BRANCH 0E2H PAD 1+ >RP R 1+ C@ LIT 3AH = 0BRANCH 1EH R C@ LIT 40H
+          - 1 MAX 2 MIN DRIVECODE C! R> 2+ >RP R DUP C@ DUP BL = SWAP LIT 2EH
+          = OR 0= 0BRANCH 8 1+ BRANCH 0FFE2H R> OVER >RP SWAP OVER - FILENAME
+          SWAP LIT 8 MIN CMOVE R> 1+ >RP R DUP C@ DUP BL = SWAP LIT 2EH = OR 0=
+          0BRANCH 8 1+ BRANCH 0FFE2H R> OVER >RP SWAP OVER - FILETYPE SWAP 3
+          MIN CMOVE FILENAME C@ LIT 2AH = 0BRANCH 0EH FILENAME LIT 8 LIT 3FH
+          FILL FILETYPE C@ LIT 2AH = 0BRANCH 0CH FILETYPE 3 LIT 3FH FILL R>
+          DROP ;S
+;
+L1F0B:  db 85H
+        : OPENF 0 CURRENTREC C! 0 EXTENT C! 0 S2 C! FCB @ XDOSPARAM ! OPENFILE
+          XDOSFUNC ! XDOSCALL ;S
+;
+L1F39:  db 86H
+        : CLOSEF FCB @ XDOSPARAM ! CLOSEFILE XDOSFUNC ! XDOSCALL ;S
+;
+L1F56:  db 85H
+        : MAKEF 0 CURRENTREC C! 0 EXTENT C! 0 S2 C! FCB @ XDOSPARAM ! MAKEFILE
+          XDOSFUNC ! XDOSCALL ;S
+;
+L1F84:  db 87H
+        : DELETEF FCB @ XDOSPARAM ! DELETEFILE XDOSFUNC ! XDOSCALL ;S
+;
+L1FA2:  db 87H
+        : SENDDMA XDOSPARAM ! LIT 1AH XDOSFUNC ! XDOSCALL ;S
+;
+L1FBE:  db 85H
+        1FD3H VARIABLE VMFCB
+;
+L1FCA:  db 84H
+        : VMF1'
+        L1FBE
+        0000H VARIABLE VMF1
+        0000H ,
+        0000H ,
+        0000H ,
+        0000H ,
+        0000H ,
+        0000H ,
+        0000H ,
+        0000H ,
+        0000H ,
+        0000H ,
+        0000H ,
+        0000H ,
+        0000H ,
+        0000H ,
+        0000H ,
+        0000H ,
+        0000H ,
+        0000H ,
+        0000H ,
+;
+L1FFB:  db 84H
+        0000H VARIABLE VMF2
+        0000H ,
+        0000H ,
+        0000H ,
+        0000H ,
+        0000H ,
+        0000H ,
+        0000H ,
+        0000H ,
+        0000H ,
+        0000H ,
+        0000H ,
+        0000H ,
+        0000H ,
+        0000H ,
+        0000H ,
+        0000H ,
+        0000H ,
+        0000H ,
+        0000H ,
+;
+L202C:  db 84H
+        0000H VARIABLE VMF3
+        0000H ,
+        0000H ,
+        0000H ,
+        0000H ,
+        0000H ,
+        0000H ,
+        0000H ,
+        0000H ,
+        0000H ,
+        0000H ,
+        0000H ,
+        0000H ,
+        0000H ,
+        0000H ,
+        0000H ,
+        0000H ,
+        0000H ,
+        0000H ,
+        0000H ,
+;
+L205D:  db 84H
+        : SIZE VMFCB @ FCB ! FCB @ LIT 24H + ;S
+;
+L207A:  db 88H
+        : OPENFLAG VMFCB @ FCB ! FCB @ LIT 26H + ;S
+;
+L209B:  db 8BH
+        : RECORD-READ RANREC ! 0 RANOVF C! FCB @ XDOSPARAM ! READRAN XDOSFUNC
+          ! XDOSCALL XDOSPARAM C@ DISK-ERROR ! ;S
+;
+L20CF:  db 8CH
+        : RECORD-WRITE RANREC ! 0 RANOVF C! FCB @ XDOSPARAM ! WRITERAN XDOSFUNC
+          ! XDOSCALL XDOSPARAM C@ DISK-ERROR ! ;S
+;
+L2104:  db 86H
+        : (OPEN) VMFCB @ FCB ! CR ." Name of file for block storage " QUERY
+          SETFCB FILENAME C@ BL = 0BRANCH 6 SP! QUIT VMF1 1+ LIT 0BH VMF2 1+
+          LIT 0BH MATCH DROP IF CR ." Duplicate filename ' SP! QUIT THEN OPENF
+          XDOSPARAM C@ LIT 0FFH = 0BRANCH 55H CR ." New file " MAKEF XDOSPARAM
+          C@ LIT 0FFH = 0BRANCH 27H CR ." No more directory space " SP! QUIT
+          BRANCH 0EH 0 SIZE ! 1 OPENFLAG ! BRANCH 40H FILESIZE XDOSFUNC ! FCB
+          @ XDOSPARAM ! XDOSCALL RANREC @ SEC/BLK / SIZE ! 1 OPENFLAG ! BASE
+          @ DECIMAL CR SIZE @ . ." Blocks " BASE ! ;S
+;
+L2226:  db 84H
+        : OPEN VMF1 VMFCB ! VMFCB @ FCB ! OPENFLAG @ 0= 0BRANCH 8 (OPEN) BRANCH
+          22H ." Current file " FILENAME LIT 8 TYPE SPACE FILETYPE 3 TYPE ;S
+;
+L226F:  db 87H
+        : (CLOSE) VMFCB @ FCB ! OPENFLAG @ 0BRANCH 32H CLOSEF XDOSPARAM C@
+          LIT 0FFH = 0BRANCH 18H ." File not found " BRANCH 0CH FCB @ LIT 28H
+          ERASE ;S
+;
+L22BD:  db 85H
+        : CLOSE VMF1 VMFCB ! (CLOSE) VMF2 VMFCB ! (CLOSE) VMF1 VMFCB !
+          EMPTY-BUFFERS ;S
+;
+L22E1:  db 88H
+        : ALLOCATE LIT 80H LIT 80H BLANKS LIT 80H SENDDMA SWAP SEC/BLK * SWAP 1
+          - SEC/BLK * DO I RECORD-WRITE LOOP CLOSEF XDOSPARAM C@ LIT 0FFH = >RP
+          OPENF XDOSPARAM C@ LIT 0FFH = R> OR 0BRANCH 21H CR
+          ." Cannot increase file size " ;S
+;
+L235B:  db 89H
+        : SIZECHECK DUP SIZE @ > IF DUP SIZE @ 1+ ALLOCATE SIZE ! ELSE DROP
+          THEN ;S
+;
+L238B:  db 84H
+        : FR/W VMFCB @ FCB ! OPENFLAG @ IF USE @ >RP SWAP DUP SIZECHECK 1 -
+          SEC/BLK * ROT USE ! SEC/BLK 0 DO USE @ SENDDMA OVER 0BRANCH 0AH DUP
+          RECORD-READ BRANCH 6 DUP RECORD-WRITE 1+ LIT 80H USE +! LOOP DROP
+          DROP R> USE ! ELSE CR ." No block file open " SP! QUIT THEN ;S
+;
+L2416:  db 84H
+        : DR/W R/W ;S
+;
+L2423:  db 83H
+        : R/W FR/W ;S
+;
+L242F:  db 0C4H
+        : CASE LIT 5 ;S
+;
+L243E:  db 0C2H
+        : OF COMPILE 0BRANCH HERE 0 , LIT 6 ;S
+;
+L2455:  db 0C5H
+        : BREAK LIT 6 ?PAIRS COMPILE BRANCH HERE 0 , SWAP 2 ENDIF LIT 6 ;S
+;
+L247B:  db 0C7H
+        : ENDCASE ?COMP DUP LIT 6 = 0BRANCH 0CH DROP 2 ENDIF BRANCH 0FFECH
+          LIT 5 ?PAIRS ;S
+;
+L24A7:  db 87H
+        : SBUFFER USE @ DUP >RP +BUF 0BRANCH 0FFFCH USE ! R @ 0< 0BRANCH 14H
+          R 2+ R @ LIT 7FFFH AND 0 R/W R @ LIT 7FFFH AND R ! R PREV ! R> DROP ;S
+;
+L24FB:  db 86H
+        : SFLUSH #BUFF 1+ 0 DO SBUFFER LOOP 0FFFCH ;S
+;
+L2516:  db 84H
+        : LINE DUP LIT 0FFF0H AND LIT 17H ?ERROR SCR @ (LINE) DROP ;S
+;
+L2537:  db 0C6H
+        VOCABULARY EDITOR
+|        L2516
+|EDITOR: _ATIVATE VOCABULARY
+|        0A081H L63BF
+|L2548:  L102C
+;
+L254A:  db 85H
+        : WHERE DUP B/SCR / DUP SCR ! ." SCR # " DECIMAL . SWAP C/L /MOD C/L
+          * ROT BLOCK + CR C/L TYPE CR HERE C@ - SPACES LIT 5EH EMIT EDITOR
+          QUIT ;S
+;
+L2599:  db 87H
+        : #LOCATE R# @ C/L /MOD ;S
+;
+L25AF:  db 85H
+        : #LEAD #LOCATE LINE SWAP ;S
+;
+L25C1:  db 84H
+        : #LAG #LEAD DUP >RP + C/L R> - ;S
+;
+L25DA:  db 85H
+        : -MOVE LINE C/L CMOVE UPDATE ;S
+;
+L25EE:  db 81H
+        : H LINE PAD 1+ C/L DUP PAD C! CMOVE ;S
+;
+L2606:  db 81H
+        : E LINE C/L BLANKS UPDATE ;S
+;
+L2616:  db 81H
+        : S DUP 1 - LIT 0EH DO I LINE I 1+ -MOVE LIT -1 +LOOP E ;S
+;
+L263E:  db 81H
+        : D DUP H LIT 0FH DUP ROT DO I 1+ LIT 0FH MIN LINE I -MOVE LOOP E ;S
+;
+L266A:  db 81H
+        : M R# +! CR SPACE #LEAD TYPE LIT 5EH EMIT #LAG TYPE #LOCATE . DROP ;S
+;
+L268E:  db 81H
+        : T DUP C/L * R# ! H 0 M ;S
+;
+L26A6:  db 81H
+        : L SCR @ LIST 0 M ;S
+;
+L26B8:  db 81H
+        : R PAD 1+ SWAP -MOVE ;S
+;
+L26C8:  db 81H
+        : P 1 TEXT PAD 1+ C@ IF R THEN ;S
+;
+L26E0:  db 81H
+        : I DUP S R ;S
+;
+L26EE:  db 83H
+        : TOP 0 R# ! ;S
+;
+L26FE:  db 85H
+        : CLEAR SCR ! LIT 10H 0 DO I E LOOP ;S
+;
+L271E:  db 84H
+        : COPY B/SCR * OFFSET @ + SWAP B/SCR * B/SCR OVER + SWAP DO DUP I
+          BLOCK 2 - ! 1+ UPDATE LOOP DROP FLUSH ;S
+;
+L275B:  db 85H
+        : 1LINE #LAG PAD COUNT MATCH R# +! ;S
+;
+L2773:  db 84H
+        : FIND LIT 3FFH R# @ < 0BRANCH 12H TOP PAD HERE C/L 1+ CMOVE 0 ERROR
+          1LINE 0BRANCH 0FFDEH ;S
+;
+L27A2:  db 86H
+        : DELETE >RP #LAG + R - #LAG R MINUS R# +! #LEAD + SWAP CMOVE R> BLANKS
+          UPDATE ;S
+;
+L27D1:  db 81H
+        : N FIND 0 M ;S
+;
+L27DF:  db 81H
+        : F 1 TEXT N ;S
+;
+L27ED:  db 81H
+        : B PAD C@ MINUS M ;S
+;
+L27FD:  db 81H
+        : X 1 TEXT FIND PAD C@ DELETE 0 M ;S
+;
+L2815:  db 84H
+        : TILL #LEAD + 1 TEXT 1LINE 0= 0 ?ERROR #LEAD + SWAP - DELETE 0 M ;S
+;
+L283E:  db 81H
+        : C 1 TEXT PAD 1+ C@ 0BRANCH 34H PAD COUNT #LAG ROT OVER MIN >RP R R#
+          +! R - >RP DUP HERE R CMOVE HERE #LEAD + R> CMOVE R> CMOVE UPDATE 0
+          M ;S
+;
+L288A:  db 85H
+        001DH VARIABLE KLEFT
+;
+L2896:  db 86H
+        001CH VARIABLE KRIGHT
+;
+L28A3:  db 83H
+        001EH VARIABLE KUP
+;
+L28AD:  db 85H
+        001FH VARIABLE KDOWN
+;
+L28B9:  db 84H
+        0009H VARIABLE KTAB
+;
+L28C4:  db 85H
+        0011H VARIABLE KQUIT
+;
+L28D0:  db 83H
+        0008H VARIABLE KBS
+;
+L28DA:  db 84H
+        000BH VARIABLE KCLS
+;
+L28E5:  db 84H
+        0012H VARIABLE KINS
+;
+L28F0:  db 84H
+        007FH VARIABLE KDEL
+;
+L28FB:  db 85H
+        0017H VARIABLE KINSL
+;
+L2907:  db 85H
+        0013H VARIABLE KDELL
+;
+L2913:  db 85H
+        000EH VARIABLE KNSCR
+;
+L291F:  db 85H
+        000CH VARIABLE KLSCR
+;
+L292B:  db 88H
+        0008H VARIABLE TABVALUE
+;
+L293A:  db 89H
+        : 2VARIABLE VARIABLE , ;S
+;
+L294E:  db 85H
+        001BH VARIABLE SLEFT 0044H ,
+;
+L295C:  db 84H
+        001BH VARIABLE SCLS 0045H ,
+;
+L2969:  db 84H
+        0000H VARIABLE SINS 0000H ,
+;
+L2976:  db 84H
+        0000H VARIABLE SDEL 0000H ,
+;
+L2983:  db 83H
+        : STC DUP SCRHALF @ 0BRANCH 0CH LIT 5 < BRANCH 8 LIT 0AH > 0BRANCH 0CH
+          SCRHALF 1 TOGGLE HOME SHOW SCRHALF @ 0BRANCH 8 LIT 5 - (STC) ;S
+;
+L29C5:  2020H
+;
+L29C7:  db 83H
+        : CLS SCLS 2@ EMIT EMIT ;S
+;
+L29D9:  db 84H
+        : HOME LIT 0EH EMIT ;S NOOP NOOP
+;
+L29EE:  db 84H
+        : SHOW (SHOW) ;S
+;
+L29FB:  db 87H
+        0000H VARIABLE SCRHALF
+;
+L2A09:  db 82H
+        : IH 0 SCRHALF ! HOME ;S
+;
+L2A1A:  0000H 0000H 0000H 0000H 0000H 0000H 0000H 0000H , , , , , , , ,
+;
+L2A2A:  db 84H
+        : INIT 0 R# ! CLS IH SHOW VMFCB @ FCB ! LIT 0EH LIT -1 STC NOOP NOOP
+          NOOP NOOP NOOP NOOP NOOP NOOP FILENAME LIT 8 TYPE SPACE FILETYPE 3
+          TYPE SPACE SIZE @ . ." Blocks " ;S
+;
+L2A85:  db 85H
+        : INCR# R# @ + LIT 3FFH MIN 0 MAX R# ! ;S
+;
+L2AA5:  db 84H
+        : CHAR DUP #LAG DROP C! 1 INCR# UPDATE ;S
+;
+L2ABE:  db 84H
+        : ECHO DUP EMIT ;S
+;
+L2ACD:  db 85H
+        : CHDEL #LAG DUP 1 - 0BRANCH 12H >RP DUP 1+ SWAP R> CMOVE BRANCH 6 DROP
+          DROP BL #LEAD DROP C/L + 1 - C! SDEL 2@ 2DUP OR 0BRANCH 0AH EMIT EMIT
+          BRANCH 0AH DROP DROP #LAG (TYPE) UPDATE ;S
+;
+L2B27:  db 85H
+        : CHINS #LEAD DROP C/L 1 - + C@ BL = 0BRANCH 50H #LAG DUP 1 - 0BRANCH
+          1CH HERE SWAP CMOVE HERE #LAG >RP 1+ R> 1 - CMOVE BRANCH 6 DROP DROP
+          BL #LAG DROP C! SINS 2@ 2DUP OR 0BRANCH 0AH EMIT EMIT BRANCH 0AH DROP
+          DROP #LAG (TYPE) UPDATE ;S
+;
+L2B99:  db 83H
+        : TAB R# @ LIT 40H MOD TABVALUE @ >RP R MOD R SWAP - INCR# R# @ LIT 40H
+          MOD R> < 0BRANCH 10H R# @ LIT 3C0H AND R# ! ;S
+;
+L2BDF:  db 87H
+        : NEXTSCR SCR @ 1+ SCR ! INIT ;S
+;
+L2BF9:  db 87H
+        : LASTSCR SCR @ 1 - 1 MAX SCR ! INIT ;S
+;
+L2C19:  db 82H
+        : BS LIT -1 INCR# #LOCATE STC BL CHAR EMIT LIT -1 INCR# ;S
+;
+L2C38:  db 87H
+        : CONTROL >RP R LIT 0DH = 0BRANCH 18H R# @ C/L + LIT 3C0H AND R# !
+          BRANCH 110H R KUP @ = 0BRANCH 0CH LIT 0FFE0H INCR# BRANCH 0FAH R
+          KDOWN @ = 0BRANCH 0CH LIT 20H INCR# BRANCH 0E4H R KRIGHT @ = 0BRANCH
+          0AH 1 INCR# BRANCH 0D0H R KLEFT @ = 0BRANCH 0CH LIT -1 INCR# BRANCH
+          0BAH R KTAB @ = 0BRANCH 8 TAB BRANCH 0A8H R KNSCR @ = 0BRANCH 8
+          NEXTSCR BRANCH 96H R KLSCR @ = 0BRANCH 8 LASTSCR BRANCH 84H R KDELL @
+          = 0BRANCH 10H #LOCATE D DROP HOME SHOW BRANCH 6AH R KINSL @ = 0BRANCH
+          10H #LOCATE S DROP HOME SHOW BRANCH 50H R KCLS @ = 0BRANCH 0EH SCR @
+          CLEAR INIT BRANCH 38H R KBS @ = 0BRANCH 8 BS BRANCH 26H R KDEL @ =
+          0BRANCH 8 CHDEL BRANCH 14H R KINS @ = 0BRANCH 8 CHINS BRANCH 2 R> ;S
+;
+L2D7A:  db 84H
+        : EDIT ?DECIMAL SCR ! VMF1 DUP VMFCB ! FCB ! OPENFLAG @ 0= 0BRANCH 10H
+          (OPEN) LIT 5000H 0 DO LOOP INIT #LOCATE STC KEY DUP LIT 1BH = 0BRANCH
+          0CH DROP KEY CONTROL BRANCH 22H DUP LIT 1FH > OVER LIT 7FH < AND
+          0BRANCH 0AH CHAR ECHO BRANCH 4 CONTROL KQUIT @ = 0BRANCH 0FFBCH NOOP
+          NOOP NOOP CLS ." QUIT " QUIT ;S
+;
+L2E09:  db 84H
+        : EDIT EDITOR EDIT ;S
+;
+L2E18:  db 85H
+        : FCOPY VMF1 VMFCB ! VMFCB @ FCB ! OPENFLAG @ 0= 0BRANCH 1CH
+          ." No block file open " SP! QUIT VMF2 DUP VMFCB ! FCB ! OPENFLAG @ 0=
+          0BRANCH 20H ." Specify destination file " (OPEN) VMF1 VMFCB ! SWAP
+          BLOCK 2 - ! UPDATE VMF2 VMFCB ! FLUSH VMF1 VMFCB ! ;S
+;
+L2EAA:  db 87H
+        : (FILES) EXTENT LIT 4 ERASE SEARCHNEXT XDOSFUNC ! PAD XDOSPARAM !
+          XDOSCALL XDOSPARAM C@ DUP LIT 0FFH - 0BRANCH 0046H LIT 20H * PAD +
+          DUP 1 + LIT 8 TYPE SPACE LIT 9 + 3 TYPE SPACE LIT 5 SPACES OUT @ LIT
+          30H > 0BRANCH 0AH CR 0 OUT ! BRANCH 0FFA0H DROP ;S
+;
+L2F24:  db 85H
+        : FILES VMF3 FCB ! SETFCB FILENAME C@ BL = 0BRANCH 0EH FILENAME LIT 0BH
+          LIT 3FH FILL PAD SENDDMA EXTENT LIT 4 ERASE SEARCHFIRST XDOSFUNC !
+          FCB @ XDOSPARAM ! XDOSCALL XDOSPARAM C@ DUP LIT 0FFH = 0BRANCH 13H
+          DROP ." No file " BRANCH 38H LIT 20H * PAD + CR CR 0 OUT ! DUP 1 +
+          LIT 8 TYPE SPACE LIT 9 + 3 TYPE SPACE LIT 5 SPACES (FILES) QUIT ;S
+;
+L2FC5:  db 88H
+        : MATCHAFN PAD LIT 0CH CMOVE PAD LIT 10H + LIT 0CH CMOVE PAD 1+ DUP
+          LIT 0CH + SWAP DO I C@ LIT 3FH = I LIT 10H + C@ 0= 0= AND 0BRANCH 10H
+          LIT 3FH I LIT 10H + C! LOOP PAD LIT 10H + DUP LIT 0CH + SWAP DO I C@
+          LIT 3FH = I LIT 10H - C@ 0= 0= AND 0BRANCH 10H LIT 3FH I LIT 10H - C!
+          LOOP PAD 1+ LIT 0BH PAD LIT 11H + LIT 0BH MATCH DROP 0= 0BRANCH 8 0
+          BRANCH 0066H PAD C@ PAD LIT 10H + C@ 2DUP = 0BRANCH 0CH DROP DROP 1
+          BRANCH 0046H DUP 0= 0BRANCH 18H DROP CURRENTDISC XDOSFUNC ! XDOSCALL
+          XDOSPARAM C@ 1+ = BRANCH 28H OVER 0= 0BRANCH 1AH SWAP DROP
+          CURRENTDISC XDOSFUNC ! XDOSCALL XDOSPARAM C@ 1+ = BRANCH 8 DROP DROP
+          0 ;S
+;
+L30F6:  db 84H
+        : KILL VMF3 FCB ! SETFCB FILENAME C@ BL = 0BRANCH 6 SP! QUIT VMF3 VMF1
+          MATCHAFN VMF3 VMF2 MATCHAFN OR 0BRANCH 2EH
+          ." Cannot erase current block files " SP! QUIT BRANCH 24H DELETEF
+          XDOSPARAM C@ LIT 0FFH = 0BRANCH 14H ." File not found " ;S
+;
+L3179:  db 83H
+        : REN VMF3 FCB ! SETFCB FILENAME C@ BL = 0BRANCH 6 SP! QUIT OPENF
+          XDOSPARAM C@ LIT 0FFH - 0BRANCH 1CH ." Duplicate filename " SP! QUIT
+          DRIVECODE FCB @ LIT 10H + LIT 0CH CMOVE SETFCB FILENAME C@ BL =
+          0BRANCH 6 SP! QUIT FCB @ LIT 10H + C@ DRIVECODE C! VMF3 VMF1 MATCHAFN
+          VMF3 VMF2 MATCHAFN OR 0BRANCH 002FH
+          ." Cannot rename current block files " SP! QUIT BRANCH 32H RENAMEFILE
+          XDOSFUNC ! FCB @ XDOSPARAM ! XDOSCALL XDOSPARAM C@ LIT 0FFH = 0BRANCH
+          14H ." File not found " ;S
+;
+L3268:  db 85H
+        : 0S 0 MAX -DUP 0BRANCH 10H 0 DO LIT 30H EMIT LOOP ;S
+;
+L328C:  db 85H
+        : UD.ZR >RP <# #S #> R> OVER - 0S TYPE ;S
+;
+L32AA:  db 87H
+        : ASCBYTE DUP LIT 20H < OVER LIT 7EH > OR 0BRANCH 0EH DROP LIT 2EH EMIT
+          BRANCH 4 EMIT ;S
+;
+L32DC:  db 85H
+        : ALINE DUP LIT 8 + SWAP DO I C@ ASCBYTE LOOP ;S
+;
+L32FE:  db 85H
+        : BYTES DO I C@ 0 2 UD.ZR SPACE LOOP ;S
+;
+L331C:  db 85H
+        : MLINE CR DUP 0 LIT 4 UD.ZR SPACE DUP LIT 8 + SWAP BYTES ;S
+;
+L3342:  db 84H
+        : DUMP HEX DUP MLINE DUP ALINE LIT 8 + ?TERMINAL 0BRANCH 0FFEEH KEY DROP
+          KEY LIT 0DH - 0BRANCH 0FFDEH DROP QUIT ;S
+;
+L3377:  db 0C9H
+        VOCABULARY ASSEMBLER
+|        L3342
+|ASSEMBLER:_ATIVATE VOCABULARY
+|        0A081H L56EA
+|L338B:  L2548
+;
+L338D:  db 0CAH
+        : ASSEMBLERV'
+|        L3377
+|ASSEMBLERV:_ATIVATE VOCABULARY
+|        0A081H L5604
+|L33A2:  L338B
+;
+L33A4:  db 82H
+        5B82H VARIABLE PC
+;
+L33AD:  db 82H
+        0000H VARIABLE AP
+;
+L33B6:  db 83H
+        87BAH VARIABLE APP
+;
+L33C0:  db 82H
+        0000H VARIABLE PF
+;
+L33C9:  db 84H
+        0001H VARIABLE PASS
+;
+L33D4:  db 0C4H
+        VOCABULARY REGS
+|        L33C9
+|REGS:   _ATIVATE VOCABULARY
+|        0A081H L3415
+|L33E3:  L33A2
+;
+L33E5:  db 81H
+        0000H CONSTANT B
+;
+L33ED:  db 81H
+        0001H CONSTANT C
+;
+L33F5:  db 81H
+        0002H CONSTANT D
+;
+L33FD:  db 81H
+        0003H CONSTANT E
+;
+L3405:  db 81H
+        0004H CONSTANT H
+;
+L340D:  db 81H
+        0005H CONSTANT L
+;
+L3415:  db 81H
+        0007H CONSTANT A
+;
+L341D:  db 0C8H
+        VOCABULARY REGPAIRS
+|        L33D4
+|REGPAIRS:_ATIVATE VOCABULARY
+|        0A081H L3456
+|L3430:  L33E3
+;
+L3432:  db 82H
+        0000H CONSTANT BC
+;
+L343B:  db 82H
+        0010H CONSTANT DE
+;
+L3444:  db 82H
+        0020H CONSTANT HL
+;
+L344D:  db 82H
+        0006H CONSTANT AF
+;
+L3456:  db 82H
+        0030H CONSTANT SP
+;
+L345F:  db 0C5H
+        VOCABULARY INDEX
+|        L341D
+|INDEX:  _ATIVATE VOCABULARY
+|        0A081H L347A
+|L346F:  L3430
+;
+L3471:  db 82H
+        00DDH CONSTANT IX
+;
+L347A:  db 82H
+        00FDH CONSTANT IY
+;
+L3483:  db 0C6H
+        VOCABULARY REFINT
+|        L345F
+|REFINT: _ATIVATE VOCABULARY
+|        0A081H L349E
+|L3494:  L346F
+;
+L3496:  db 81H
+        0008H CONSTANT R
+;
+L349E:  db 81H
+        0000H CONSTANT I
+;
+L34A6:  db 0CCH
+        VOCABULARY CONDITIONALS
+|        L3483
+|CONDITIONALS:_ATIVATE VOCABULARY
+|        0A081H L34FB
+|L34BD:  L3494
+;
+L34BF:  db 82H
+        0000H CONSTANT NZ
+;
+L34C8:  db 81H
+        0008H CONSTANT Z
+;
+L34D0:  db 82H
+        0010H CONSTANT NC
+;
+L34D9:  db 81H
+        0018H CONSTANT C
+;
+L34E1:  db 82H
+        0020H CONSTANT PO
+;
+L34EA:  db 82H
+        0028H CONSTANT PE
+;
+L34F3:  db 81H
+        0030H CONSTANT P
+;
+L34FB:  db 81H
+        0038H CONSTANT M
+;
+L3503:  db 85H
+        : VFIND HERE CONTEXT @ @ (FIND) DUP 0BRANCH 6 SWAP DROP ;S
+; parei
+L3523:  db 87H
+        : GETCHAR BLK @ 0BRANCH 0CH BLK @ BLOCK BRANCH 6 TIB @ IN @ + C@ ;S
+;
+L354F:  db 87H
+        : ADVCHAR 1 IN +! ;S
+;
+L3563:  db 85H
+        : ALPHA DUP LIT 40H > SWAP LIT 5BH < AND ;S
+;
+L3581:  db 0C4H
+        : CHR$ BL WORD HERE C@ 1 - 0 ?ERROR HERE 1+ C@ LITERAL ;S
+;
+L35A4:  db 88H
+        : ALPHANUM >RP R LIT 40H > R LIT 5BH < AND R LIT 2FH > R> LIT 3AH < AND
+          OR ;S
+;
+L35DB:  db 83H
+        : NUM DUP LIT 2FH > SWAP LIT 3AH < AND ;S
+;
+L35F7:  db 84H
+        0002H VARIABLE OPDC
+;
+L3602:  db 84H
+        0001H CONSTANT -REG
+;
+L360D:  db 83H
+        0002H CONSTANT RP
+;
+L3617:  db 84H
+        0004H CONSTANT -NUM
+;
+L3622:  db 84H
+        0008H CONSTANT -SYM
+;
+L362D:  db 83H
+        0010H CONSTANT -CC
+;
+L3637:  db 83H
+        0020H CONSTANT -RE
+;
+L3641:  db 83H
+        0040H CONSTANT -XY
+;
+L364B:  db 84H
+        8000H CONSTANT -IND
+;
+L3656:  db 85H
+        8001H CONSTANT -REGI
+;
+L3662:  db 84H
+        8002H CONSTANT RPI
+;
+L366D:  db 85H
+        8004H CONSTANT -NUMI
+;
+L3679:  db 85H
+        8008H CONSTANT -SYMI
+;
+L3685:  db 84H
+        8040H CONSTANT -XYI
+;
+L3690:  db 88H
+        : (NUMBER) 0 0 GETCHAR BASE @ DIGIT 0BRANCH 22H ADVCHAR SWAP BASE @ U*
+          DROP ROT BASE @ U* D+ DUP 0 ?ERROR BRANCH 0FFD6H ;S
+;
+L36CF:  db 86H
+        : NUMBER GETCHAR LIT 2DH = DUP >RP 0BRANCH 4 ADVCHAR (NUMBER) DROP R>
+          0BRANCH 4 MINUS ;S
+;
+L36FA:  db 88H
+        5B80H VARIABLE DESTBUFF
+;
+L3709:  db 8AH
+        : RDALPHANUM HERE 1+ DESTBUFF ! 0 HERE C! GETCHAR DUP ALPHANUM 0BRANCH
+          1EH ADVCHAR DESTBUFF @ C! HERE C@ 1+ HERE C! 1 DESTBUFF +! BRANCH
+          0FFDCH DROP ;S
+;
+L3750:  db 83H
+        : MUL U* DROP ;S
+;
+L375E:  db 83H
+        : DIV >RP 0 R> U/ SWAP DROP ;S
+;
+L3774:  db 85H
+        : INFIX >RP R LIT 2BH = 0BRANCH 0EH LIT ++2 CFA 1 BRANCH 7CH R LIT 2DH
+          = 0BRANCH 0EH LIT -+2 CFA 1 BRANCH 0064H R LIT 2AH = 0BRANCH 0EH
+          LIT MUL+2 CFA 1 BRANCH 4CH R LIT 2FH = 0BRANCH 0EH LIT DIV+2 CFA 1
+          BRANCH 34H R LIT 26H = 0BRANCH 0EH LIT AND+2 CFA 1 BRANCH 1CH R
+          LIT 2EH = 0BRANCH 0EH LIT OR+2 CFA 1 BRANCH 4 0 R> DROP ;S
+;
+L3818:  db 83H
+        : OR! DUP >RP @ OR R> ! ;S
+;
+L382E:  db 89H
+        : REGSEARCH REGS VFIND 0BRANCH 10H @ -REG OPDC OR! 1 BRANCH 0046H
+          REGPAIRS VFIND 0BRANCH 10H @ RP OPDC OR! 1 BRANCH 30H INDEX VFIND
+          0BRANCH 10H @ -XY OPDC OR! 1 BRANCH 1AH REFINT VFIND 0BRANCH 10H @
+          -RE OPDC OR! 1 BRANCH 4 0 ;S
+;
+L3898:  db 84H
+        0B508H VARIABLE SYM0
+;
+L38A3:  db 84H
+        0B508H VARIABLE SYMP
+;
+L38AE:  db 87H
+        : SYMLINK'
+        L38A3
+        0000H VARIABLE SYMLINK
+        HERE SYMLINK ! 0A081H , 0000H ,
+
+HERE -> L38BC
+L38BC:  0A081H 0000H
+;
+L38C0:  db 8BH
+        : CLEARSYMTAB SYMLINK 2+ SYMLINK ! SYM0 @ SYMP ! ;S
+;
+L38E2:  db 89H
+        : SYMSEARCH HERE SYMLINK @ (FIND) IF DROP 2 - @ -SYM OPDC OR! 1 ELSE 0
+          THEN ;S
+;
+L3914:  db 86H
+        : SYMBOL BL WORD SYMP @ HERE LIT 100H + U< 0BRANCH 21H CR
+          ." Symbol table full " SP! QUIT BRANCH 008BH SYMSCH 0BRANCH 19H CR
+          ." Double symbol " SP! QUIT HERE 1+ C@ ALPHA 0= LIT 9 ?ERROR SYMP @
+          DUP >RP HERE C@ LIT 5 + - SYMP ! HERE SYMP @ HERE C@ 1+ CMOVE SYMP @
+          LIT 80H TOGGLE R> DUP LIT 5 - LIT 80H TOGGLE SYMLINK @ OVER LIT 4 - !
+          SYMP @ SYMLINK ! 2 - ! ;S
+;
+L39DF:  db 85H
+        : LABEL PC @ SYMBOL1 ;S
+;
+L39F1:  db 86H
+        : SYMBOL SYMBOL1 ;S
+;
+L3A00:  db 8BH
+        : CLEARSYMTAB CLEARSYMTAB ;S
+;
+L3A14:  db 8AH
+        : CONDSEARCH CONDITIONALS VFIND 0BRANCH 10H @ -CC OPDC OR! 1 BRANCH 4 0
+          ASSEMBLER ;S
+;
+L3A3F:  db 87H
+        : CHARLIT ADVCHAR GETCHAR DUP LIT 20H < OVER LIT 7EH > OR LIT 9 ?ERROR
+          ADVCHAR GETCHAR LIT 27H = 0BRANCH 10H ADVCHAR -NUM OPDC OR! 1 BRANCH
+          0EH DROP 0 LIT 0FFFEH IN +! ;S
+;
+L3A91:  db 8BH
+        : ALPHASEARCH REGSEARCH 0BRANCH 8 1 BRANCH 38H SYMSCH 0BRANCH 8 1
+          BRANCH 2CH PASS @ 0= 0BRANCH 20H CONDSEARCH 0BRANCH 0AH DROP 0 BRANCH
+          0EH -SYM OPDC OR! PC @ 1 BRANCH 4 0 ASSEMBLER ;S
+;
+L3AE7:  db 84H
+        : ITEM 0 OPDC ! GETCHAR LIT 28H = 0BRANCH 0AH ADVCHAR -IND OPDC OR!
+          GETCHAR >RP R ALPHA 0BRANCH 0AH RDALPHANUM ALPHASEARCH BRANCH 0054H
+          R NUM R LIT 2DH = OR 0BRANCH 10H -NUM OPDC OR! NUMBER 1 BRANCH 34H R
+          LIT 24H = 0BRANCH 14H ADVCHAR PC @ 1 -SYM OPDC OR! BRANCH 16H R
+          LIT 27H = 0BRANCH 8 CHARLIT BRANCH 4 0 R> DROP ;S
+;
+L3B76:  db 85H
+        : CLIND GETCHAR LIT 29H - LIT 9 ?ERROR ADVCHAR ;S
+;
+L3B92:  db 85H
+        : CLCOM GETCHAR LIT 2CH - LIT 9 ?ERROR ADVCHAR ;S
+;
+L3BAE:  db 86H
+        : CLPLUS GETCHAR LIT 2BH - LIT 9 ?ERROR ADVCHAR ;S
+;
+L3BCB:  db 86H
+        : SYMNUM 0BRANCH 34H OPDC @ >RP R -SYM AND 0BRANCH 8 1 BRANCH 16H R
+          -NUM AND 0BRANCH 8 1 BRANCH 6 DROP 0 R> DROP BRANCH 4 0 ;S
+;
+L3C10:  db 85H
+        : EXPRN GETCHAR INFIX 0BRANCH 26H >RP ADVCHAR 0 OPDC ! ITEM SYMNUM R>
+          SWAP 0BRANCH 8 EXECUTE BRANCH 6 0 ERROR BRANCH 0FFD6H ;S
+;
+L3C48:  db 87H
+        : SYMNUMS ITEM SYMNUM 0BRANCH 0AH EXPRN 1 BRANCH 4 0 ;S
+;
+L3C68:  db 84H
+        : CPUT  PASS @ 0BRANCH 1AH DUP LIT 0FF80H < OVER LIT 0FFH > OR LIT 9
+          ?ERROR LIT 0FFH AND PF @ 0BRANCH 16H APP @ @ C! 1 APP @ +! BRANCH 4
+          DROP 1 PC +! ;S
+;
+L3CBD:  db 83H
+        : PUT PF @ 0BRANCH 16H APP @ @ ! 2 APP @ +! BRANCH 4 DROP 2 PC +! ;S
+;
+L3CEB:  db 82H
+        : 8* DUP + DUP + DUP + ;S
+;
+L3D00:  db 83H
+        : LD1 ITEM 0= LIT 9 ?ERROR OPDC @ >RP R -REG = 0BRANCH 14H SWAP 8* OR
+          LIT 40H OR CPUT BRANCH 013EH R -NUM = R -SYM = OR 0BRANCH 16H SWAP 8*
+          LIT 6 OR CPUT EXPRN CPUT BRANCH 0118H R RPI = 0BRANCH 0076H >RP R
+          LIT 20H = 0BRANCH 12H CLIND 8* LIT 46H OR CPUT BRANCH 50H R LIT 0 =
+          0BRANCH 1AH LIT 7 - LIT 9 ?ERROR CLIND LIT 0AH CPUT BRANCH 2CH R
+          LIT 10H = 0BRANCH 1AH LIT 7 - LIT 9 ?ERROR CLIND LIT 1AH CPUT
+          BRANCH 8 LIT 9 ERROR R> DROP BRANCH 009AH R -XYI = 0BRANCH 30H
+          GETCHAR LIT 2BH - LIT 9 ?ERROR ADVCHAR CPUT 8* LIT 46H OR CPUT
+          SYMNUMS 0= LIT 9 ?ERROR CPUT CLIND BRANCH 0062H R -NUMI = R -SYMI =
+          OR 0BRANCH 20H SWAP LIT 7 - LIT 9 ?ERROR EXPRN CLIND LIT 3AH CPUT
+          PUT BRANCH 32H R -RE = 0BRANCH 22H SWAP LIT 7 - LIT 9 ?ERROR LIT 0EDH
+          PUT LIT 57H OR PUT BRANCH 8 LIT 9 ERROR R> DROP ;S
+;
+L3E76:  db 83H
+        : LD2 ITEM 0= LIT 9 ?ERROR OPDC @ >RP R -REG = 0BRANCH 56H OVER LIT 20H
+          = 0BRANCH 10H LIT 70H OR CPUT DROP BRANCH 38H LIT 7 = 0BRANCH 28H DUP
+          LIT 10H = 0BRANCH 0EH DROP LIT 12H CPUT BRANCH 0CH LIT 9 ?ERROR 2
+          CPUT BRANCH 8 LIT 9 ERROR BRANCH 36H R -NUM = R -SYM = OR 0BRANCH 1EH
+          SWAP LIT 20H - LIT 9 ?ERROR LIT 36H CPUT EXPRN CPUT BRANCH 8 LIT 9
+          ERROR R> DROP ;S
+;
+L3F26:  db 83H
+        : LD3 ITEM 0= LIT 9 ?ERROR OPDC @ >RP R -REG = 0BRANCH 14H ROT CPUT
+          LIT 70H OR CPUT CPUT BRANCH 30H R -NUM = R -SYM = OR 0BRANCH 18H
+          EXPRN ROT CPUT LIT 36H CPUT SWAP CPUT CPUT BRANCH 8 LIT 9 ERROR R>
+          DROP ;S
+;
+L3F8E:  db 83H
+        : LD4 ITEM 0= LIT 9 ?ERROR OPDC @ >RP R -NUM = R -SYM = OR 0BRANCH 12H
+          EXPRN SWAP 1 OR CPUT PUT BRANCH 009EH R -NUMI = R -SYMI = OR 0BRANCH
+          36H EXPRN CLIND OVER LIT 20H = 0BRANCH 10H LIT 2AH CPUT PUT DROP
+          BRANCH 14H LIT 0EDH CPUT SWAP LIT 4BH OR CPUT PUT BRANCH 58H R RP =
+          0BRANCH 24H LIT 20H - LIT 9 ?ERROR LIT 30H - LIT 9 ?ERROR LIT 0F9H
+          CPUT BRANCH 2CH R -XY = 0BRANCH 1CH SWAP LIT 30H - LIT 9 ?ERROR CPUT
+          LIT 0F9H CPUT BRANCH 8 LIT 9 ERROR R> DROP ;S
+;
+L406A:  db 83H
+        : LD5 ITEM 0= LIT 9 ?ERROR OPDC @ >RP R -NUM = R -SYM = OR 0BRANCH 14H
+          EXPRN SWAP CPUT LIT 21H CPUT PUT BRANCH 2EH R -NUMI = R -SYMI = OR
+          0BRANCH 16H EXPRN CLIND SWAP CPUT LIT 2AH CPUT PUT BRANCH 8 LIT 9
+          ERROR R> DROP ;S
+;
+L40D8:  db 83H
+        : LD6 ITEM 0= LIT 9 ?ERROR OPDC @ >RP R RP = 0BRANCH 3EH DUP LIT 6 =
+          LIT 9 ?ERROR DUP LIT 20H = 0BRANCH 10H DROP LIT 22H CPUT PUT BRANCH
+          12H LIT 0EDH CPUT LIT 43H OR CPUT PUT BRANCH 42H R -XY = 0BRANCH 10H
+          CPUT LIT 22H CPUT PUT BRANCH 2AH R -REG = 0BRANCH 1AH LIT 7 - LIT 9
+          ?ERROR LIT 32H CPUT PUT BRANCH 8 LIT 9 ERROR R> DROP ;S
+;
+L417C:  db 82H
+        : LD ITEM 0= LIT 9 ?ERROR OPDC @ >RP R -REG = 0BRANCH 0AH CLCOM LD1
+          BRANCH 008CH R RPI = 0BRANCH 0CH CLIND CLCOM LD2 BRANCH 0078H R -XYI
+          = 0BRANCH 18H CLPLUS SYMNUMS 0= LIT 9 ?ERROR CLIND CLCOM LD3 BRANCH
+          58H R RP = 0BRANCH 18H DUP LIT 6 = LIT 9 ?ERROR CLCOM LD4 BRANCH 38H
+          R -XY = 0BRANCH 0AH CLCOM LD5 BRANCH 26H R -NUMI = R -SYMI = OR
+          0BRANCH 0EH EXPRN CLIND CLCOM LD6 BRANCH 8 LIT 9 ERROR R> DROP ;S
+;
+L4235:  db 84H
+        : PUSH ITEM 0= LIT 9 ?ERROR OPDC @ >RP R RP = 0BRANCH 2EH DUP LIT 30H =
+          LIT 9 ?ERROR DUP LIT 6 = 0BRANCH 8 DROP LIT 30H LIT 0C5H OR CPUT
+          BRANCH 1EH R -XY = 0BRANCH 0EH CPUT LIT 0E5H CPUT BRANCH 8 LIT 9
+          ERROR R> DROP ;S
+;
+L42A6:  db 83H
+        : POP ITEM 0= LIT 9 ?ERROR OPDC @ >RP R RP = 0BRANCH 2EH DUP LIT 30H =
+          LIT 9 ?ERROR DUP LIT 6 = 0BRANCH 8 DROP LIT 30H LIT 0C1H OR CPUT
+          BRANCH 1EH R -XY = 0BRANCH 0EH CPUT LIT 0E1H CPUT BRANCH 8 LIT 9
+          ERROR R> DROP ;S
+;
+L4316:  db 83H
+        : EX1 ITEM 0= LIT 9 ?ERROR OPDC @ >RP R RP = 0BRANCH 24H LIT 20H -
+          LIT 9 ?ERROR LIT 30H - LIT 9 ?ERROR LIT 0E3H CPUT BRANCH 2CH R -XY =
+          0BRANCH 1CH SWAP LIT 30H - LIT 9 ?ERROR CPUT LIT 0E3H CPUT BRANCH 8
+          LIT 9 ERROR R> DROP ;S
+;
+L438A:  db 82H
+        : EX ITEM 0= LIT 9 ?ERROR OPDC @ >RP R RP = 0BRANCH 0062H CLCOM ITEM 0=
+          LIT 9 ?ERROR OPDC @ RP - LIT 9 ?ERROR 2DUP LIT 20H = SWAP LIT 10H =
+          AND 0BRANCH 10H DROP DROP LIT 0EBH CPUT BRANCH 20H LIT 6 - LIT 9
+          ?ERROR LIT 6 - LIT 9 ?ERROR LIT 8 CPUT BRANCH 1CH R RPI = 0BRANCH 0CH
+          CLIND CLCOM EX1 BRANCH 8 LIT 9 ERROR R> DROP ;S
+;
+L442B:  db 84H
+        : Z801 <BUILDS C, DOES> C@ CPUT ;S
+;
+L4440:  db 84H
+        : Z802 <BUILDS C, DOES> LIT 0EDH CPUT C@ CPUT ;S
+;
+L445B:  db 83H
+        0A0H Z802 LDI
+;
+L4466:  db 84H
+        0B0H Z802 LDIR
+;
+L4472:  db 83H
+        0A8H Z802 LDD
+;
+L447D:  db 84H
+        0B8H Z802 LDDR
+;
+L4489:  db 83H
+        0A1H Z802 CPI
+;
+L4494:  db 84H
+        0B1H Z802 CPIR
+;
+L44A0:  db 83H
+        0A9H Z802 CPD
+;
+L44AB:  db 84H
+        0B9H Z802 CPDR
+;
+L44B7:  db 83H
+        0A2H Z802 INI
+;
+L44C2:  db 84H
+        0B2H Z802 INIR
+;
+L44CE:  db 83H
+        0AAH Z802 IND
+;
+L44D9:  db 84H
+        0BAH Z802 INDR
+;
+L44E5:  db 84H
+        0A3H Z802 OUTI
+;
+L44F1:  db 84H
+        0B3H Z802 OTIR
+;
+L44FD:  db 84H
+        0ABH Z802 OUTD
+;
+L4509:  db 84H
+        0BBH Z802 OTDR
+;
+L4515:  db 86H
+        : Z80INC <BUILDS C, DOES> C@ ITEM 0= LIT 9 ?ERROR OPDC @ >RP R -REG =
+          0BRANCH 0CH 8* OR CPUT BRANCH 00B4H R RPI = 0BRANCH 1CH CLIND LIT 20H
+          - LIT 9 ?ERROR LIT 30H OR CPUT BRANCH 0090H R -XYI = 0BRANCH 24H
+          CLPLUS SYMNUMS 0= LIT 9 ?ERROR CLIND SWAP CPUT SWAP LIT 30H OR CPUT
+          CPUT BRANCH 0064H R RP = 0BRANCH 2CH DUP LIT 6 = LIT 9 ?ERROR 3 OR
+          SWAP LIT 5 = 0BRANCH 8 LIT 8 OR CPUT BRANCH 30H R -XY = 0BRANCH 20H
+          CPUT LIT 23H SWAP LIT 5 = 0BRANCH 8 LIT 8 OR CPUT BRANCH 8 LIT 9
+          ERROR R> DROP ;S
+;
+L4604:  db 83H
+        04H Z80INC INC
+;
+L460F:  db 83H
+        05H Z80INC DEC
+;
+L461A:  db 83H
+        27H Z801 DAA
+;
+L4625:  db 83H
+        2FH Z801 CPL
+;
+L4630:  db 83H
+        3FH Z801 CCF
+;
+L463B:  db 83H
+        37H Z801 SCF
+;
+L4646:  db 83H
+        00H Z801 NOP
+;
+L4651:  db 84H
+        76H Z801 HALT
+;
+L465D:  db 82H
+        0F3H Z801 DI
+;
+L4667:  db 82H
+        0FBH Z801 EI
+;
+L4671:  db 83H
+        0D9H Z801 EXX
+;
+L467C:  db 84H
+        07H Z801 RLCA
+;
+L4688:  db 83H
+        17H Z801 RLA
+;
+L4693:  db 84H
+        0FH Z801 RRCA
+;
+L469F:  db 83H
+        1FH Z801 RRA
+;
+L46AA:  db 83H
+        44H Z802 NEG
+;
+L46B5:  db 83H
+        46H Z802 IM0
+;
+L46C0:  db 83H
+        56H Z802 IM1
+;
+L46CB:  db 83H
+        5EH Z802 IM2
+;
+L46D6:  db 83H
+        6FH Z802 RLD
+;
+L46E1:  db 83H
+        67H Z802 RRD
+;
+L46EC:  db 84H
+        4DH Z802 RETI
+;
+L46F8:  db 84H
+        45H Z802 RETN
+;
+L4704:  db 86H
+        : Z80ROT <BUILDS C, DOES> C@ ITEM 0= LIT 9 ?ERROR OPDC @ >RP R -REG =
+          0BRANCH 10H LIT 0CBH CPUT OR CPUT BRANCH 0062H R RPI = 0BRANCH 22H
+          CLIND LIT 20H - LIT 9 ?ERROR LIT 0CBH CPUT LIT 6 OR CPUT BRANCH 38H
+          R -XYI = 0BRANCH 28H CLPLUS SYMNUMS 0= LIT 9 ?ERROR CLIND SWAP CPUT
+          LIT 0CBH CPUT CPUT LIT 6 OR CPUT BRANCH 8 LIT 9 ERROR R> DROP ;S
+;
+L47A5:  db 83H
+        00H Z80ROT RLC
+;
+L47B0:  db 82H
+        10H Z80ROT RL
+;
+L47BA:  db 83H
+        08H Z80ROT RRC
+;
+L47C5:  db 82H
+        18H Z80ROT RR
+;
+L47CF:  db 83H
+        20H Z80ROT SLA
+;
+L47DA:  db 83H
+        28H Z80ROT SRA
+;
+L47E5:  db 83H
+        38H Z80ROT SRL
+;
+L47F0:  db 86H
+        : Z80BIT <BUILDS C, DOES> C@ ITEM 0= LIT 9 ?ERROR OPDC @ DUP -NUM =
+          SWAP -SYM = OR 0= LIT 9 ?ERROR EXPRN DUP 0< LIT 9 ?ERROR DUP LIT 7 >
+          LIT 9 ?ERROR CLCOM ITEM 0= LIT 9 ?ERROR OPDC @ >RP R -REG = 0BRANCH
+          16H SWAP 8* OR OR LIT 0CBH CPUT CPUT BRANCH 6AH R RPI = 0BRANCH 26H
+          CLIND LIT 20H - LIT 9 ?ERROR 8* LIT 6 OR OR LIT 0CBH CPUT CPUT
+          BRANCH 3CH R -XYI = 0BRANCH 2CH CLPLUS SYMNUMS 0= LIT 9 ?ERROR CLIND
+          SWAP CPUT LIT 0CBH CPUT CPUT 8* LIT 6 OR OR CPUT BRANCH 8 LIT 9 ERROR
+          R> DROP ;S
+;
+L48DF:  db 83H
+        40H Z80BIT BIT
+;
+L48EA:  db 83H
+        0C0H Z80BIT SET
+;
+L48F5:  db 83H
+        80H Z80BIT RES
+;
+L4900:  db 82H
+        : JP ITEM OPDC @ -REG = 0BRANCH 0AH DROP 0 BRANCH 4 1 AND 0BRANCH 70H
+          OPDC @ >RP R -NUM = R -SYM = OR 0BRANCH 10H EXPRN LIT 0C3H CPUT PUT
+          BRANCH 42H R RPI = 0BRANCH 1AH CLIND LIT 20H - LIT 9 ?ERROR LIT 0E9H
+          CPUT BRANCH 20H R -XYI = 0BRANCH 10H CLIND CPUT LIT 0E9H CPUT BRANCH
+          8 LIT 9 ERROR R> DROP BRANCH 40H CONDSEARCH 0= LIT 9 ?ERROR CLCOM
+          ITEM 0= LIT 9 ?ERROR OPDC @ DUP -NUM = SWAP -SYM = OR 0= LIT 9 ?ERROR
+          EXPRN SWAP LIT 0C2H OR CPUT PUT ;S
+;
+L49D3:  db 82H
+        : JR ITEM OPDC @ -REG = 0BRANCH 0AH DROP 0 BRANCH 4 1 AND 0BRANCH 0AH 0
+          SWAP BRANCH 1CH CONDSEARCH 0= LIT 9 ?ERROR CLCOM ITEM 0= LIT 9 ?ERROR
+          1 SWAP OPDC @ >RP R -NUM = 0BRANCH 0CH EXPRN 2 - BRANCH 22H R -SYM =
+          0BRANCH 12H EXPRN PC @ - 2 - BRANCH 8 LIT 9 ERROR R> DROP >RP 0BRANCH
+          2EH DUP LIT 20H AND LIT 9 ?ERROR LIT 20H OR CPUT R> DUP LIT 7FH >
+          LIT 9 ?ERROR CPUT BRANCH 1AH LIT 18H CPUT R> DUP LIT 7FH > LIT 9
+          ?ERROR CPUT ;S
+;
+L4AA4:  db 84H
+        : CALL ITEM OPDC @ -REG = 0BRANCH 0AH DROP 0 BRANCH 4 1 AND 0BRANCH 0AH
+          0 SWAP BRANCH 1CH CONDSEARCH 0= LIT 9 ?ERROR CLCOM ITEM 0= LIT 9
+          ?ERROR 1 SWAP OPDC @ >RP R -NUM = 0BRANCH 8 EXPRN BRANCH 18H R -SYM =
+          0BRANCH 8 EXPRN BRANCH 8 LIT 9 ERROR R> DROP >RP 0BRANCH 12H LIT 0C4H
+          OR CPUT R> PUT BRANCH 0CH LIT 0CDH CPUT R> PUT ;S
+;
+L4B3F:  db 83H
+        : RET GETCHAR ALPHA 0BRANCH 20H ITEM 0BRANCH 4 DROP CONDSEARCH 0= LIT 9
+          ?ERROR LIT 0C0H OR CPUT BRANCH 8 LIT 0C9H CPUT ;S
+;
+L4B75:  db 84H
+        : DJNZ ITEM 0= LIT 9 ?ERROR OPDC @ >RP R -NUM = 0BRANCH 0CH EXPRN 2 -
+          BRANCH 22H R -SYM = 0BRANCH 12H EXPRN PC @ - 2 - BRANCH 8 LIT 9 ERROR
+          R> DROP LIT 10H CPUT CPUT ;S
+;
+L4BD0:  db 83H
+        : ORG ITEM 0= LIT 9 ?ERROR OPDC @ DUP -NUM = SWAP -SYM = OR 0BRANCH 12H
+          EXPRN PC ! 0 PF ! BRANCH 8 LIT 9 ERROR ;S
+;
+L4C10:  db 85H
+        : STORE AP APP ! ITEM 0= LIT 9 ?ERROR OPDC @ DUP -NUM = SWAP -SYM = OR
+          0BRANCH 12H EXPRN AP ! 1 PF ! BRANCH 8 LIT 9 ERROR ;S
+;
+L4C58:  db 87H
+        : ORGHERE HERE PC ! 0 PF ! ;S
+;
+L4C72:  db 89H
+        : STOREHERE DP APP ! 1 PF ! ;S
+;
+L4C8E:  db 82H
+        : DW ITEM 0= LIT 9 ?ERROR OPDC @ DUP -NUM = SWAP -SYM = OR 0BRANCH 0AH
+          EXPRN PUT BRANCH 8 LIT 9 ERROR ;S
+;
+L4CC5:  db 82H
+        : DS ITEM 0= LIT 9 ?ERROR OPDC @ DUP -NUM = SWAP -SYM = OR 0BRANCH 1CH
+          EXPRN PF @ 0BRANCH 0AH DUP APP @ +! PC +! BRANCH 8 LIT 9 ERROR ;S
+;
+L4D0E:  db 82H
+        : DB ITEM 0BRANCH 2AH OPDC @ DUP -NUM = SWAP -SYM = OR 0BRANCH 0AH
+          EXPRN CPUT BRANCH 8 LIT 9 ERROR BRANCH 4CH GETCHAR LIT 27H = 0BRANCH
+          3AH ADVCHAR GETCHAR DUP LIT 27H - 0BRANCH 22H DUP LIT 20H < OVER
+          LIT 7EH > OR LIT 9 ?ERROR CPUT ADVCHAR BRANCH 0FFD4H DROP ADVCHAR
+          BRANCH 8 LIT 9 ERROR ;S
+;
+L4D8F:  db 83H
+        : EQU SYM0 @ SYMP @ = LIT 9 ?ERROR ITEM 0= LIT 9 ?ERROR OPDC @ DUP -NUM
+          = SWAP -SYM = OR 0= LIT 9 ?ERROR EXPRN PASS @ 0BRANCH 8 DROP BRANCH
+          0CH SYMP @ PFA CFA ! ;S
+;
+L4DE7:  db 83H
+        : END 0 PF ! ;S
+;
+L4DF7:  db 85H
+        : PASS1 CLEARSYMTAB 0 PASS ! 0 PF ! ASSEMBLER -FIND 0BRANCH 1EH STATE
+          @ < 0BRANCH 0CH LIT 12H ERROR BRANCH 6 CFA EXECUTE BRANCH 20H SYMSCH
+          0BRANCH 0CH LIT 9 ERROR BRANCH 10H HERE C@ 1+ MINUS IN +! LABEL
+          BRANCH 0FFB6H ;S
+;
+L4E57:  db 85H
+        : PASS2 1 PASS ! ASSEMBLER -FIND 0BRANCH 1EH STATE @ < 0BRANCH 0CH
+          LIT 12H ERROR BRANCH 6 CFA EXECUTE BRANCH 12H SYMSCH 0BRANCH 8 DROP
+          BRANCH 6 0 ERROR BRANCH 0FFCAH ;S
+;
+L4EA1:  db 85H
+        : ASSEM ?DECIMAL BLK @ >RP IN @ >RP B/SCR * DUP >RP BLK ! 0 IN ! PC @
+          >RP PASS1 R> PC ! R> BLK ! 0 IN ! PASS2 R> IN ! R> BLK ! ;S
+;
+L4EF5:  db 0C4H
+        : CODE ?EXEC CREATE ASSEMBLER ORGHERE STOREHERE !CSP ;S
+;
+L4F0C:  db 0C2H
+        : ;C END CURRENT @ CONTEXT ! ?EXEC ?CSP SMUDGE ;S
+;
+L4F25:  db 84H
+        : NEXT LIT 0C3H CPUT LIT L012C PUT ;S
+;
+L4F3C:  db 85H
+        : ?PAIR - LIT 9 ?ERROR ;S
+;
+L4F50:  db 85H
+        : BEGIN PC @ LIT 7 ;S
+;
+L4F64:  db 85H
+        : UNTIL LIT 7 ?PAIR ITEM OPDC @ -REG = 0BRANCH 0AH DROP 0 BRANCH 4 1
+          AND 0BRANCH 0CH LIT 9 ERROR BRANCH 0CH CONDSEARCH 0= LIT 9 ?ERROR
+          LIT 8 XOR 2DUP LIT 20H AND >RP PC @ - 2 - DUP LIT 7FH > SWAP
+          LIT 0FF80H < OR R> OR 0BRANCH 10H LIT 0C2H OR CPUT PUT BRANCH 36H
+          >RP PC @ - 2 - R> DUP LIT 20H AND LIT 9 ?ERROR LIT 20H OR CPUT DUP
+          LIT 7FH > LIT 9 ?ERROR CPUT ;S
+;
+L501E:  db 85H
+        : AGAIN LIT 7 ?PAIR DUP PC @ - 2 - DUP LIT 7FH > SWAP LIT 0FF80H < OR
+          0BRANCH 0EH LIT 0C3H CPUT PUT BRANCH 22H PC @ - 2 - LIT 18H CPUT DUP
+          LIT 7FH > LIT 9 ?ERROR CPUT ;S
+;
+L507E:  db 82H
+        : IF PC @ ITEM OPDC @ -REG = 0BRANCH 0AH DROP 0 BRANCH 4 1 AND 0BRANCH
+          0CH LIT 9 ERROR BRANCH 0CH CONDSEARCH 0= LIT 9 ?ERROR LIT 8 XOR DUP
+          LIT 20H AND 0BRANCH 1AH LIT 0C2H OR CPUT APP @ @ 0 PUT 1 BRANCH 16H
+          LIT 20H OR CPUT APP @ @ 0 CPUT 0 LIT 8 ;S
+;
+L50FF:  db 85H
+        : ENDIF LIT 8 ?PAIR SWAP >RP 0BRANCH 20H DROP PC @ R> PF @ 0BRANCH 8 !
+          BRANCH 6 DROP DROP BRANCH 3AH PC @ SWAP - 2 - DUP LIT 7FH > OVER
+          LIT 0FF80H < OR LIT 9 ?ERROR R> PF @ 0BRANCH 8 ;C BRANCH 6 DROP
+          DROP ;S
+;
+L516F:  db 84H
+        : ELSE LIT 8 ?PAIR PC @ LIT 18H CPUT APP @ @ 0 CPUT 0 >RP >RP >RP LIT 8
+          ENDIF R> R> R> LIT 8 ;S
+;
+L51AC:  db 85H
+        : WHILE IF 2 + ;S
+;
+L51BE:  db 86H
+        : REPEAT >RP >RP >RP >RP AGAIN R> R> R> R> 2 - ENDIF ;S
+;
+L51E3:  db 83H
+        : RST GETCHAR DUP NUM 0= LIT 9 ?ERROR LIT 30H - ADVCHAR GETCHAR DUP
+          NUM 0= LIT 9 ?ERROR LIT 30H - ADVCHAR SWAP LIT 10H * + GETCHAR
+          LIT 48H - LIT 9 ?ERROR ADVCHAR DUP LIT 0FFC7H AND LIT 9 ?ERROR
+          LIT 0C7H OR CPUT ;S
+;
+L5249:  db 82H
+        : IN ITEM 0= LIT 9 ?ERROR OPDC @ -REG - LIT 9 ?ERROR DUP LIT 7 =
+          0BRANCH 72H DROP CLCOM ITEM 0= LIT 9 ?ERROR OPDC @ >RP R -NUMI = R
+          -SYMI = OR 0BRANCH 10H EXPRN CLIND DB CPUT CPUT BRANCH 36H R -REGI =
+          0BRANCH 26H CLIND 1 - LIT 9 ?ERROR LIT 0EDH CPUT LIT 7 8* LIT 40H OR
+          CPUT BRANCH 8 LIT 9 ERROR R> DROP BRANCH 38H CLCOM ITEM 0= LIT 9
+          ?ERROR OPDC @ -REGI - LIT 9 ?ERROR CLIND 1 - LIT 9 ?ERROR LIT 0EDH
+          CPUT 8* LIT 40H OR CPUT ;S
+;
+L531C:  db 83H
+        : OUT ITEM 0= LIT 9 ?ERROR OPDC @ >RP R -NUMI = R -SYMI = OR 0BRANCH
+          38H EXPRN CLIND CLCOM ITEM 0= LIT 9 ?ERROR OPDC @ -REG - LIT 9 ?ERROR
+          LIT 7 - LIT 9 ?ERROR LIT 0D3H CPUT CPUT BRANCH 4CH R -REGI = 0BRANCH
+          3CH CLIND 1 - LIT 9 ?ERROR CLCOM ITEM 0= LIT 9 ?ERROR OPDC @ -REG -
+          LIT 9 ?ERROR LIT 0EDH CPUT 8* LIT 41H OR CPUT BRANCH 8 LIT 9 ERROR R>
+          DROP ;S
+;
+L53CC:  db 86H
+        : Z80ADD <BUILDS C, DOES> C@ ITEM 0= LIT 9 ?ERROR OPDC @ -REG = 0BRANCH
+          0BAH LIT 7 - LIT 9 ?ERROR CLCOM ITEM 0= LIT 9 ?ERROR OPDC @ >RP R
+          -REG = 0BRANCH 10H LIT 80H OR OR CPUT BRANCH 7CH R -NUM = R -SYM = OR
+          0BRANCH 14H EXPRN SWAP LIT 0C6H OR CPUT CPUT BRANCH 58H R RPI =
+          0BRANCH 1CH CLIND LIT 20H - LIT 9 ?ERROR LIT 86H OR CPUT BRANCH 34H R
+          -XYI = 0BRANCH 24H CLPLUS SYMNUMS 0= LIT 9 ?ERROR CLIND SWAP CPUT SWAP
+          LIT 86H OR CPUT CPUT BRANCH 8 LIT 9 ERROR R> DROP BRANCH 136H OPDC @
+          RP = 0BRANCH 0A2H LIT 20H - LIT 9 ?ERROR CLCOM ITEM 0= LIT 9 ?ERROR
+          OPDC @ >RP R RP = 0BRANCH 6CH DUP LIT 6 = LIT 9 ?ERROR SWAP >RP R 0=
+          0BRANCH 0EH LIT 9 OR CPUT BRANCH 3EH R LIT 8 = 0BRANCH 14H LIT 0EDH
+          CPUT LIT 4AH OR CPUT BRANCH 20H R LIT 18H = 0BRANCH 14H LIT 0EDH CPUT
+          LIT 42H OR CPUT BRANCH 2 R> DROP BRANCH 8 LIT 9 ERROR R> DROP BRANCH
+          8AH OPDC @ -XY - LIT 9 ?ERROR SWAP LIT 9 ?ERROR CLCOM ITEM 0= LIT 9
+          ?ERROR OPDC @ >RP R RP = 0BRANCH 2EH DUP LIT 6 = LIT 9 ?ERROR DUP
+          LIT 20H = LIT 9 ?ERROR SWAP CPUT LIT 9 OR CPUT BRANCH 28H R -XY =
+          0BRANCH 18H OVER - LIT 9 ?ERROR CPUT LIT 29H CPUT BRANCH 8 LIT 9
+          ERROR R> DROP ;S
+;
+L55E3:  db 83H
+        00H Z80ADD ADD
+;
+L55EE:  db 83H
+        08H Z80ADD ADC
+;
+L55F9:  db 83H
+        18H Z80ADD SBC
+;
+L5604:  db 86H
+        : Z80ALG <BUILDS C, DOES> C@ ITEM 0= LIT 9 ?ERROR OPDC @ >RP R -REG =
+          0BRANCH 10H LIT 80H OR OR CPUT BRANCH 7CH R -NUM = R -SYM = OR
+          0BRANCH 14H EXPRN SWAP LIT 0C6H OR CPUT CPUT BRANCH 58H R RPI =
+          0BRANCH 1CH CLIND LIT 20H - LIT 9 ?ERROR LIT 86H OR CPUT BRANCH 34H
+          R -XYI = 0BRANCH 24H CLPLUS SYMNUMS 0= LIT 9 ?ERROR CLIND SWAP CPUT
+          SWAP LIT 86H OR CPUT CPUT BRANCH 8 LIT 9 ERROR R> DROP ;S
+;
+L56BF:  db 83H
+        10H Z80ALG SUB
+;
+L56CA:  db 83H
+        20H Z80ALG AND
+;
+L56D5:  db 82H
+        30H Z80ALG OR
+;
+L56DF:  db 83H
+        28H Z80ALG XOR
+;
+L56EA:  db 82H
+        38H Z80ALG CP
+;
+L56F4:  db 0C8H
+        VOCABULARY FLOATING
+|        L4F0C
+|FLOATING:_ATIVATE VOCABULARY
+|        0A081H
+|        L5F83
+|L5707:  L34BD
+;
+L5709:  EX DE,HL
+L570A:  PUSH HL
+L570B:  LD HL,0000H
+L570E:  AND A
+L570F:  SBC HL,DE
+L5711:  POP DE
+L5712:  EXX
+L5713:  EX DE,HL
+L5714:  PUSH HL
+L5715:  LD HL,0000H
+L5718:  SBC HL,DE
+L571A:  POP DE
+L571B:  EXX
+L571C:  RET
+L571D:  PUSH AF
+L571E:  EXX
+L571F:  LD A,H
+L5720:  OR L
+L5721:  EXX
+L5722:  OR H
+L5723:  OR L
+L5724:  JR Z,L575C
+L5726:  LD A,H
+L5727:  OR L
+L5728:  EXX
+L5729:  OR L
+L572A:  EXX
+L572B:  JR NZ,L573B
+L572D:  EXX
+L572E:  LD A,H
+L572F:  EXX
+L5730:  CP 80H
+L5732:  JR NZ,L573B
+L5734:  EXX
+L5735:  SRA H
+L5737:  EXX
+L5738:  INC B
+L5739:  POP AF
+L573A:  RET
+L573B:  EXX
+L573C:  LD A,H
+L573D:  EXX
+L573E:  AND A
+L573F:  PUSH AF
+L5740:  CALL M,L5709
+L5743:  EXX
+L5744:  BIT 6,H
+L5746:  EXX
+L5747:  JR NZ,L5756
+L5749:  SLA L
+L574B:  RL  H
+L574D:  EXX
+L574E:  RL  L
+L5750:  RL  H
+L5752:  EXX
+L5753:  DEC B
+L5754:  JR L5743
+L5756:  POP AF
+L5757:  CALL M,L5709
+L575A:  POP AF
+L575B:  RET
+L575C:  LD B,00H
+L575E:  POP AF
+L575F:  RET
+L5760:  PUSH AF
+L5761:  LD A,0C0H
+L5763:  EXX
+L5764:  OR H
+L5765:  AND L
+L5766:  EXX
+L5767:  AND H
+L5768:  AND L
+L5769:  INC A
+L576A:  JR Z,L5774
+L576C:  INC HL
+L576D:  LD A,H
+L576E:  OR L
+L576F:  JR NZ,L5774
+L5771:  EXX
+L5772:  INC HL
+L5773:  EXX
+L5774:  POP AF
+L5775:  RET
+L5776:  DEC A
+L5777:  JR Z,L5785
+L5779:  EXX
+L577A:  SRA H
+L577C:  RR  L
+L577E:  EXX
+L577F:  RR  H
+L5781:  RR  L
+L5783:  JR L5776
+L5785:  EXX
+L5786:  SRA H
+L5788:  RR  L
+L578A:  EXX
+L578B:  RR  H
+L578D:  RR  L
+L578F:  CALL C,L5760
+L5792:  RET
+L5793:  EXX
+L5794:  LD A,D
+L5795:  OR E
+L5796:  EXX
+L5797:  OR D
+L5798:  OR E
+L5799:  RET Z
+L579A:  EXX
+L579B:  LD A,H
+L579C:  OR L
+L579D:  EXX
+L579E:  OR H
+L579F:  OR L
+L57A0:  JR NZ,L57A8
+L57A2:  EXX
+L57A3:  EX DE,HL
+L57A4:  EXX
+L57A5:  EX DE,HL
+L57A6:  LD B,C
+L57A7:  RET
+L57A8:  LD A,B
+L57A9:  CP C
+L57AA:  JR Z,L57E4
+L57AC:  NEG
+L57AE:  ADD A,C
+L57AF:  JP P,L57B4
+L57B2:  NEG
+L57B4:  CP 1FH
+L57B6:  JR C,L57CA
+L57B8:  LD A,B
+L57B9:  XOR C
+L57BA:  JP M,L57C1
+L57BD:  LD A,B
+L57BE:  SUB C
+L57BF:  JR L57C2
+L57C1:  LD A,B
+L57C2:  AND A
+L57C3:  RET P
+L57C4:  EXX
+L57C5:  EX DE,HL
+L57C6:  EXX
+L57C7:  EX DE,HL
+L57C8:  LD B,C
+L57C9:  RET
+L57CA:  PUSH AF
+L57CB:  LD A,B
+L57CC:  XOR C
+L57CD:  JP M,L57D4
+L57D0:  LD A,B
+L57D1:  SUB C
+L57D2:  JR L57D5
+L57D4:  LD A,B
+L57D5:  AND A
+L57D6:  JP M,L57DF
+L57D9:  EXX
+L57DA:  EX DE,HL
+L57DB:  EXX
+L57DC:  EX DE,HL
+L57DD:  JR L57E0
+L57DF:  LD B,C
+L57E0:  POP AF
+L57E1:  CALL L5776
+L57E4:  CALL L57E8
+L57E7:  RET
+L57E8:  ADD HL,DE
+L57E9:  EXX
+L57EA:  ADC HL,DE
+L57EC:  EXX
+L57ED:  JP PO,L57FE
+L57F0:  EXX
+L57F1:  RR  H
+L57F3:  RR  L
+L57F5:  EXX
+L57F6:  RR  H
+L57F8:  RR  L
+L57FA:  INC B
+L57FB:  CALL C,L5760
+L57FE:  CALL L571D
+L5801:  RET
+L5802:  LD E,B
+L5803:  LD D,00H
+L5805:  BIT 7,E
+L5807:  JR Z,L580A
+L5809:  DEC D
+L580A:  POP BC
+L580B:  PUSH HL
+L580C:  EXX
+L580D:  PUSH HL
+L580E:  EXX
+L580F:  PUSH DE
+L5810:  JP L012C
+L5813:  PUSH AF
+L5814:  LD A,B
+L5815:  LD B,C
+L5816:  LD C,A
+L5817:  POP AF
+L5818:  EXX
+L5819:  EX DE,HL
+L581A:  EXX
+L581B:  EX DE,HL
+L581C:  RET
+L581D:  EXX
+L581E:  LD A,H
+L581F:  EXX
+L5820:  AND A
+L5821:  CALL M,L5709
+L5824:  RET
+L5825:  EXX
+L5826:  LD A,D
+L5827:  EXX
+L5828:  AND A
+L5829:  RET P
+L582A:  CALL L5813
+L582D:  CALL L581D
+L5830:  CALL L5813
+L5833:  RET
+L5834:  EXX
+L5835:  LD A,D
+L5836:  XOR H
+L5837:  EXX
+L5838:  PUSH AF
+L5839:  CALL L581D
+L583C:  CALL L5825
+L583F:  CALL L5847
+L5842:  POP AF
+L5843:  CALL M,L5709
+L5846:  RET
+L5847:  LD A,B
+L5848:  ADD A,C
+L5849:  PUSH AF
+L584A:  EXX
+L584B:  LD B,H
+L584C:  LD C,L
+L584D:  LD HL,0000H
+L5850:  EXX
+L5851:  LD B,H
+L5852:  LD C,L
+L5853:  LD HL,0000H
+L5856:  LD A,20H
+L5858:  ADD HL,HL
+L5859:  EXX
+L585A:  ADC HL,HL
+L585C:  EXX
+L585D:  EX DE,HL
+L585E:  ADC HL,HL
+L5860:  EX DE,HL
+L5861:  EXX
+L5862:  EX DE,HL
+L5863:  ADC HL,HL
+L5865:  EX DE,HL
+L5866:  EXX
+L5867:  JR NC,L587A
+L5869:  ADD HL,BC
+L586A:  EXX
+L586B:  ADC HL,BC
+L586D:  EXX
+L586E:  JR NC,L587A
+L5870:  INC DE
+L5871:  PUSH AF
+L5872:  LD A,D
+L5873:  OR E
+L5874:  JR NZ,L5879
+L5876:  EXX
+L5877:  INC DE
+L5878:  EXX
+L5879:  POP AF
+L587A:  DEC A
+L587B:  JR NZ,L5858
+L587D:  POP AF
+L587E:  LD B,A
+L587F:  EXX
+L5880:  RL H
+L5882:  EXX
+L5883:  RL E
+L5885:  RL D
+L5887:  EXX
+L5888:  RL E
+L588A:  RL D
+L588C:  BIT 7,H
+L588E:  EX DE,HL
+L588F:  EXX
+L5890:  EX DE,HL
+L5891:  CALL NZ,L5760
+L5894:  CALL L571D
+L5897:  RET
+L5898:  PUSH AF
+L5899:  EXX
+L589A:  LD A,H
+L589B:  EXX
+L589C:  AND A
+L589D:  PUSH AF
+L589E:  CALL M,L5709
+L58A1:  LD A,B
+L58A2:  CP 1FH
+L58A4:  JR Z,L58C2
+L58A6:  JR C,L58B5
+L58A8:  DEC B
+L58A9:  SLA L
+L58AB:  RL  H
+L58AD:  EXX
+L58AE:  RL  L
+L58B0:  RL  H
+L58B2:  EXX
+L58B3:  JR L58A1
+L58B5:  INC B
+L58B6:  EXX
+L58B7:  SRA H
+L58B9:  RR  L
+L58BB:  EXX
+L58BC:  RR  H
+L58BE:  RR  L
+L58C0:  JR L58A1
+L58C2:  POP AF
+L58C3:  CALL M,L5709
+L58C6:  POP AF
+L58C7:  RET
+L58C8:  POP DE
+L58C9:  EXX
+L58CA:  POP HL
+L58CB:  EXX
+L58CC:  POP HL
+L58CD:  PUSH BC
+L58CE:  LD A,E
+L58CF:  LD B,1FH
+L58D1:  CALL L571D
+L58D4:  AND A
+L58D5:  JR Z,L5902
+L58D7:  JP M,L58EE
+L58DA:  LD DE,0000H
+L58DD:  EXX
+L58DE:  LD DE,5000H
+L58E1:  EXX
+L58E2:  LD C,04H
+L58E4:  PUSH AF
+L58E5:  CALL L5834
+L58E8:  POP AF
+L58E9:  DEC A
+L58EA:  JR NZ,L58DA
+L58EC:  JR L5902
+L58EE:  NEG
+L58F0:  LD DE,0000H
+L58F3:  EXX
+L58F4:  LD DE,5000H
+L58F7:  EXX
+L58F8:  LD C,04H
+L58FA:  PUSH AF
+L58FB:  CALL L5977
+L58FE:  POP AF
+L58FF:  DEC A
+L5900:  JR NZ,L58F0
+L5902:  JP L5802
+L5905:  EXX
+L5906:  LD A,H
+L5907:  OR L
+L5908:  EXX
+L5909:  OR H
+L590A:  OR L
+L590B:  JR NZ,L5918
+L590D:  LD B,00H
+L590F:  EXX
+L5910:  LD HL,0000H
+L5913:  EXX
+L5914:  LD HL,0000H
+L5917:  RET
+L5918:  EXX
+L5919:  LD A,D
+L591A:  OR E
+L591B:  EXX
+L591C:  OR D
+L591D:  OR E
+L591E:  JR NZ,L592B
+L5920:  LD B,07FH
+L5922:  EXX
+L5923:  LD HL,7FFFH
+L5926:  EXX
+L5927:  LD HL,0FFFFH
+L592A:  RET
+L592B:  LD A,B
+L592C:  SUB C
+L592D:  INC A
+L592E:  PUSH AF
+L592F:  XOR A
+L5930:  LD C,A
+L5931:  LD A,1FH
+L5933:  AND A
+L5934:  SBC HL,DE
+L5936:  EXX
+L5937:  SBC HL,DE
+L5939:  EXX
+L593A:  JR NC,L5942
+L593C:  ADD HL,DE
+L593D:  EXX
+L593E:  ADC HL,DE
+L5940:  EXX
+L5941:  SCF
+L5942:  CCF
+L5943:  RL C
+L5945:  RL B
+L5947:  EXX
+L5948:  RL C
+L594A:  RL B
+L594C:  EXX
+L594D:  SLA L
+L594F:  RL H
+L5951:  EXX
+L5952:  RL L
+L5954:  RL H
+L5956:  EXX
+L5957:  DEC A
+L5958:  JR NZ,L5933
+L595A:  AND A
+L595B:  SBC HL,DE
+L595D:  EXX
+L595E:  SBC HL,DE
+L5960:  EXX
+L5961:  RLA
+L5962:  LD H,B
+L5963:  LD L,C
+L5964:  EXX
+L5965:  LD H,B
+L5966:  LD L,C
+L5967:  EXX
+L5968:  LD C,A
+L5969:  POP AF
+L596A:  LD B,A
+L596B:  RR C
+L596D:  CALL NC L5760
+L5970:  CALL L571D
+L5973:  RET
+L5974:  CALL L5813
+L5977:  EXX
+L5978:  LD A,D
+L5979:  XOR H
+L597A:  EXX
+L597B:  PUSH AF
+L597C:  CALL L581D
+L597F:  CALL L5825
+L5982:  CALL L5905
+L5985:  POP AF
+L5986:  CALL M,L5709
+L5989:  RET
+L598A:  LD C,04H
+L598C:  EXX
+L598D:  LD DE,5000H
+L5990:  EXX
+L5991:  LD DE,0000H
+L5994:  RET
+L5995:  PUSH AF
+L5996:  LD A,B
+L5997:  AND A
+L5998:  JP P,L59AE
+L599B:  LD C,0AH
+L599D:  EXX
+L599E:  LD DE,7D00H
+L59A1:  EXX
+L59A2:  LD DE,0000H
+L59A5:  CALL L5847
+L59A8:  POP AF
+L59A9:  ADD A,0FDH
+L59AB:  PUSH AF
+L59AC:  JR L5996
+L59AE:  LD A,B
+L59AF:  CP 1BH
+L59B1:  JR NC,L59BE
+L59B3:  CALL L598A
+L59B6:  CALL L5847
+L59B9:  POP AF
+L59BA:  DEC A
+L59BB:  PUSH AF
+L59BC:  JR L59AE
+L59BE:  LD C,1BH
+L59C0:  EXX
+L59C1:  LD DE,0A0A1H
+L59C4:  EXX
+L59C5:  LD DE,0F000H
+L59C8:  PUSH HL
+L59C9:  EXX
+L59CA:  PUSH HL
+L59CB:  EXX
+L59CC:  PUSH BC
+L59CD:  CALL L5793
+L59D0:  EXX
+L59D1:  LD A,H
+L59D2:  EXX
+L59D3:  AND A
+L59D4:  POP BC
+L59D5:  EXX
+L59D6:  POP HL
+L59D7:  EXX
+L59D8:  POP HL
+L59D9:  JP P,L59E7
+L59DC:  CALL L598A
+L59DF:  CALL L5847
+L59E2:  POP AF
+L59E3:  DEC A
+L59E4:  PUSH AF
+L59E5:  JR L59BE
+L59E7:  POP AF
+L59E8:  RET
+L59E9:  PUSH AF
+L59EA:  LD A,B
+L59EB:  CP '1'
+L59ED:  JR C,L5A02
+L59EF:  LD C,0AH
+L59F1:  EXX
+L59F2:  LD DE,7D00H
+L59F5:  EXX
+L59F6:  LD DE,0000H
+L59F9:  CALL L5905
+L59FC:  POP AF
+L59FD:  ADD A,03H
+L59FF:  PUSH AF
+L5A00:  JR L59EA
+L5A02:  LD A,B
+L5A03:  CP 1FH
+L5A05:  JR C,L5A12
+L5A07:  CALL L598A
+L5A0A:  CALL L5905
+L5A0D:  POP AF
+L5A0E:  INC A
+L5A0F:  PUSH AF
+L5A10:  JR L5A02
+L5A12:  LD C,1EH
+L5A14:  EXX
+L5A15:  LD DE,88CAH
+L5A18:  EXX
+L5A19:  LD DE,6C00H
+L5A1C:  PUSH HL
+L5A1D:  EXX
+L5A1E:  PUSH HL
+L5A1F:  EXX
+L5A20:  PUSH BC
+L5A21:  CALL L5793
+L5A24:  EXX
+L5A25:  LD A,H
+L5A26:  EXX
+L5A27:  AND A
+L5A28:  POP BC
+L5A29:  EXX
+L5A2A:  POP HL
+L5A2B:  EXX
+L5A2C:  POP HL
+L5A2D:  JP M,L5A3B
+L5A30:  CALL L598A
+L5A33:  CALL L5905
+L5A36:  POP AF
+L5A37:  INC A
+L5A38:  PUSH AF
+L5A39:  JR L5A12
+L5A3B:  POP AF
+L5A3C:  RET
+L5A3D:  EXX
+L5A3E:  LD A,H
+L5A3F:  OR L
+L5A40:  EXX
+L5A41:  OR H
+L5A42:  OR L
+L5A43:  JR Z,L5A72
+L5A45:  EXX
+L5A46:  LD A,H
+L5A47:  EXX
+L5A48:  AND A
+L5A49:  PUSH AF
+L5A4A:  CALL L581D
+L5A4D:  LD A,08H
+L5A4F:  CALL L5995
+L5A52:  CALL L59E9
+L5A55:  PUSH AF
+L5A56:  LD C,03H
+L5A58:  EXX
+L5A59:  LD DE,5000H
+L5A5C:  EXX
+L5A5D:  LD DE,0000H
+L5A60:  CALL L5793
+L5A63:  POP AF
+L5A64:  CALL L59E9
+L5A67:  CALL L5898
+L5A6A:  LD B,A
+L5A6B:  POP AF
+L5A6C:  CALL M,L5709
+L5A6F:  JP L5802
+L5A72:  LD B,00H
+L5A74:  JP L5802
+;
+L5A77:  db 82H
+        CREATE F+
+L5A7E:  EXX
+L5A7F:  POP BC
+L5A80:  LD A,C
+L5A81:  POP HL
+L5A82:  EXX
+L5A83:  POP HL
+L5A84:  EXX
+L5A85:  POP BC
+L5A86:  LD B,A
+L5A87:  POP DE
+L5A88:  EXX
+L5A89:  POP DE
+L5A8A:  PUSH BC
+L5A8B:  EXX
+L5A8C:  PUSH BC
+L5A8D:  EXX
+L5A8E:  POP BC
+L5A8F:  CALL L5793
+L5A92:  JP L5802
+;
+L5A95:  db 82H
+        CREATE F*
+L5A9C:  EXX
+L5A9D:  POP BC
+L5A9E:  LD A,C
+L5A9F:  POP HL
+L5AA0:  EXX
+L5AA1:  POP HL
+L5AA2:  EXX
+L5AA3:  POP BC
+L5AA4:  LD B,A
+L5AA5:  POP DE
+L5AA6:  EXX
+L5AA7:  POP DE
+L5AA8:  PUSH BC
+L5AA9:  EXX
+L5AAA:  PUSH BC
+L5AAB:  EXX
+L5AAC:  POP BC
+L5AAD:  CALL L5834
+L5AB0:  JP L5802
+;
+L5AB3:  db 87H
+        CREATE INTEGER
+L5ABF:  POP DE
+L5AC0:  EXX
+L5AC1:  POP HL
+L5AC2:  EXX
+L5AC3:  POP HL
+L5AC4:  PUSH BC
+L5AC5:  LD B,E
+L5AC6:  CALL L5898
+L5AC9:  POP BC
+L5ACA:  PUSH HL
+L5ACB:  EXX
+L5ACC:  PUSH HL
+L5ACD:  EXX
+L5ACE:  JP L012C
+;
+L5AD1:  db 85H
+        CREATE FLOAT
+L5ADB:  JP L58C8
+;
+L5ADE:  db 82H
+        CREATE F/
+L5AE5:  EXX
+L5AE6:  POP BC
+L5AE7:  LD A,C
+L5AE8:  POP HL
+L5AE9:  EXX
+L5AEA:  POP HL
+L5AEB:  EXX
+L5AEC:  POP BC
+L5AED:  LD B,A
+L5AEE:  POP DE
+L5AEF:  EXX
+L5AF0:  POP DE
+L5AF1:  PUSH BC
+L5AF2:  EXX
+L5AF3:  PUSH BC
+L5AF4:  EXX
+L5AF5:  POP BC
+L5AF6:  CALL L5974
+L5AF9:  JP L5802
+;
+L5AFC:  db 84H
+        CREATE (F.)
+L5B05:  POP DE
+L5B06:  EXX
+L5B07:  POP HL
+L5B08:  EXX
+L5B09:  POP HL
+L5B0A:  PUSH BC
+L5B0B:  LD B,E
+L5B0C:  JP L5A3D
+;
+L5B0F:  db 82H
+        CREATE F-
+L5B16:  EXX
+L5B17:  POP BC
+L5B18:  LD A,C
+L5B19:  POP HL
+L5B1A:  EXX
+L5B1B:  POP HL
+L5B1C:  EXX
+L5B1D:  POP BC
+L5B1E:  LD B,A
+L5B1F:  POP DE
+L5B20:  EXX
+L5B21:  POP DE
+L5B22:  PUSH BC
+L5B23:  EXX
+L5B24:  PUSH BC
+L5B25:  EXX
+L5B26:  POP BC
+L5B27:  CALL L5709
+L5B2A:  CALL L5793
+L5B2D:  JP L5802
+;
+L5B30:  db 82H
+        CREATE F!
+L5B37:  POP HL
+L5B38:  POP DE
+L5B39:  LD (HL),E
+L5B3A:  INC HL
+L5B3B:  LD (HL),D
+L5B3C:  INC HL
+L5B3D:  POP DE
+L5B3E:  LD (HL),E
+L5B3F:  INC HL
+L5B40:  LD (HL),D
+L5B41:  INC HL
+L5B42:  POP DE
+L5B43:  LD (HL),E
+L5B44:  INC HL
+L5B45:  LD (HL),D
+L5B46:  JP L012C
+;
+L5B49:  db 82H
+        CREATE F@
+L5B50:  POP HL
+L5B51:  LD DE,0005H
+L5B54:  ADD HL,DE
+L5B55:  LD D,(HL)
+L5B56:  DEC HL
+L5B57:  LD E,(HL)
+L5B58:  DEC HL
+L5B59:  PUSH DE
+L5B5A:  LD D,(HL)
+L5B5B:  DEC HL
+L5B5C:  LD E,(HL)
+L5B5D:  DEC HL
+L5B5E:  PUSH DE
+L5B5F:  LD D,(HL)
+L5B60:  DEC HL
+L5B61:  LD E,(HL)
+L5B62:  PUSH DE
+L5B63:  JP L012C
+;
+L5B66:  db 85H
+        CREATE FSWAP
+L5B70:  POP DE
+L5B71:  POP HL
+L5B72:  EXX
+L5B73:  POP HL
+L5B74:  POP DE
+L5B75:  POP BC
+L5B76:  EX (SP),HL
+L5B77:  EXX
+L5B78:  PUSH HL
+L5B79:  PUSH DE
+L5B7A:  EXX
+L5B7B:  PUSH HL
+L5B7C:  PUSH BC
+L5B7D:  PUSH DE
+L5B7E:  EXX
+L5B7F:  JP L012C
+;
+L5B82:  db 83H
+        0FFFFH VARIABLE FPL
+;
+L5B8C:  db 88H
+        : (NUMBER) 1+ DUP >RP C@ BASE @ DIGIT 0BRANCH 3CH SWAP BASE @ U* DROP
+          ROT BASE @ U* D+ DPL @ 1+ 0BRANCH 8 1 DPL +! FPL @ 1+ 0BRANCH 8 1 FPL
+          +! R> BRANCH 0FFB6H R> ;S
+;
+L5BE9:  db 85H
+        : PUNCT DUP C@ DUP LIT 2EH = 0BRANCH 16H DROP 0 DPL ! LIT -1 FPL !
+          BRANCH 2EH LIT 2CH = BASE @ LIT 0AH = AND 0BRANCH 14H LIT -1 DPL ! 0
+          FPL ! BRANCH 6 0 ERROR ;S
+;
+L5C45:  db 85H
+        : EXPON FPL @ LIT -1 - 0BRANCH 60H LIT 40H FPL +! 0 0 ROT DUP 1+ C@
+          LIT 2DH = DUP >RP + DPL @ >RP FPL @ >RP (NUMBER) R> FPL ! R> DPL ! C@
+          BL - 0 ?ERROR DROP R> 0BRANCH 4 MINUS FPL @ LIT 40H - - BRANCH 6 DROP
+          0 ;S
+;
+L5CC1:  db 86H
+        : NUMBER 0 0 ROT DUP 1+ C@ LIT 2DH = DUP >RP + LIT -1 DPL ! LIT -1 FPL
+          ! (NUMBER) DUP C@ LIT 45H = BASE @ LIT 0AH = AND DUP >RP 0BRANCH 16H
+          FPL @ LIT -1 = 0BRANCH 8 0 FPL ! DUP C@ BL = R> OR 0= 0BRANCH 8 PUNCT
+          BRANCH 0FFB6H R> SWAP >RP 0BRANCH 4 DMINUS R> EXPON ;S
+;
+L5D52:  db 0C8H
+        : FLITERAL STATE @ 0BRANCH 0CH SWAP ROT LITERAL LITERAL LITERAL ;S
+;
+L5D73:  db 89H
+        : INTERPRET -FIND 0BRANCH 1EH STATE @ < 0BRANCH 0AH CFA , BRANCH 6 CFA
+          EXECUTE ?STACK BRANCH 32H HERE NUMBER FPL @ 1+ 0BRANCH 0AH FLOAT
+          FLITERAL BRANCH 1AH DPL @ 1+ 0BRANCH 0AH DROP DLITERAL BRANCH 8 DROP
+          DROP LITERAL ?STACK BRANCH 0FFACH ;S
+;
+L5DD9:  db 86H
+        : -0S 2DUP + 1 - C@ LIT 30H = 0BRANCH 2CH DUP 0 DO 2DUP + 1 - C@
+          LIT 30H - 0BRANCH 0AH LEAVE 1+ BRANCH 6 1 - LOOP ;S
+;
+L5E24:  db 86H
+        : OUTPUT SWAP OVER DABS <# BASE @ M/MOD ROT DROP LIT 7 0 DO # LOOP
+          LIT 2CH HOLD #S SIGN #> -0S TYPE ;S
+;
+L5E61:  db 82H
+        : F. (F.) >RP OUTPUT R> ."E" . ;S
+;
+L5E78:  db 84H
+        : FABS >RP DABS R> ;S
+;
+L5E89:  db 83H
+        : F0= DROP OR 0= ;S
+;
+L5E99:  db 83H
+        : F0< DROP SWAP DROP 0< ;S
+;
+L5EAB:  db 84H
+        : PICK 2 * SP@ + @ ;S
+;
+L5EC0:  db 84H
+        : FDUP 3 PICK 3 PICK 3 PICK ;S
+;
+L5ED7:  db 85H
+        : FDROP DROP DROP DROP ;S
+;
+L5EE9:  db 85H
+        : FOVER LIT 6 PICK LIT 6 PICK LIT 6 PICK ;S
+;
+L5F07:  db 85H
+        : F2DUP FOVER FOVER ;S
+;
+L5F17:  db 82H
+        : F< 2 PICK LIT 6 PICK XOR 0< 0BRANCH 0AH FDROP F0< BRANCH 6 F- F0< ;S
+;
+L5F3E:  db 82H
+        : F> FSWAP F< ;S
+;
+L5F4B:  db 83H
+        : F>= F< 0= ;S
+;
+L5F59:  db 83H
+        : F<= F> 0= ;S
+;
+L5F67:  db 89H
+        : FCONSTANT <BUILDS , , , DOES> F@ ;S
+;
+L5F83:  db 89H
+        : FVARIABLE <BUILDS , , , DOES> ;S
+;
+L5F9D:  db 84H
+        005CH CONSTANT DFCB
+;
+L5FA8:  db 85H
+        0080H CONSTANT DBUFF
+;
+L5FB4:  db 83H
+        5F80H VARIABLE DMA
+;
+L5FBE:  db 87H
+        00BDH VARIABLE RECNUMB
+;
+L5FCC:  db 85H
+        : READS DMA @ SENDDMA FCB @ XDOSPARAM ! READSEQ XDOSFUNC ! XDOSCALL
+          LIT 80H DMA +! ;S
+;
+L5FF6:  db 85H
+        : READR RECNUMB @ RANREC ! 0 RANOVF C! DMA @ SENDDMA FCB @ XDOSPARAM !
+          READRAN XDOSFUNC ! XDOSCALL LIT 80H DMA +! 1 RECNUMB +! ;S
+;
+L6034:  db 86H
+        : WRITES DMA @ SENDDMA FCB @ XDOSPARAM ! WRTSEQ XDOSFUNC ! XDOSCALL
+          LIT 80H DMA +! ;S
+;
+L605F:  db 86H
+        : WRITER RECNUMB @ RANREC ! 0 RANOVF C! DMA @ SENDDMA FCB @ XDOSPARAM !
+          WRITERAN XDOSFUNC ! XDOSCALL LIT 80H DMA +! 1 RECNUMB +! ;S
+;
+L609E:  db 86H
+        : RANERR XDOSPARAM C@ >RP R 1 = 0BRANCH 20H ." Reading unwritten data "
+          SP! QUIT R 3 = 0BRANCH 25H ." Cannot close current extent " SP! QUIT
+          R LIT 4 = 0BRANCH 22H ." Seeking unwritten extent " SP! QUIT R LIT 5
+          = 0BRANCH 18H ." Directory full " SP! QUIT R LIT 6 = 0BRANCH 1FH
+          ." Seek past end of disc " SP! QUIT R> DROP ;S
+;
+L6181:  db 87H
+        : SETCOLD FORTH DEFINITIONS LATEST LIT 0CH +ORIGIN ! HERE LIT 1CH
+          +ORIGIN ! HERE LIT 1EH +ORIGIN ! VOC-LINK @ LIT 20H +ORIGIN ! HERE
+          FENCE ! ;S
+;
+L61C3:  db 87H
+        : COMFILE LIT L0100 DMA ! 0 RECNUMB ! WRITER RANERR HERE DMA @ U<
+          0BRANCH 0FFF2H ;S
+;
+L61EF:  db 8AH
+        : CREATEFILE DFCB FCB ! CR (." Enter filename " QUERY SETFCB FILENAME
+          C@ BL = 0BRANCH 6 SP! QUIT OPENF XDOSPARAM C@ LIT 0FFH - 0BRANCH 1BH
+          CR ." File exists " SP! QUIT BRANCH 31H MAKEF XDOSPARAM C@ LIT 0FFH =
+          0BRANCH 21H ." No more directory space " SP! QUIT ;S
+;
+L6286:  db 87H
+        : SAVESYS VMF1 FCB ! OPENFLAG @ 0BRANCH 2BH
+          ." Cannot save while block file open " SP! QUIT SETCOLD CREATEFILE
+          COMFILE CLOSEF XDOSPARAM C@ LIT 0FFH = 0BRANCH 1CH CR
+          ." Unable to close file " ;S
+;
+L62FB:  db 85H
+        : (STC) DUP + OVER LIT 1FH > 0BRANCH 0EH LIT 4 LIT 23H BRANCH 0AH
+          LIT 24H LIT 22H D+ LIT 1BH EMIT LIT 59H EMIT EMIT EMIT ;S
+;
+L633D:  db 86H
+        : (SHOW) CLS DECIMAL ." SCR # " SCR @ . SCRHALF @ 0BRANCH 16H
+          ." UPPER" LIT 10H LIT 5 BRANCH 10H ." LOWER" LIT 0BH 0 CR DO CR I 3
+          .R SPACE I SCR @ (LINE) DROP DUP LIT 20H TYPE CR LIT 4 SPACES LIT 20H
+          + LIT 20H TYPE LOOP ;S
+;
+L63BF:  db 86H
+        : (TYPE) DUP LIT 20H > 0BRANCH 1AH LIT 20H - 2DUP TYPE CR LIT 4 SPACES
+          + LIT 20H TYPE ;S
+;
+L63F2:  db 88H
+        : +PRINTER 1 <PRINTER> C! ;S
+;
+L6409:  db 88H
+        : -PRINTER 0 <PRINTER> C! ;S
+;
+L6420:  db 87H
+        : +SCREEN 0 <SCREEN> C! ;S
+;
+L6436:  db 87H
+        : -SCREEN 1 <SCREEN> C! ;S
+;
+L644C:
+ULTPAL: db 84H
+        : PAGE LIT 000CH EMIT ;S
+
+;
+L645D:
+KBO:
+;

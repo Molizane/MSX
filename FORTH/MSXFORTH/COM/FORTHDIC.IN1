@@ -1,0 +1,1955 @@
+;
+;
+; DICIONARIO
+;
+; RETORNA AO DICIONARIO PRINCIPAL
+CFORTH: db 5,'FORTH'
+        dw 0
+        dw RUNF
+        dw ENDF
+;
+CDUP: db 3,'DUP' ; (n1 --- n1 n1)
+      dw CFORTH
+DUP:  dw $+2
+      pop hl
+      push hl
+      jp HPUSH
+;
+; : -DUP DUP IF DUP THEN ;
+CDUPC: db 4,'-DUP' ; (n1 --- se n1 = 0, n1 ; se n1 <> 0, n1 n1)
+       dw CDUP
+DUPC:  dw RUNF
+       dw DUP,BRCH0,DUPC2,DUP
+DUPC2: dw ENDF
+;
+; : U< 2DUP XOR 0< IF DROP 0< 0= ELSE - 0< THEN ;
+CUMEN:  db 2,'U<' ; (n1 n2 --- n1 n2)
+        dw CDUPC
+UMENOR: dw RUNF
+        dw DDUP,XOR,MEN0,BRCH0,UMEN1
+        dw DROP,MEN0,IGU0,ENDF
+UMEN1:  dw MENOS,MEN0,ENDF
+;
+CMENOR: db 1,'<'
+        dw CDUPC
+MENOR:  dw $+2
+        pop de
+MENOR3: pop hl
+MENOR2: and a
+        sbc hl,de
+        ld hl,0
+        jp p,HPUSH
+        dec hl
+        jp HPUSH
+;
+CMAIOR: db 1,'>'
+        dw CMENOR
+MAIOR:  dw $+2
+        pop hl
+        pop de
+        jr MENOR2
+;
+CIGU: db 1,'='
+      dw CMAIOR
+IGU:  dw $+2
+      pop hl
+      pop de
+      and a
+      sbc hl,de
+      ld hl,0
+      jp nz,HPUSH
+      dec hl
+      jp HPUSH
+;
+; : <> = NOT ;
+CDIF: db 2,'<>'
+      dw CIGU
+      dw RUNF
+      dw IGU,NOT,ENDF
+;
+CMEN0: db 2,'0<'
+       dw CDIF
+MEN0:  dw $+2
+       pop hl
+       bit 7,h
+       ld hl,0
+       jp z,HPUSH
+       dec hl
+       jp HPUSH
+;
+CIGU0: db 2,'0='
+       dw CMEN0
+IGU0:  dw $+2
+       pop hl
+       ld a,l
+       or h
+       ld hl,0
+       jp nz,HPUSH
+       dec hl
+       jp HPUSH
+;
+CMAI0: db 2,'0>'
+       dw CIGU0
+MAI0:  dw $+2
+       pop de
+       ld hl,0
+       jr MENOR2
+;
+CROT: db 3,'ROT'
+      dw CMAI0
+ROT:  dw $+2
+      pop de
+      pop hl
+      ex (sp),hl
+      jp DPUSH
+;
+CDROP: db 4,'DROP' ; n1 n2 n3
+       dw CROT
+DROP:  dw $+2
+       pop hl
+       jp NEXT
+;
+CSLA:  db 2,'<<'
+       dw CDROP
+       dw $+2
+       pop de
+       pop hl
+       push bc
+       ld b,e
+SLA1:  sla l
+       rl h
+       djnz SLA1
+       pop bc
+       jp HPUSH
+;
+CSRA:  db 2,'>>'
+       dw CSLA
+       dw $+2
+       pop de
+       pop hl
+       push bc
+       ld b,e
+SRA1:  srl h
+       rr l
+       djnz SRA1
+       pop bc
+       jp HPUSH
+;
+CEMIT: db 4,'EMIT'
+       dw CSRA
+EMIT:  dw $+2
+       pop hl
+       ld a,l
+       call VIDEO
+       jp NEXT
+;
+CKEY: db 3,'KEY'
+      dw CEMIT
+KEY:  dw $+2
+      call TECLA
+      ld l,a
+      ld h,0
+      jp HPUSH
+;
+CINKEY: db 5,'INKEY'
+        dw CKEY
+        dw $+2
+        call IKEY
+        ld l,a
+        ld h,0
+        jp HPUSH
+;
+CLSTKEY: db 7,'LASTKEY'
+         dw CINKEY
+         dw $+2
+         ld a,(LASTK)
+         ld l,a
+         ld h,0
+         jp HPUSH
+;
+CTRAIL: db 9,'-TRAILING'
+        dw CLSTKEY
+        dw $+2
+        pop de
+        pop hl
+        push hl
+        add hl,de
+TR2:    ld a,(hl)
+        cp ' '
+        jr nz,TR1
+        inc hl
+        inc de
+        jr TR2
+TR1:    push de
+        jp NEXT
+;
+CTOGGL: db 6,'TOGGLE'
+        dw CTRAIL
+TOGGLE: dw $+2
+        pop de
+        pop hl
+        ld a,(hl)
+        xor e
+        ld (hl),a
+        jp NEXT
+;
+CTRAV:    db 8,'TRAVERSE'
+          dw CTOGGL
+TRAVERSE: dw RUNF
+TRAV1:    dw SWAP,OVER,MAIS,PUSHN,7FH,OVER,PEK8
+          dw MENOR,BRCH0,TRAV1,SWAP,DROP,ENDF
+;
+CDPL: db 3,'DPL'
+      dw CTRAV
+DPL:  dw $+2
+      ld hl,PDPL
+      jp HPUSH
+;
+CHLD: db 3,'HLD'
+      dw CDPL
+HLD:  dw $+2
+      ld hl,PHLD
+      jp HPUSH
+;
+; : HOLD -1 HLD +! HLD @ C! ;
+CHOLD: db 4,'HOLD'
+       dw CHLD
+HOLD:  dw RUNF
+       dw TRUE,HLD,SOMEM,HLD
+       dw PEK16,POK8,ENDF
+;
+CPAD: db 3,'PAD'
+      dw CHOLD
+PAD:  dw $+2
+      ld hl,(PRECOMP)
+      ld de,44H
+      add hl,de
+      jp HPUSH
+;
+CCOUNT: db 5,'COUNT'
+        dw CPAD
+        dw $+2
+        pop hl
+        ld e,(hl)
+        ld d,0
+        inc hl
+        ex de,hl
+        jp DPUSH
+;
+CLBP: db 3,'LBP'
+      dw CCOUNT
+LBP:  dw $+2
+      ld hl,PLBP
+      jp HPUSH
+;
+CADORG: db 7,'+ORIGIN'
+        dw CLBP
+ADDORG: dw RUNF
+        dw PUSHN,FORTH,MAIS,ENDF
+;
+INPUT: dw $+2
+       ld hl,1
+       ld (PBUF),hl
+       ld hl,(BFTC)
+       push hl
+       inc hl
+       ld (PLBP),hl
+       ld hl,0
+       push hl
+       jr EXPECT+2
+;
+CEXPECT: db 6,'EXPECT'
+         dw CADORG
+EXPECT:  dw $+2
+         exx
+         pop de
+         pop hl
+         push hl
+         inc hl
+EXP6:    ld bc,1
+EXP3:    call TECLA
+         cp 3            ; <CONTROL-C>
+         jr nz,EXP8
+         ld a,'^'
+         call VIDEO
+         ld a,'C'
+         call VIDEO
+         xor a
+         ld (MSX_INTFLG),a
+         jr EXPA
+EXP8:    cp 27           ; <ESC>
+         jr nz,EXP1
+         ld b,c
+         dec c
+EXP8X:   ld a,8
+         call VIDEO
+         ld a,' '
+         call VIDEO
+         ld a,8
+         call VIDEO
+         djnz EXP8X
+EXPA:    ld bc,1
+         jr EXP5
+EXP1:    cp 1DH           ; 29d (<-)
+         jr nz,EXP2
+         dec bc
+         ld a,c
+         or b
+         jr z,EXP6
+         inc de
+         dec hl
+         ld a,8
+         call VIDEO
+         ld a,' '
+         call VIDEO
+         ld a,8
+         call VIDEO
+         jr EXP3
+EXP2:    cp 8            ; <BS>
+         jr z,EXP1+4
+         cp 1CH           ; 28d (->)
+         jr nz,EXP4
+         ld a,(hl)
+         jr EXP7
+EXP4:    cp 18   ; TECLA <INSERT>
+         jr nz,EXPB
+         ld a,(MSX_CSTYLE)
+         and a
+         ld a,0
+         jr nz,MUDCURS
+         inc a
+MUDCURS: ld (MSX_CSTYLE),a
+         jr EXP3
+EXPB:    cp 13           ; <ENTER>
+         jr z,EXP5
+EXP7:    bit 7,a
+         jr nz,EXP9
+         cp ' '
+         jp m,EXP3
+EXP9:    cp 7FH         ; 127 (DEL)
+         jr z,EXP3
+         ld (hl),a
+         inc hl
+         inc bc
+         dec de
+         call VIDEO
+         ld a,e
+         or d
+         jp nz,EXP3
+EXP5:    ld (hl),0
+         pop hl
+         dec bc
+         ld a,c
+         ld (hl),a
+         jp RG
+;
+CCRS:    dw '_'
+CCRL:    dw '_'
+;
+CCURSOR: db 6,'CURSOR'
+         dw CEXPECT
+         dw $+2
+         ld hl,CCRS
+         jp HPUSH
+;
+COFFSET: db 6,'OFFSET'
+         dw CCURSOR
+OFFSET:  dw $+2
+         ld hl,POFFSET
+         jp HPUSH
+;
+CRNUM: db 2,'R#'
+       dw COFFSET
+RNUM:  dw $+2
+       ld hl,PRNUM
+       jp HPUSH
+;
+CRAND: db 4,'RAND'
+       dw CRNUM
+       dw $+2
+       push bc
+       ld hl,(SEMT)
+       ld b,8
+RND1:  ld a,l
+       rra
+       rra
+       xor h
+       rra
+       rra
+       rr h
+       rr l
+       djnz RND1
+       ld (SEMT),hl
+       pop bc
+       jp HPUSH
+;
+CSEED: db 4,'SEED'
+       dw CRAND
+       dw $+2
+       ld hl,SEMT
+       jp HPUSH
+;
+CROLL: db 4,'ROLL'
+       dw CSEED
+ROLL:  dw $+2
+       exx
+       pop hl
+       add hl,hl
+       push hl
+       inc hl
+       add hl,sp
+       push hl
+       ld b,(hl)
+       dec hl
+       ld c,(hl)
+       pop de
+       pop hl
+       push bc
+       ld b,h
+       ld c,l
+       ld hl,-2
+       add hl,de
+       lddr
+       pop de
+       jp RG
+;
+CWORD: db 4,'WORD'
+       dw CROLL
+WORD:  dw $+2
+       exx
+       ld hl,(PLBP)
+       ld de,(PRECOMP)
+       pop bc
+       ld a,' '
+       cp c
+       jr nz,WOR1
+WOR2:  cp (hl)
+       jr nz,WOR1
+       inc hl
+       jr WOR2
+WOR1:  push hl
+WOR5:  inc b
+       inc hl
+       ld a,(hl)
+       cp c
+       jr z,WOR3
+       and a
+       jr z,WOR6
+       jr WOR5
+WOR3:  ld a,' '
+       inc hl
+WOR8:  cp (hl)
+       jr nz,WOR7
+       inc hl
+       jr WOR8
+WOR7:  ld a,(hl)
+       and a
+       jr nz,WOR9
+WOR6:  push hl
+       ld hl,0
+       ld (PBUF),hl
+       pop hl
+WOR9:  ld (PLBP),hl
+       ld a,b
+       ld (de),a
+       inc de
+       pop hl
+WORA:  ld a,(hl)
+       call UPCASE
+       ld (de),a
+       inc hl
+       inc de
+       djnz WORA
+RG:    exx
+       jp NEXT
+;
+UPCASE: push hl
+        ld l,a
+        ld a,(FUPCS)
+        and a
+        jr nz,UP1
+        ld a,l
+        pop hl
+        ret
+UP1:    ld a,l
+        cp 'a'
+        jp m,UP2
+        cp 'z'+1
+        jp p,UP2
+        sub 20H
+UP2:    pop hl
+        ret
+;
+CECAPS: db 4,'CAPS'
+        dw CWORD
+ECAPS:  dw $+2
+        ld hl,FUPCS
+        jp HPUSH
+;
+; : UPCASE CAPS 1SET ;
+CUCASE: db 6,'UPCASE'
+        dw CECAPS
+UCASE:  dw RUNF
+        dw ECAPS,SET,ENDF
+;
+; : LOWCASE CAPS 0SET ;
+CLCASE: db 7,'LOWCASE'
+        dw CUCASE
+LCASE:  dw RUNF
+        dw ECAPS,RESET,ENDF
+;
+CSEARCH: db 6,'SEARCH'
+         dw CLCASE
+SEARCH:  dw $+2
+         exx
+         pop hl
+SEAR4:   push hl
+         ld de,(PRECOMP)
+         ld c,0
+         ld a,(de)
+         cp (hl)
+         jr nz,SEAR1
+         ld b,a
+SEAR2:   inc hl
+         inc de
+         ld a,(de)
+         cp (hl)
+         jr nz,SEAR1
+         djnz SEAR2
+         ld de,3
+         add hl,de
+         pop de
+         push hl
+         jr SEAR3
+SEAR1:   pop hl
+         ld d,0
+         ld e,(hl)
+         inc de
+         add hl,de
+         ld e,(hl)
+         inc hl
+         ld d,(hl)
+         ex de,hl
+         ld a,h
+         or l
+         jr nz,SEAR4
+         ld c,1
+SEAR3:   ld b,0
+         push bc
+         jp RG
+;
+CEXEC: db 7,'EXECUTE'
+       dw CSEARCH
+EXEC:  dw $+2
+       pop hl
+       jp RO1
+;
+CMODE: db 4,'MODE'
+       dw CEXEC
+MODE: dw $+2
+      ld hl,PMOD
+      jp HPUSH
+;
+CABORT: db 5,'ABORT'
+        dw CMODE
+ABORT:  dw SCANBUF
+;
+CQUIT: db 4,'QUIT'
+       dw CABORT
+       dw SCANBUF+4
+;
+CCOLD: db 4,'COLD'
+       dw CQUIT
+       dw RUNF
+       dw NEW,CQUIT-2 ; ABORT
+;
+; : HOT NEW ??? ;
+CHOT: db 3,'HOT'
+      dw CCOLD
+      dw RUNF
+      dw NEW,CINIC
+;
+B_LOOP: dw $+2
+        pop hl
+        ld (ix-4),l
+        ld (ix-3),h
+        pop hl
+        ld (ix-2),l
+        ld (ix-1),h
+        ld de,0FFFCH
+        add ix,de
+        jp NEXT
+;
+LEAVE: dw $+2
+       ld a,(ix+0)
+       ld (ix+2),a
+       ld a,(ix+1)
+       ld (ix+3),a
+       jp NEXT
+;
+S_LOOP: dw $+2
+        pop de
+        jr LOOP1
+;
+LOOP:  dw $+2
+       ld de,1
+LOOP1: push de
+       rl d
+       pop de
+       ex af,af'
+       ld l,(ix+0)
+       ld h,(ix+1)
+       add hl,de
+       ld (ix+0),l
+       ld (ix+1),h
+LOOP2: ld e,(ix+2)
+       ld d,(ix+3)
+       ex af,af'
+       jr nc,LOOP3
+       ex de,hl
+LOOP3: xor a
+       sbc hl,de
+       jp m,BRCH+2
+       ld de,4
+       add ix,de
+       inc bc
+       inc bc
+       jp NEXT
+;
+LEAVEX: dw $+2
+        ld de,4
+        add ix,de
+        jp BRCH+2
+;
+CERASE: db 5,'ERASE'
+        dw CHOT
+ERASE:  dw RUNF
+        dw ZERO,FILL,ENDF
+;
+CFILL: db 4,'FILL'
+       dw CERASE
+FILL:  dw $+2
+       exx
+       pop bc
+       ld a,c
+       pop bc
+       pop hl
+       ld (hl),a
+       push hl
+       pop de
+       inc de
+       dec bc
+       ldir
+       jp RG
+;
+CCMOVE: db 5,'CMOVE'
+        dw CFILL
+CMOVE:  dw $+2
+        exx
+        pop bc
+        pop de
+        pop hl
+        ldir
+        jp RG
+;
+CPOK16: db 1,'!'
+        dw CCMOVE
+POK16:  dw $+2
+        pop hl
+        pop de
+        ld (hl),e
+        inc hl
+        ld (hl),d
+        jp NEXT
+;
+CPEK16: db 1,'@'
+        dw CPOK16
+PEK16:  dw $+2
+        pop hl
+        ld e,(hl)
+        inc hl
+        ld d,(hl)
+        push de
+        jp NEXT
+;
+CPO16I: db 2,'!+'
+        dw CPEK16
+        dw $+2
+        pop hl
+        pop de
+        ld (hl),e
+        inc hl
+        ld (hl),d
+        inc hl
+        jp HPUSH
+;
+CPE16I: db 2,'@+'
+        dw CPO16I
+PE16I:  dw $+2
+        pop hl
+        ld e,(hl)
+        inc hl
+        ld d,(hl)
+        inc hl
+        ex de,hl
+        jp DPUSH
+;
+CPOK8: db 2,'C!'
+       dw CPE16I
+POK8:  dw $+2
+       pop hl
+       pop de
+       ld (hl),e
+       jp NEXT
+;
+CPEK8: db 2,'C@'
+       dw CPOK8
+PEK8:  dw $+2
+       pop hl
+       ld e,(hl)
+       ld d,0
+       push de
+       jp NEXT
+;
+CPO8I: db 3,'C!+'
+       dw CPEK8
+PO8I:  dw $+2
+       pop hl
+       pop de
+       ld (hl),e
+       inc hl
+       jp HPUSH
+;
+CPE8I: db 3,'C@+'
+       dw CPO8I
+PE8I:  dw $+2
+       pop hl
+       ld e,(hl)
+       ld d,0
+       inc hl
+       ex de,hl
+       jp DPUSH
+;
+; : ? @ . ;
+CI16: db 1,'?'
+      dw CPE8I
+      dw RUNF
+      dw PEK16,IMPSS,ENDF
+;
+; : ?+ @+ . ;
+CI16I: db 2,'?+'
+       dw CI16
+       dw RUNF
+       dw PE16I,IMPSS,ENDF
+;
+; : C? C@ . ;
+CI8: db 2,'C?'
+     dw CI16I
+     dw RUNF
+     dw PEK8,IMPSS,ENDF
+;
+; : C?+ C@+ . ;
+CI8I: db 3,'C?+'
+      dw CI8
+      dw RUNF
+      dw PE8I,IMPSS,ENDF
+;
+CSPEK: db 3,'SP@'
+       dw CI8I
+SPOS:  dw $+2
+       ld hl,0
+       add hl,sp
+       jp HPUSH
+;
+CSPOK: db 3,'SP!'
+       dw CSPEK
+       dw $+2
+       pop hl
+       ld (PPP),hl
+       ld sp,hl
+       jp NEXT
+;
+CS0: db 2,'S0'
+     dw CSPOK
+S0:  dw $+2
+     ld hl,PPP
+     jp HPUSH
+;
+; : DEPTH S0 @ SP@ - / 1- ;
+CDEPTH: db 5,'DEPTH'
+        dw CS0
+        dw RUNF
+        dw S0,PEK16,SPOS,MENOS
+        dw DIV,MENOS1,ENDF
+;
+CINRP: db 2,'>R'
+       dw CDEPTH
+INRP:  dw $+2
+       pop hl
+       dec ix
+       ld (ix),h
+       dec ix
+       ld (ix),l
+       jp NEXT
+;
+COUTRP: db 2,'R>'
+        dw CINRP
+OUTRP:  dw $+2
+        ld l,(ix)
+        inc ix
+        ld h,(ix)
+        inc ix
+        jp HPUSH
+;
+CLERP: db 1,'R'
+       dw COUTRP
+LERP:  dw $+2
+       ld l,(ix)
+       ld h,(ix+1)
+       jp HPUSH
+;
+CFWORD: db 5,'FWORD'
+        dw CLERP
+FWORD:  dw $+2
+        ld hl,PBUF
+        jp HPUSH
+;
+; : END, , , ;
+CMARK_E: db 4,'END,'
+         dw CFWORD
+MARK_E:  dw RUNF
+         dw POKD16,POKD16,ENDF
+;
+CLELOOP: db 1,'I'
+         dw CMARK_E
+LELOOP:  dw $+2
+         ld l,(ix)
+         ld h,(ix+1)
+         jp HPUSH
+;
+CRESET: db 4,'0SET'
+        dw CLELOOP
+RESET:  dw $+2
+        pop hl
+        ld (hl),0
+        inc hl
+        ld (hl),0
+        jp NEXT
+;
+CSET: db 4,'1SET'
+      dw CRESET
+SET:  dw $+2
+      pop hl
+      ld (hl),-1
+      inc hl
+      ld (hl),-1
+      jp NEXT
+;
+CBRCH0: db 7,'0BRANCH'
+        dw CSET
+BRCH0:  dw $+2
+        pop hl
+        ld a,l
+        or h
+        jr z,BRCH+2
+        inc bc
+        inc bc
+        jp NEXT
+;
+CBRCH: db 6,'BRANCH'
+       dw CBRCH0
+BRCH:  dw $+2
+       ld a,(bc)
+       ld l,a
+       inc bc
+       ld a,(bc)
+       ld b,a
+       ld c,l
+       jp NEXT
+;
+CPAGE: db 4,'PAGE'
+       dw CBRCH
+       dw $+2
+       push bc
+       call CLS
+       pop bc
+       jp NEXT
+;
+CBASE: db 4,'BASE'
+       dw CPAGE
+BASE:  dw $+2
+       ld hl,PBAS
+       jp HPUSH
+;
+CNUMBER: db 6,'NUMBER'
+         dw CBASE
+NUMBER:  dw RUNF
+         dw DPL,RESET,PUSHN,TUN,RESET
+         dw ZERO,ZERO,HERE,HERE,PEK8,SWAP
+         dw MAIS1,DUP,PEK8,PUSHN,'-',IGU
+         dw BRCH0,NUMB1,DPL,SET,MAIS1,ONE
+         dw BRCH,NUMB1+2
+NUMB1:   dw ZERO,THREE,ROLL,SWAP,B_LOOP
+NUMB2:   dw DUP,PEK8,DUP,PUSHN,'.',IGU
+         dw BRCH0,NUMB3,PUSHN,TUN,SET
+         dw DROP,BRCH,NUMB4
+NUMB3:   dw BASE,PEK16,DIGIT,IGU0,BRCH0
+         dw NUMB9,LEAVEX,NUMB5
+NUMB9:   dw DSWAP,BASE,PEK16,UVEZES,DSWAP
+         dw BASE,PEK16,UVEZES,DROP,DMAIS
+         dw SWAP,THREE,ROLL
+NUMB4:   dw MAIS1,LOOP,NUMB2,DROP,SWAP,PUSHN
+         dw TUN,PEK16,IGU0,BRCH0,NUMB8,DROP
+NUMB8:   dw DPL,PEK16,BRCH0,NUMB6,PUSHN
+         dw TUN,PEK16,BRCH0,NUMB7,DMINUS
+         dw BRCH,NUMB6
+NUMB7:   dw MINUS
+NUMB6:   dw TRUE,ENDF
+NUMB5:   dw DDROP,DDROP,ZERO,ENDF
+;
+RM1:  ld a,d
+      xor b
+      ex af,af'
+      ld a,d
+      and a
+      jp p,RM11
+      ld hl,0
+      sbc hl,de
+      ex de,hl
+RM11: ld h,b
+      ld l,c
+      ld a,b
+      and a
+      ret p
+      ld hl,0
+      sbc hl,bc
+      ret
+;
+RM2:  ld a,l
+      ld bc,800H
+      ld h,c
+      ld l,c
+RM22: add hl,hl
+      adc a,a
+      jr nc,RM21
+      add hl,de
+      adc a,c
+RM21: djnz RM22
+      ld c,a
+      ret
+;
+RM3:  ex af,af'
+      ret p
+      ex de,hl
+      ld hl,0
+      sbc hl,de
+      ret
+;
+CVEZES: db 1,'*'
+        dw CNUMBER
+VEZES:  dw $+2
+        exx
+        pop hl
+        pop de
+        push hl
+        push de
+        xor a
+        sbc hl,de
+        pop de
+        pop hl
+        jp m,VEZ0
+        ex de,hl
+VEZ0:   ld a,h
+        ld c,l
+        ld hl,0
+        ld b,16
+        rra
+        rr c
+VEZ1:   jr nc,VEZ2
+        add hl,de
+VEZ2:   rr h
+        rr l
+        rra
+        rr c
+        djnz VEZ1
+        ld h,a
+        ld l,c
+        push hl
+        jp RG
+;
+;
+;  Rotina elaborada usando o metodo
+; do deslocamento
+;
+;        exx
+;        pop hl
+;        pop bc
+;        ld de,0
+;        push hl
+;        push bc
+;        xor a
+;        sbc hl,bc
+;        jp m,VEZ0
+;        pop bc
+;        pop hl
+;        jr VEZ1
+;VEZ0:   pop hl
+;        pop bc
+;VEZ1:   srl b
+;        rr c
+;        jr nc,VEZ2
+;        push hl
+;        add hl,de
+;        ex de,hl
+;        pop hl
+;VEZ2:   add hl,hl
+;        ld a,b
+;        or c
+;        jr nz,VEZ1
+;        push de
+;        jp RG
+;
+;
+; Rotina anterior (original)
+;
+;        exx
+;        pop bc
+;        pop de
+;        call RM1
+;        call RM2
+;        call RM3
+;        push hl
+         jp RG
+;
+CMAIS: db 1,'+'
+       dw CVEZES
+MAIS:  dw $+2
+       pop hl
+       pop de
+       add hl,de
+       jp HPUSH
+;
+CMENOS: db 1,'-'
+       dw CMAIS
+MENOS: dw $+2
+       pop de
+       pop hl
+       and a
+       sbc hl,de
+       jp HPUSH
+;
+CDMOD: db 5,'D/MOD' ; 2 0 '/' (ZERO SWAP D/MOD DROP)
+       dw CMENOS
+DMOD:  dw $+2
+       exx
+       pop hl ; 0
+       pop de ; 0
+       pop bc ; 2
+       ld a,h
+       or l
+       jp z,ZRDIV
+       ld a,h
+       xor d
+       ex af,af'
+       ld a,l
+       and a
+       jp p,DMOD1
+       neg
+DMOD1: ld d,a
+       ld h,b
+       ld l,c
+       ld a,e
+       ld e,d
+       and a
+       jp p,DMOD2
+       cpl
+       ld hl,0
+       sbc hl,bc
+       jr nz,DMOD2
+       inc a
+DMOD2: ld d,a
+       call DMOD3
+       call RM3
+       push hl
+       push bc
+       jp RG
+
+DMOD3: ld b,16
+DMOD5: add hl,hl
+       ld a,d
+       adc a,d
+       ld d,a
+       sub e
+       jp m,DMOD4
+       inc l
+       ld d,a
+DMOD4: djnz DMOD5
+       ld c,d
+       ret
+;
+CBLANK: db 5,'BLANK'
+        dw CDMOD
+BLANK:  dw $+2
+        ld hl,' '
+        jp HPUSH
+;
+CSPACE: db 5,'SPACE'
+        dw CBLANK
+SPACE:  dw $+2
+        ld a,' '
+        call VIDEO
+        jp NEXT
+;
+CSTRING: db 6,'STRING'
+         dw CSPACE
+STRING:  dw RUNF
+         dw SWAP,ZERO,MAX,DUPC,BRCH0
+         dw STRING2,ZERO,B_LOOP
+STRING1: dw DUP,EMIT,LOOP,STRING1
+STRING2: dw DROP,ENDF
+;
+CSPACS: db 6,'SPACES'
+        dw CSTRING
+SPACS:  dw RUNF
+        dw BLANK,STRING,ENDF
+;
+CZEROS: db 5,'ZEROS'
+        dw CSPACS
+ZEROS:  dw RUNF
+        dw PUSHN,'0',STRING,ENDF
+;
+CMAX: db 3,'MAX'
+      dw CZEROS
+MAX:  dw RUNF
+      dw DDUP,MENOR,BRCH0,MAX2,SWAP
+MAX2: dw DROP,ENDF
+;
+CMIN: db 3,'MIN'
+      dw CMAX
+MIN:  dw RUNF
+      dw DDUP,MAIOR,BRCH0,MIN2,SWAP
+MIN2: dw DROP,ENDF
+;
+CASCII: db 5,'ASCII'
+        dw CMIN
+ASCII:  dw $+2
+        pop hl
+        ld a,l
+        and 15
+        add a,30H
+        cp 3AH
+        jr c,ASCI1
+        add a,7
+ASCI1:  ld l,a
+        ld h,0
+        jp HPUSH
+;
+CDIGIT: db 5,'DIGIT'
+        dw CASCII
+DIGIT:  dw $+2
+        pop hl
+        pop de
+        ld a,e
+        sub 30H
+        jp m,DIGI2
+        cp 10
+        jp m,DIGI1
+        sub 7
+        cp 10
+        jp m,DIGI2
+DIGI1:  cp l
+        jp p,DIGI2
+        ld e,a
+        ld hl,-1
+        jp DPUSH
+DIGI2:  ld l,h
+        jp HPUSH
+;
+CNEXT1: db 4,'NEXT'
+        dw CDIGIT
+        dw RUNF
+        dw PUSHN,0C3H,POKD8,PUSHN
+        dw NEXT,POKD16,ENDF
+;
+CNEXT2: db 7,'NEXT->H'
+        dw CNEXT1
+        dw RUNF
+        dw PUSHN,0C3H,POKD8,PUSHN
+        dw HPUSH,POKD16,ENDF
+;
+CNEXT3: db 8,'NEXT->DH'
+        dw CNEXT2
+        dw RUNF
+        dw PUSHN,0C3H,POKD8,PUSHN
+        dw DPUSH,POKD16,ENDF
+;
+CJ: db 1,'J'
+    dw CNEXT3
+    dw $+2
+    ld l,(ix+4)
+    ld h,(ix+5)
+    jp HPUSH
+;
+; : ' BLANK WORD CONTEXT @ @ SEARCH IF ENTRY SEARCH IF COMPILER @ SEARCH IF QUESTION THEN THEN THEN ;
+CPESQ: db 1,27H ;"'"
+       dw CJ
+PESQ:  dw RUNF
+       dw BLANK,WORD,CONTEXT
+       dw PEK16,PEK16,SEARCH,BRCH0,P1
+       dw ENTRY,SEARCH,BRCH0,P1
+       dw COMPILER,PEK16,SEARCH,BRCH0
+       dw P1,QUESTION
+P1:    dw CR,ENDF
+;
+; : DOES> R> ENTRY DUP C@ 5 + + ! SCODE ........
+CDOES:    db 5,'DOES>'
+          dw CPESQ
+DOES:     dw RUNF
+          dw OUTRP,ENTRY,DUP,PEK8
+          dw PUSHN,5,MAIS,MAIS,POK16
+          dw SCODE
+_ATIVATE: dec ix
+          ld (ix+0),b
+          dec ix
+          ld (ix+0),c
+          ex de,hl
+          ld c,(hl)
+          inc hl
+          ld b,(hl)
+          inc hl
+          jp HPUSH
+;
+; : <BUILDS 0 CONST ;
+CBUILDS: db 7,'<BUILDS'
+         dw CDOES
+BUILDS:  dw RUNF
+         dw ZERO,CONST,ENDF
+;
+CPTC: db 3,'PTC'
+      dw CBUILDS
+      dw $+2
+      pop hl
+      ld a,l
+      inc a
+      cp 33
+      jp p,PT1
+      ld (MSX_CSRX),a
+PT1:  pop hl
+      ld a,l
+      inc a
+      cp 25
+      jp p,NEXT
+      ld (MSX_CSRY),a
+      jp NEXT
+;
+;      pop de
+;      ld h,l
+;      inc h
+;      ld l,e
+;      inc l
+;      call 0C6H
+;      jp NEXT
+;
+
+CMAISP: db 3,'+SP'
+        dw CPTC
+MAISP:  dw $+2
+        pop hl
+        add hl,sp
+        jp HPUSH
+;
+CC1632: db 4,'S->D'
+        dw CMAISP
+C1632:  dw $+2
+        pop de
+        ld hl,0
+        ld a,d
+        and 80H
+        jp z,DPUSH
+        dec hl
+        jp DPUSH
+;
+; : PICK 1- 2 * +SP @ ;
+CPICK: db 4,'PICK'
+       dw CC1632
+       dw RUNF
+       dw MENOS1,TWO,VEZES,MAISP
+       dw PEK16,ENDF
+;
+CSWAP: db 4,'SWAP'
+       dw CPICK
+SWAP:  dw $+2
+       pop hl
+       ex (sp),hl
+       jp HPUSH
+;
+CMODUL: db 2,'+-'
+        dw CSWAP
+MODUL:  dw RUNF
+        dw MEN0,BRCH0,MODU1,MINUS
+MODU1:  dw ENDF
+;
+CDMODUL: db 3,'D+-'
+         dw CMODUL
+DMODUL:  dw RUNF
+         dw MEN0,BRCH0,DMODU1,DMINUS
+DMODU1:  dw ENDF
+;
+CABS: db 3,'ABS'
+      dw CDMODUL
+ABS:  dw $+2
+      pop de
+      bit 7,d
+      jr z,ABS2
+ABS1: ld hl,0
+      and a
+      sbc hl,de
+      ex de,hl
+ABS2: push de
+      jp NEXT
+;
+CDABS: db 4,'DABS'
+       dw CABS
+DABS:  dw $+2
+       pop hl
+       bit 7,h
+       jp z,HPUSH
+DABS1: ex (sp),hl
+       ex de,hl
+       ld hl,0
+       xor a
+       sbc hl,de
+       ex (sp),hl
+       ex de,hl
+       ld hl,0
+       sbc hl,de
+       jp HPUSH
+;
+CUVEZES: db 2,'U*'
+         dw CDABS
+UVEZES:  dw $+2
+         pop de
+         pop hl
+         push bc
+         ld c,h
+         ld a,l
+         call UVEZESR
+         push hl
+         ld h,a
+         ld a,c
+         ld c,h
+         call UVEZESR
+         pop de
+         ld b,c
+         ld c,d
+         add hl,bc
+         adc a,0
+         ld d,l
+         ld l,h
+         ld h,a
+         pop bc
+         jp DPUSH
+
+UVEZESR: ld hl,0
+         ld b,8
+UVEZR1:  add hl,hl
+         rla
+         jr nc,UVEZR2
+         add hl,de
+         adc a,0
+UVEZR2:  djnz UVEZR1
+         ret
+;
+CUDIV: db 2,'U/'
+       dw CUVEZES
+UDIV:  dw $+2
+       ld hl,4
+       add hl,sp
+       ld e,(hl)
+       ld (hl),c
+       inc hl
+       ld d,(hl)
+       ld (hl),b
+       pop bc
+       pop hl
+       ld a,l
+       sub c
+       ld a,h
+       sbc a,b
+       jr c,UDIV1
+       ld hl,-1
+       ld de,-1
+       jr UDIV6
+UDIV1: ld a,10H
+UDIV2: add hl,hl
+       rla
+       ex de,hl
+       add hl,hl
+       jr nc,UDIV3
+       inc de
+       and a
+UDIV3: ex de,hl
+       rra
+       push af
+       jr nc,UDIV4
+       ld a,l
+       sub c
+       ld l,a
+       ld a,h
+       sbc a,b
+       ld h,a
+       jr UDIV5
+UDIV4: ld a,l
+       sub c
+       ld l,a
+       ld a,h
+       sbc a,b
+       ld h,a
+       jr nc,UDIV5
+       add hl,bc
+       dec de
+UDIV5: inc de
+       pop af
+       dec a
+       jr nz,UDIV2
+UDIV6: pop bc
+       push hl
+       push de
+       jp NEXT
+;
+CMMOD: db 5,'M/MOD'
+       dw CUDIV
+MMOD:  dw RUNF
+       dw INRP,ZERO,LERP,UDIV,OUTRP
+       dw SWAP,INRP,UDIV,OUTRP,ENDF
+;
+; : <# PAD HLD ! ;
+CININUM: db 2,'<#'
+         dw CMMOD
+ININUM:  dw RUNF
+         dw PAD,HLD,POK16,ENDF
+;
+; : # BASE @ M/MOD ROT 9 OVER < 7 + THEN 48 + HOLD ;
+CNUMCAR: db 1,'#'
+         dw CININUM
+NUMCAR:  dw RUNF
+         dw BASE,PEK16,MMOD,ROT,PUSHN
+         dw 9,OVER,MENOR,BRCH0,NUMCA1
+         dw PUSHN,7,MAIS
+NUMCA1:  dw PUSHN,48,MAIS,HOLD,ENDF
+;
+; : #S BEGIN # OVER OVER OR 0= UNTIL ;
+CNUMFRM: db 2,'#S'
+         dw CNUMCAR
+NUMFRM:  dw RUNF
+         dw NUMCAR,OVER,OVER,OR,IGU0
+         dw BRCH0,NUMFRM+2,ENDF
+;
+; : SIGN ROT <0 IF '-' HOLD ELSE BLANK HOLD THEN ;
+CSIGN: db 4,'SIGN'
+       dw CNUMFRM
+SIGN:  dw RUNF
+       dw ROT,MEN0,BRCH0,SIGN1
+       dw PUSHN,'-',HOLD,ENDF
+SIGN1: dw BLANK,HOLD,ENDF
+;
+CSIGN0: db 5,'SIGN0'
+        dw CSIGN
+SIGN0:  dw RUNF
+        dw ROT,MEN0,BRCH0,SIGN01
+        dw PUSHN,'-',BRCH,SIGN01+2
+SIGN01: dw BLANK,PUSHN,TUN,POK16,ENDF
+;
+; : #> DROP DROP HLD @ PAD OVER - ;
+CFIMNUM: db 2,'#>'
+         dw CSIGN0
+FIMNUM:  dw RUNF
+         dw DROP,DROP,HLD,PEK16,PAD
+         dw OVER,MENOS,ENDF
+;
+IMP: dw $+2
+     inc ix
+     jp SHOW+2
+;
+CSHOW: db 4,'SHOW'
+       dw CFIMNUM
+SHOW:  dw $+2
+       exx
+SHOW1: pop hl
+       ld a,l
+       cp -1
+       jp z,RG
+       call VIDEO
+       jr SHOW1
+;
+; : D.R {PSG} @ IF {IMPDUF+2} THREE {VZ} >R SWAP OVER DABS <# #S SIGN #> R> OVER - SPACES TYPE ;
+CIMPDSF: db 3,'D.R'
+         dw CSHOW
+IMPDSF:  dw RUNF
+         dw THREE,VZ,INRP,SWAP,OVER
+         dw DABS,ININUM,NUMFRM,SIGN,FIMNUM
+         dw OUTRP,OVER,MENOS,SPACS,TYPE
+         dw ENDF
+;
+; : DU.R THREE {VZ} >R SWAP OVER <# #S BLANK HOLD #> >R OVER - SPACES TYPE ;
+CIMPDUF: db 4,'DU.R'
+         dw CIMPDSF
+IMPDUF:  dw RUNF
+         dw THREE,VZ,INRP,SWAP,OVER
+         dw ININUM,NUMFRM,ROT,DROP,BLANK
+         dw HOLD,FIMNUM,OUTRP,OVER,MENOS
+         dw SPACS,TYPE,ENDF
+;
+CIDSFX: db 4,'D.XR'
+        dw CIMPDUF
+IDSFX:  dw RUNF
+        dw PUSHN,4,VZ,INRP,INRP,SWAP,OVER
+        dw DABS,ININUM,NUMFRM,SIGN0
+        dw FIMNUM,PUSHN,TUN,PEK16,EMIT
+        dw OUTRP,OVER,MENOS,OUTRP,STRING,TYPE
+        dw ENDF
+;
+CIDUFX: db 5,'DU.XR'
+        dw CIDSFX
+IDUFX:  dw RUNF
+        dw PUSHN,4,VZ,INRP,INRP,SWAP,OVER
+        dw ININUM,NUMFRM,ROT,DROP,FIMNUM
+        dw OUTRP,OVER,MENOS,OUTRP,STRING,TYPE
+        dw ENDF
+;
+; : D. ZERO D.R SPACE ;
+CIMPDS: db 2,'D.'
+        dw CIDUFX
+IMPDS:  dw RUNF
+        dw ZERO,IMPDSF,ENDF ;; SPACE,ENDF
+;
+; : DU. ZERO DU.R SPACE ;
+CIMPDU: db 3,'DU.'
+        dw CIMPDS
+IMPDU:  dw RUNF
+        dw ZERO,IMPDUF,ENDF ;; SPACE,ENDF
+;
+CIMPSF: db 2,'.R'
+        dw CIMPDU
+        dw RUNF
+        dw INRP,C1632,OUTRP,IMPDSF,ENDF
+;
+CIMPUF: db 3,'U.R'
+        dw CIMPSF
+        dw RUNF
+        dw ZERO,SWAP,IMPDUF,ENDF
+;
+CISFX: db 3,'.XR'
+       dw CIMPUF
+       dw RUNF
+       dw INRP,INRP,C1632,OUTRP,OUTRP,IDSFX,ENDF
+;
+CIUFX: db 4,'U.XR'
+       dw CISFX
+       dw RUNF
+       dw INRP,ZERO,SWAP,OUTRP,IDUFX,ENDF
+;
+CIMPSS: db 1,'.'
+        dw CIUFX
+IMPSS:  dw RUNF
+        dw C1632,IMPDS,ENDF
+;
+CIMPSU: db 2,'U.'
+        dw CIMPSS
+IMPSU:  dw RUNF
+        dw ZERO,IMPDU,ENDF
+;
+CTYPE: db 4,'TYPE'
+       dw CIMPSU
+TYPE:  dw $+2
+       exx
+       pop bc
+       pop hl
+       ld b,c
+CT1:   ld a,(hl)
+       call VIDEO
+       inc hl
+       djnz CT1
+       jp RG
+;
+; OBTEM A ULTIMA PALAVRA DO DICIONARIO PRINCIPAL (FORTH)
+CCONTEXT: db 7,'CONTEXT'
+          dw CTYPE
+CONTEXT:  dw $+2
+          ld hl,PUPDP
+          jp HPUSH
+;
+; OBTEM A ULTIMA PALAVRA DO DICIONARIO CORRENTE
+CCURRENT: db 7,'CURRENT'
+          dw CCONTEXT
+CURRENT:  dw $+2
+          ld hl,PUPDC
+          jp HPUSH
+;
+; OBTEM O ENDERECO A ULTIMA PALAVRA DO DICIONARIO DE COMPILACAO
+CCOMPILER: db 8,'COMPILER'
+           dw CCURRENT
+COMPILER:  dw $+2
+           ld hl,UPCC
+           jp HPUSH
+;
+; : TAKE 0C3H C! {POKD16} ;
+CTAKE: db 4,'TAKE'
+       dw CCOMPILER
+       dw RUNF
+       dw PUSHN,0C3H,POKD8,PUSHN
+       dw RG,POKD16,ENDF
+;
+CSTATE:  db 5,'STATE'
+         dw CTAKE
+STATE:   dw $+2
+         ld hl,PSTE
+         jp HPUSH
+;
+; : ?SEARCH CONTEXT @ @ SEARCH DUP IF MODE @ IF DROP COMPILER @ SEARCH DUP IF ZERO ELSE TRUE THEN STATE ! THEN THEN ;
+CISEARCH: db 7,'?SEARCH'
+          dw CSTATE
+ISEARCH:  dw RUNF
+          dw CONTEXT,PEK16,PEK16
+          dw SEARCH,DUP,BRCH0,IS1,MODE
+          dw PEK16,BRCH0,IS1,DROP
+          dw COMPILER,PEK16,SEARCH,DUP
+          dw BRCH0,IS2,ZERO,BRCH,IS2+2
+IS2:      dw TRUE,STATE,POK16
+IS1:      dw ENDF
+;
+; : ?NUMBER NUMBER IF MODE @ IF {TUN} C@ IF {DPUSHN} , D, ELSE {PUSHN} , , THEN ELSE ZERO THEN ELSE TRUE THEN ;
+CINUMBER: db 7,'?NUMBER'
+          dw CISEARCH
+INUMBER:  dw RUNF
+          dw NUMBER,BRCH0,IN1,MODE
+          dw PEK16,BRCH0,IN2,PUSHN,TUN
+          dw PEK8,BRCH0,IN3,PUSHN,DPUSHN
+          dw POKD16,POKD32,BRCH,IN2
+IN3:      dw PUSHN,PUSHN,POKD16,POKD16
+IN2:      dw ZERO,ENDF
+IN1:      dw TRUE,ENDF
+;
+CPUSHN: db 2,'*#'
+        dw CINUMBER
+PUSHN:  dw $+2
+        ld a,(bc)
+        ld e,a
+        inc bc
+        ld a,(bc)
+        ld d,a
+        inc bc
+        push de
+        jp NEXT
+;
+; INCLUI UM VALOR 16 BITS NO DICIONARIO
+CPOKD16: db 1,','
+         dw CPUSHN
+POKD16:  dw $+2
+         pop de
+         ld hl,(PRECOMP)
+         ld (hl),e
+         inc hl
+         ld (hl),d
+         inc hl
+         ld (PRECOMP),hl
+         jp NEXT
+;
+CDPUSHN: db 3,'D*#'
+         dw CPOKD16
+DPUSHN:  dw $+2
+         ld a,(bc)
+         ld l,a
+         inc bc
+         ld a,(bc)
+         ld h,a
+         inc bc
+         ld a,(bc)
+         ld e,a
+         inc bc
+         ld a,(bc)
+         ld d,a
+         inc bc
+         jp DPUSH
+;
+; INCLUI UM VALOR 32 BITS NO DICIONARIO
+CPOKD32: db 2,'D,'
+         dw CDPUSHN
+POKD32:  dw $+2
+         pop de      ; MSB
+         ld hl,(PRECOMP)
+         ld (hl),e
+         inc hl
+         ld (hl),d
+         inc hl
+         pop de      ; LSB
+         ld (hl),e
+         inc hl
+         ld (hl),d
+         inc hl
+         ld (PRECOMP),hl
+         jp NEXT
+;
+; : ENTRY CURRENT @ @ ;
+CENTRY: db 5,'ENTRY'
+        dw CPOKD32
+ENTRY:  dw RUNF
+        dw CURRENT,PEK16,PEK16,ENDF
+;
+; OBTEM A PROXIMA POSICAO DE MEMORIA APONTADA POR "PRECOMP"
+PROXIMA: dw $+2
+         ld hl,(PRECOMP)
+         ld d,0
+         ld e,(hl)
+         inc de
+         push de
+         jp NEXT
+;
+; OBTEM O ENDERECO DE "PRECOMP"
+CDP:  db 2,'DP'
+      dw CENTRY
+DP:   dw $+2
+      ld hl,PRECOMP
+      jp HPUSH
+;
+; OBTEM O VALOR DE 32 BITS APONTADOS POR "PRECOMP"
+CHERE: db 4,'HERE'
+       dw CDP
+HERE:  dw $+2
+       ld hl,(PRECOMP)
+       jp HPUSH
+;
+CSOMEM: db 2,'+!'
+        dw CHERE
+SOMEM:  dw $+2
+        pop hl
+        pop de
+        ld a,(hl)
+        add a,e
+        ld (hl),a
+        inc hl
+        ld a,(hl)
+        adc a,d
+        ld (hl),a
+        jp NEXT
+;
+CMINUS: db 5,'MINUS'
+        dw CSOMEM
+MINUS:  dw $+2
+        pop de
+        jp ABS1
+;
+CDMINUS: db 6,'DMINUS'
+         dw CMINUS
+DMINUS:  dw $+2
+         pop hl
+         jp DABS1
+;
+CMAIS2: db 2,'2+'
+        dw CDMINUS
+MAIS2:  dw $+2
+        pop hl
+        inc hl
+        inc hl
+        jp HPUSH
+;
+; : CREATE ENTRY BLANK WORD HERE CURRENT @ ! {PROXIMA} DP +! , HERE 2+ , ;
+CCREATE: db 6,'CREATE'
+         dw CMAIS2
+CREATE:  dw RUNF
+         dw ENTRY,BLANK,WORD,CONTEXT
+         dw PEK16,PEK16,SEARCH,NOT
+         dw BRCH0,CREAT1,NU,BRCH,CREAT3
+CREAT1:  dw ENTRY,SEARCH,NOT,BRCH0
+         dw CREAT2,NU,BRCH,CREAT3
+CREAT2:  dw COMPILER,PEK16,SEARCH,NOT
+         dw BRCH0,CREAT3,NU
+CREAT3:  dw HERE,CURRENT,PEK16,POK16,PROXIMA
+         dw DP,SOMEM,POKD16,HERE
+         dw MAIS2,POKD16,ENDF
+;
+NU: dw RUNF
+    dw DISP
+    db 18,' PALAVRA N',0B0H,'O ',8BH,'NICA'
+    dw DROP,ENDF
+;
+ULTIMA: dw $+2
+        ld de,(UPDC)
+        ld h,0
+        ld a,(de)
+        ld l,a
+        add hl,de
+        ld de,3
+        add hl,de
+        jp HPUSH
+;
+; : : CURRENT @ CONTEXT ! CREATE {RUNF} {ULTIMA} ! MODE 1SET ;
+CCRIA: db 1,':'
+       dw CCREATE
+       dw RUNF
+       dw CURRENT,PEK16,CONTEXT
+       dw POK16,CREATE,PUSHN,RUNF
+       dw ULTIMA,POK16,MODE,SET,ENDF
+;
+; : ; {ENDF} , MODE 0SET ;
+CFINAL: db 1,';'
+        dw 0
+        dw RUNF
+        dw PUSHN,ENDF,POKD16,MODE
+        dw RESET,ENDF
+;
+; : EXIT {ENDF} , ;
+CEXIT: db 4,'EXIT'
+       dw CFINAL
+       dw RUNF
+       dw PUSHN,ENDF,POKD16,ENDF
+;
+; : ?EXECUTE STATE @ STATE 0SET MODE @ = IF EXECUTE ZERO {VZ} ELSE , THEN ;
+CIEXEC: db 8,'?EXECUTE'
+        dw CCRIA
+IEXEC:  dw RUNF
+        dw STATE,PEK16,STATE,RESET
+        dw MODE,PEK16,IGU,BRCH0,IE1
+        dw EXEC,ZERO,VZ,ENDF
+IE1:    dw POKD16,ENDF
+;
+CDISP: db 2,'*('
+       dw CIEXEC
+DISP:  dw $+2
+       ld a,(bc)
+       ld d,a
+DISP1: inc bc
+       ld a,(bc)
+       call VIDEO
+       dec d
+       jr nz,DISP1
+       inc bc
+       jp NEXT
+;
+; : +LOOP {S_LOOP} COMPILE END, ;
+CPASSO: db 5,'+LOOP'
+        dw CEXIT
+        dw RUNF
+        dw PUSHN,S_LOOP,MARK_E,ENDF
+;
+; : LEAVE {LEAVE} , ;
+CLEAVE: db 5,'LEAVE'
+        dw CPASSO
+        dw RUNF
+        dw PUSHN,LEAVE,POKD16,ENDF
+;
+; : DO {B_LOOP} COMPILE DO, ;
+CDO: db 2,'DO'
+     dw CLEAVE
+     dw RUNF
+     dw PUSHN,B_LOOP,MARK_S,ENDF
+;
+; : LOOP {LOOP} COMPILE END, ;
+CLOOP: db 4,'LOOP'
+       dw CDO
+       dw RUNF
+       dw PUSHN,LOOP,MARK_E,ENDF
+;
+; : ." LCASE COMPILE *( , 22H WORD HERE C@ 1+ DP +! UPCASE ;
+CPRINT: db 2,'."'
+        dw CLOOP
+        dw RUNF
+        dw LCASE,PUSHN,DISP,POKD16
+        dw PUSHN,22H,WORD,HERE,PEK8
+        dw MAIS1,DP,SOMEM,UCASE,ENDF
+;
+CCODE:  db 6,';SCODE'
+        dw CPRINT
+        dw RUNF
+        dw PUSHN,SCODE,POKD16,MODE
+        dw RESET,ENDF
+;
+CIF: db 2,'IF'
+     dw CCODE
+     dw RUNF
+     dw PUSHN,BRCH0,MARK_S,ZERO
+     dw POKD16,ENDF
+;
+CELSE: db 4,'ELSE'
+       dw CIF
+       dw RUNF
+       dw PUSHN,BRCH,MARK_S,ZERO
+       dw POKD16,SWAP,THEN,ENDF
+;
+CTHEN: db 4,'THEN'
+       dw CELSE
+THEN:  dw RUNF
+       dw HERE,SWAP,POK16,ENDF
+;
+CCMPILE: db 7,'COMPILE'
+         dw CTHEN
+CMPILE:  dw RUNF
+         dw PUSHN,PUSHN,POKD16,PESQ
+         dw POKD16,PUSHN,POKD16,POKD16
+         dw ENDF
+;
+CCMPL: db 9,'[COMPILE]'
+       dw CCMPILE
+       dw RUNF
+       dw BLANK,WORD,COMPILER,PEK16
+       dw SEARCH,NOT,BRCH0,CP1,POKD16
+       dw BRCH,CP1+2
+CP1:   dw QUESTION,ENDF
+;
+C_DEF:  db 1,']'
+        dw CCMPL
+_DEFIN: dw RUNF
+        dw PUSHN,MSX_BEEP
+        dw STATE,POK16,ENDF
+;
+CF_DEF:  db 1,'['
+         dw CCMPL
+F_DEFIN: dw RUNF
+         dw ZERO,STATE,POK16,ENDF
+;
+CCODI: db 4,'CODI'
+       dw CF_DEF
+       dw RUNF
+       dw PUSHN,PUSHN,POKD16
+       dw BLANK,WORD,HERE,MAIS1,PEK8
+       dw POKD16,ENDF
+;
+CMAIS1: db 2,'1+'
+        dw CDISP
+MAIS1:  dw $+2
+        pop hl
+        inc hl
+        jp HPUSH
+;
+CMARK_S: db 3,'DO,'
+         dw CMAIS1
+MARK_S:  dw RUNF
+         dw POKD16,HERE,ENDF
+;
+; INCLUI UM VALOR 8 BITS NO DICIONARIO
+CPOKD8: db 2,'C,'
+        dw CMARK_S
+POKD8:  dw $+2
+        pop de
+        ld hl,(PRECOMP)
+        ld (hl),e
+        inc hl
+        ld (PRECOMP),hl
+        jp NEXT
+;
+COVER: db 4,'OVER'
+       dw CPOKD8
+OVER:  dw $+2
+       pop hl
+       pop de
+       push de
+       ex de,hl
+       jp DPUSH
+;
+CCR: db 2,'CR'
+     dw COVER
+CR:  dw $+2
+     call CRLF
+     jp NEXT
+;
+
